@@ -8,7 +8,7 @@ public:
 	float GetValue();
 	int GetLayer();
 	int GetIndex();
-	void SetOutput(float);
+	void SetValue(float);
 private:
 	float m_Output;
 	int m_Layer;

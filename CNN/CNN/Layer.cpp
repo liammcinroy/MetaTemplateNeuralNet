@@ -24,9 +24,14 @@ Neuron Layer::GetNeuronAt(int index)
 	return m_Neurons[index - 1];
 }
 
-void Layer::FireNeuornAt(int index)
+float Layer::FireNeuronAt(int index)
 {
-	m_Neurons[index - 1].FireSynapse();
+	return m_Neurons[index - 1].FireSynapse();
+}
+
+float Layer::FireInverseNeuronAt(int index)
+{
+	return m_Neurons[index - 1].FireInverseSynapse();
 }
 
 void Layer::AddNeuron(Neuron newNeuron)

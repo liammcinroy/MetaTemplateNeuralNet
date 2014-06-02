@@ -49,7 +49,7 @@ void ConvolutionalNeuralNetwork::SetInput(float** input, int width, int height)
 			std::vector<Synapse> parentOf;
 			for (unsigned int n = 1; n < GetLayerAt(2).GetNeurons().size(); ++n)
 				parentOf.push_back(Synapse(SimpleNeuron(1, 1 + i + (j * width)), SimpleNeuron(GetLayerAt(2).GetNeuronAt(n).GetLayer(),
-				GetLayerAt(1).GetNeuronAt(n).GetIndex())));
+				GetLayerAt(2).GetNeuronAt(n).GetIndex())));
 			neurons.push_back(Neuron(parentOf, std::vector<Synapse>(0)));
 		}
 	}
@@ -80,9 +80,11 @@ void ConvolutionalNeuralNetwork::SetOutput(float** newOutput, int width, int hei
 
 Layer ConvolutionalNeuralNetwork::Discriminate()
 {
-	for (unsigned int i = 1; i < m_Layers.size(); ++i)
+	for (unsigned int i = 1; i < m_Layers.size() - 1; ++i)
 		for (unsigned int j = 1; j < GetLayerAt(i).GetNeurons().size(); ++j)
-			GetLayerAt(i).GetNeuronAt(j).FireSynapse();
+			for (unsigned int s = 1; s < GetLayerAt(i).GetNeuronAt(j).GetChildOfSynapses().size(); ++s)
+				GetLayerAt(i + 1).GetNeuronAt(GetLayerAt(i).GetNeuronAt(j).GetChildOfSynapseAt(s).GetChild().GetIndex())
+				.SetValue(GetLayerAt(i).FireNeuronAt(j));
 	return GetLayerAt(GetLayers().size());
 }
 
@@ -90,7 +92,9 @@ Layer ConvolutionalNeuralNetwork::Generate(Layer input)
 {
 	for (int i = m_Layers.size(); i > 0; --i)
 		for (int j = GetLayerAt(i).GetNeurons().size(); j > 0; --j)
-			GetLayerAt(i).GetNeuronAt(j).FireInverseSynapse();
+			for (unsigned int s = 1; s < GetLayerAt(i).GetNeuronAt(j).GetParentOfSynapses().size(); ++s)
+				m_Layers[i].GetNeuronAt(GetLayerAt(i).GetNeuronAt(j).GetParentOfSynapseAt(s).GetChild().GetIndex())
+				.SetValue(GetLayerAt(i).FireInverseNeuronAt(j));
 	return GetLayerAt(1);
 }
 

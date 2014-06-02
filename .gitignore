@@ -19,3 +19,11 @@
 *.exe
 *.out
 *.app
+*.sdf
+*.sdf
+*.suo
+CNN/CNN.sdf
+CNN/CNN.v12.suo
+CNN/CNN/Debug/CNN.log
+CNN/CNN/Debug/CNN.tlog/CL.read.1.tlog
+CNN/CNN/Debug/CNN.tlog/CL.write.1.tlog

@@ -12,7 +12,8 @@ public:
 	~Layer();
 	std::vector<Neuron> GetNeurons();
 	Neuron GetNeuronAt(int);
-	void FireNeuornAt(int);
+	float FireNeuronAt(int);
+	float FireInverseNeuronAt(int);
 	void AddNeuron(Neuron);
 	Layer operator-(Layer);
 	bool operator==(Layer);

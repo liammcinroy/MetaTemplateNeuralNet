@@ -13,8 +13,8 @@ public:
 	Neuron();
 	Neuron(std::vector<Synapse>, std::vector<Synapse>);
 	~Neuron();
-	void FireSynapse();
-	void FireInverseSynapse();
+	float FireSynapse();
+	float FireInverseSynapse();
 	void AddParentOfSynapse(SimpleNeuron);
 	void AddChildOfSynapse(SimpleNeuron);
 	void IncrementParentWeights(float);

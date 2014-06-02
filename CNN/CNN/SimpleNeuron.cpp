@@ -21,7 +21,7 @@ float SimpleNeuron::GetValue()
 	return m_Output;
 }
 
-void SimpleNeuron::SetOutput(float newOutput)
+void SimpleNeuron::SetValue(float newOutput)
 {
 	m_Output = newOutput;
 }

@@ -6,36 +6,30 @@
 #include "Synapse.h"
 #include "SimpleNeuron.h"
 
-std::string StringUntil(std::string input, std::string key)
-{
-	std::string result;
-	size_t index = input.rfind(key);
-	if (index != std::string::npos)
-		for (unsigned int i = 0; i < index; ++i)
-			result += input[i];
-	return result;
-}
-
-std::string StringBy(std::string input, std::string key)
-{
-	std::string result;
-	size_t index = input.rfind(key);
-	if (index != std::string::npos)
-		for (unsigned int i = index + key.length(); i < input.length(); ++i)
-			result += input[i];
-	return result;
-}
-
-std::string FindInBetween(std::string input, std::string first, std::string second)
-{
-	std::string firstSeg = StringUntil(input, second);
-	return StringBy(firstSeg, first);
-}
-
 int main(int argc, const char* args[])
 {
-	ConvolutionalNeuralNetwork neuralNetwork(path);
+	ConvolutionalNeuralNetwork neuralNetwork("secondCNN.cnn");
+	float** input = new float*[2];
+	for (int i = 0; i < 2; ++i)
+		input[i] = new float[3];
+
+	for (int i = 0; i < 2; ++i)
+		for (int j = 0; j < 3; ++j)
+			input[i][j] = (rand() % 100) / 100;
+	neuralNetwork.SetInput(input, 2, 3);
+
+	Layer output = neuralNetwork.Discriminate();
+	std::cout << "Output: " << output.GetNeuronAt(1).GetValue() << std::endl;
+	std::cout << "Generative output: ";
+	Layer generatedOutput = neuralNetwork.Generate(output);
+	for (unsigned int i = 1; i < generatedOutput.GetNeurons().size(); ++i)
+		std::cout << generatedOutput.GetNeuronAt(i).GetValue() << " ";
+	std::cout << std::endl;
+
 	char c;
 	std::cin >> c;
+	for (int i = 0; i < 2; ++i)
+		delete[] input[i];
+	delete[] input;
 	return 0;
 }
