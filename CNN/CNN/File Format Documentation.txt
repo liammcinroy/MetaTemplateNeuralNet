@@ -1,0 +1,38 @@
+Convolutional Neural Network (.cnn)
+------------------------------------
+"<[" - start network
+"]>" - end network
+
+"{" - start layer
+"}" - end layer
+
+Neurons
+"newline" or " " - new neuron
+"<p" - start parent of synapses
+"p>" - end parent of synapses
+"<c" - start child of synapses
+"c>" - end child of synapses
+
+Synapses
+"/" - start synapse
+"\" - end synapse
+"|" - break between synapses
+"p(#,#)p" - The parent neuron (Layer, index)
+"c(#,#)c" - The child neuron (Layer, index)
+"d:#" - The disciminate weight
+"g:#" - The generative weight
+
+An example file contents would be:
+
+<[{ <p|/p(2,1)pc(3,1)pcd:10g:1\|/p(2,1)pc(3,2)pcd:10g:1\|p><cc> <p|/p(2,2)pc(3,1)pcd:10g:1\|/p(2,2)pc(3,2)cd:10g:1\|p><cc> <p|/p(2,3)pc(3,1)cd:10g:1\|/p(2,3)pc(3,2)cd:10g:1\|p><cc>}{ <p|/p(3,1)pc(4,1)cd:10g:1\|p><c|/p(2,1)pc(3,1)cd:10g:1\|/p(2,2)pc(3,1)cd:10g:1\|/p(2,3)pc(3,1)cd:10g:1\|c> <p|/p(3,2)pc(4,1)cd:10g:1\|p><c|/p(2,1)pc(3,2)cd:10g:1\|/p(2,2)pc(3,2)cd:10g:1\|/p(2,3)pc(3,2)cd:10g:1\|c>}{ <pp><c|/p(3,1)pc(4,1)cd:10g:1\|/p(3,2)pc(4,1)cd:10g:1\|c>}]>
+
+Which would produce a neural network that looked like:
+
+Input   L2      L3     Output
+        O--_
+		  -_--->O--_        
+		O--_       _--->O
+		  -_--->O--
+		O--
+		
+The input layer is always undefined, as it will have to be set at runtime. All of the synapses have a discriminating weight of 10 and a generative weight of 1
