@@ -27,3 +27,13 @@ CNN/CNN.v12.suo
 CNN/CNN/Debug/CNN.log
 CNN/CNN/Debug/CNN.tlog/CL.read.1.tlog
 CNN/CNN/Debug/CNN.tlog/CL.write.1.tlog
+*.ilk
+*.opensdf
+*.pdb
+*.tlog
+CNN/CNN/Debug/CNN.tlog/link.write.1.tlog
+CNN/CNN/Debug/CNN.tlog/link.command.1.tlog
+CNN/CNN/Debug/CNN.tlog/CNN.lastbuildstate
+CNN/CNN/Debug/CNN.tlog/CL.write.1.tlog
+CNN/CNN/Debug/CNN.tlog/link.command.1.tlog
+*.idb
