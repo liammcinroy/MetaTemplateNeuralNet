@@ -44,7 +44,7 @@ Layer Layer::operator-(Layer other)
 bool Layer::operator==(Layer other)
 {
 	for (int i = 1; i < other.GetNeurons().size(); ++i)
-		if (m_Neurons[i - 1].GetOutput() != other.GetNeuronAt(i).GetOutput())
+		if (m_Neurons[i - 1].GetValue() != other.GetNeuronAt(i).GetValue())
 			return false;
 	return true;
 }

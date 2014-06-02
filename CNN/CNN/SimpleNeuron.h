@@ -5,7 +5,7 @@ public:
 	SimpleNeuron();
 	SimpleNeuron(int, int);
 	~SimpleNeuron();
-	float GetOutput();
+	float GetValue();
 	int GetLayer();
 	int GetIndex();
 	void SetOutput(float);

@@ -21,7 +21,7 @@ public:
 	Layer GetLayerAt(int);
 	Layer GetInput();
 	void SetInput(float**, int, int);
-	Layer GetOutput();
+	Layer GetValue();
 	void SetOutput(float**, int, int);
 	Layer Discriminate();
 	Layer Generate(Layer);
@@ -33,5 +33,8 @@ public:
 private:
 	std::vector<Layer> m_Layers;
 	float m_LearnRate;
+	std::string StringUntil(std::string, std::string);
+	std::string StringBy(std::string, std::string);
+	std::string FindInBetween(std::string, std::string, std::string);
 };
 

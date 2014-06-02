@@ -75,6 +75,7 @@
     <ClCompile Include="Layer.cpp" />
     <ClCompile Include="Neuron.cpp" />
     <ClCompile Include="SimpleNeuron.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="Synapse.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -20,7 +20,7 @@ void Neuron::FireSynapse()
 	float sum = 0.0f;
 
 	for (std::vector<Synapse>::iterator it = m_ChildOfSynapses.begin(); it != m_ChildOfSynapses.end(); ++it)
-		sum += ((*it).GetWeightDiscriminate() * (*it).GetParent().GetOutput());
+		sum += ((*it).GetWeightDiscriminate() * (*it).GetParent().GetValue());
 
 	float probability = (1 / (1 + pow(e, -sum)));
 
@@ -49,7 +49,7 @@ void Neuron::FireInverseSynapse()
 	float sum = 0.0f;
 
 	for (std::vector<Synapse>::iterator it = m_ParentOfSynapses.end(); it != m_ParentOfSynapses.begin(); --it)
-		sum += ((*it).GetWeightGenerative() * (*it).GetChild().GetOutput());
+		sum += ((*it).GetWeightGenerative() * (*it).GetChild().GetValue());
 
 	float probability = -log((1 / sum) - 1);
 
@@ -117,6 +117,6 @@ void Neuron::DecrementChildWeights(float amount)
 
 Neuron Neuron::operator-(Neuron other)
 {
-	SetOutput(abs(GetOutput() - other.GetOutput()));
+	SetOutput(abs(GetValue() - other.GetValue()));
 	return *this;
 }

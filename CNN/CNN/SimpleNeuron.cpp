@@ -14,12 +14,9 @@ SimpleNeuron::SimpleNeuron(int layer, int index)
 
 SimpleNeuron::~SimpleNeuron()
 {
-	delete &m_Output;
-	delete &m_Index;
-	delete &m_Layer;
 }
 
-float SimpleNeuron::GetOutput()
+float SimpleNeuron::GetValue()
 {
 	return m_Output;
 }
@@ -29,3 +26,12 @@ void SimpleNeuron::SetOutput(float newOutput)
 	m_Output = newOutput;
 }
 
+int SimpleNeuron::GetIndex()
+{
+	return m_Index;
+}
+
+int SimpleNeuron::GetLayer()
+{
+	return m_Layer;
+}
