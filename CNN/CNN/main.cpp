@@ -9,6 +9,7 @@
 int main(int argc, const char* args[])
 {
 	ConvolutionalNeuralNetwork neuralNetwork("secondCNN.cnn");
+
 	float** input = new float*[2];
 	for (int i = 0; i < 2; ++i)
 		input[i] = new float[3];
