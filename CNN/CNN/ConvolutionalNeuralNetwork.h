@@ -15,23 +15,22 @@ class ConvolutionalNeuralNetwork
 {
 public:
 	ConvolutionalNeuralNetwork();
-	ConvolutionalNeuralNetwork(std::string);
-	ConvolutionalNeuralNetwork(int*, int*, int*, int*[], int*[]);
+	ConvolutionalNeuralNetwork(std::string path);
+	ConvolutionalNeuralNetwork(int* neuronsOnEachLayer, int* featureMapsPerLayer, int* featureMapDimensions, int* featureMapConnections[], int* featureMapStartIndex[] );
 	~ConvolutionalNeuralNetwork();
-	void AddLayer(Layer);
+	void AddLayer(Layer newLayers);
 	std::vector<Layer> GetLayers();
-	Layer GetLayerAt(int);
+	Layer GetLayerAt(int index);
 	Layer GetInput();
-	void SetInput(float**, int, int);
-	Layer GetValue();
-	void SetOutput(float**, int, int);
+	void SetInput(float* input[], int width, int height);
+	Layer GetOutput();
 	Layer Discriminate();
-	Layer Generate(Layer);
+	Layer Generate(Layer input);
 	void LearnCurrentInput();
 	float GetLearnRate();
-	void SetLearnRate(float);
-	void ReadFromFile(std::string);
-	void SaveToFile(std::string);
+	void SetLearnRate(float newRate);
+	void ReadFromFile(std::string path);
+	void SaveToFile(std::string path);
 private:
 	std::vector<Layer> m_Layers;
 	float m_LearnRate;

@@ -127,26 +127,9 @@ void ConvolutionalNeuralNetwork::SetInput(float** input, int width, int height)
 	m_Layers[0] = Layer(neurons);
 }
 
-Layer ConvolutionalNeuralNetwork::GetValue()
+Layer ConvolutionalNeuralNetwork::GetOutput()
 {
 	return GetLayerAt(m_Layers.size());
-}
-
-void ConvolutionalNeuralNetwork::SetOutput(float** newOutput, int width, int height)
-{
-	std::vector<Neuron> neurons;
-	for (int i = 0; i < width; ++i)
-	{
-		for (int j = 0; j < height; ++j)
-		{
-			std::vector<Synapse> parentOf;
-			for (unsigned int n = 1; n < GetLayerAt(2).GetNeurons().size(); ++n)
-				parentOf.push_back(Synapse(SimpleNeuron(1, 1 + i + (j * width)), SimpleNeuron(GetLayerAt(2).GetNeuronAt(n).GetLayer(),
-				GetLayerAt(1).GetNeuronAt(n).GetIndex())));
-			neurons.push_back(Neuron(parentOf, std::vector<Synapse>(0)));
-		}
-	}
-	m_Layers[m_Layers.size() - 1] = Layer(neurons);
 }
 
 Layer ConvolutionalNeuralNetwork::Discriminate()

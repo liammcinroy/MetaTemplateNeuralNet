@@ -3,12 +3,12 @@ class SimpleNeuron
 {
 public:
 	SimpleNeuron();
-	SimpleNeuron(int, int);
+	SimpleNeuron(int layer, int index);
 	~SimpleNeuron();
 	float GetValue();
+	void SetValue(float);
 	int GetLayer();
 	int GetIndex();
-	void SetValue(float);
 	friend bool operator<(SimpleNeuron first, SimpleNeuron other)
 	{
 		if (other.GetLayer() < first.GetLayer())

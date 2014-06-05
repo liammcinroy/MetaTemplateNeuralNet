@@ -8,15 +8,15 @@ class Layer
 {
 public:
 	Layer();
-	Layer(std::vector<Neuron>);
+	Layer(std::vector<Neuron> neurons);
 	~Layer();
 	std::vector<Neuron> GetNeurons();
-	Neuron GetNeuronAt(int);
-	float FireNeuronAt(int);
-	float FireInverseNeuronAt(int);
-	void AddNeuron(Neuron);
-	Layer operator-(Layer);
-	bool operator==(Layer);
+	Neuron GetNeuronAt(int index);
+	float FireNeuronAt(int index);
+	float FireInverseNeuronAt(int index);
+	void AddNeuron(Neuron neuron);
+	Layer operator-(Layer other);
+	bool operator==(Layer other);
 private:
 	std::vector<Neuron> m_Neurons;
 };

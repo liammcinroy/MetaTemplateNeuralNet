@@ -7,14 +7,14 @@ class Synapse
 {
 public:
 	Synapse();
-	Synapse(SimpleNeuron, SimpleNeuron);
+	Synapse(SimpleNeuron parent, SimpleNeuron child);
 	~Synapse();
 	SimpleNeuron GetParent();
 	SimpleNeuron GetChild();
 	float GetWeightDiscriminate();
-	void SetWeightDiscriminate(float);
+	void SetWeightDiscriminate(float newValue);
 	float GetWeightGenerative();
-	void SetWeightGenerative(float);
+	void SetWeightGenerative(float newValue);
 private:
 	SimpleNeuron m_Parent;
 	SimpleNeuron m_Child;

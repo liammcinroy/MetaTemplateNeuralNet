@@ -73,6 +73,7 @@
   <ItemGroup>
     <ClCompile Include="ConvolutionalNeuralNetwork.cpp" />
     <ClCompile Include="Layer.cpp" />
+    <ClCompile Include="NetworkGenerator.cpp" />
     <ClCompile Include="Neuron.cpp" />
     <ClCompile Include="SimpleNeuron.cpp" />
     <ClCompile Include="main.cpp" />
