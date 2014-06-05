@@ -41,6 +41,8 @@ in the source code's folder. There is also a constructor that will create new ne
 SimpleNeuron is a class that has the basics of a neuron. These include location using the layer and index, and the value of the neuron. The following table
 describes the uses of each function
 
+SimpleNeuron
+===========================
  | Method Name | Parameters | Function | 
  | ------------|------------|----------- | 
  | `SimpleNeuron` | `int layer, int index` | Constructor for SimpleNeuron | 
@@ -55,6 +57,8 @@ describes the uses of each function
 Synapse is a class containing two SimpleNeurons, a parent and a child. The parent is the SimpleNeuron that the Synapse originates from, and the child is 
 the destination SimpleNeuron. There are two weights, both a discriminative and a generative.
 
+Synapse
+===========================
  | Method Name | Parameters | Function | 
  | ------------|------------|-----------| 
  | `Synapse` | `SimpleNeuron parent, SimpleNeuron child` | Constructor for Synapse | 
@@ -72,6 +76,8 @@ the destination SimpleNeuron. There are two weights, both a discriminative and a
 Neuron is a class that inherits from SimpleNeuron, and contains vectors of the Synapses that it is both a parent and a child of. It also has the 
 code that makes the CNN work. The entire network is made of Neurons. This class also enables the network to fire synapses.
 
+Neuron
+===========================
  | Method Name | Parameters | Function | 
  | ------------|------------|-----------| 
  | `Neuron` | `std::vector<Synapse> parentOf, std::vector<Synapse> childOf` | Constructor for Neuron | 
@@ -93,6 +99,8 @@ code that makes the CNN work. The entire network is made of Neurons. This class 
 
 A layer has many neurons, and many methods to interact with those neurons
 
+Layer
+===========================
  | Method Name | Parameters | Function | 
  | ------------|------------|-----------| 
  | `Layer` | `std::vector<Neuron> neurons` | Constructor for Layer | 
@@ -107,6 +115,8 @@ A layer has many neurons, and many methods to interact with those neurons
 
 This class is the result of the earlier hierarchy. It contains methods for teaching, discriminating, generating, saving, loading, and creating a network.
 
+ConvolutionalNeuralNetwork
+===========================
  | Method Name | Parameters | Function | 
  | ------------|------------|----------- | 
  | `ConvolutionalNeuralNetwork` | `std::string path` | Constructor for network, reads data from path | 
