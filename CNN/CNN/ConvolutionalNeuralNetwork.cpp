@@ -9,6 +9,77 @@ ConvolutionalNeuralNetwork::ConvolutionalNeuralNetwork(std::string path)
 	ReadFromFile(path);
 }
 
+ConvolutionalNeuralNetwork::ConvolutionalNeuralNetwork(int neuronCountPerLayer[], int featureMapsPerLayer[], int featureMapDimensions [], int* featureMapConnections[], int* featureMapStartIndex[])
+{
+	std::map<SimpleNeuron, std::vector<Synapse>> childrenOf;
+
+	for (int i = 0; i < (sizeof(neuronCountPerLayer) / sizeof(*neuronCountPerLayer)) - 1; ++i)
+	{
+		Layer currentLayer;
+
+		for (int j = 0; j < neuronCountPerLayer[i]; ++j)
+		{
+			std::vector<Synapse> parentOf;
+
+			if (featureMapsPerLayer[i] == 1)
+			{
+				for (int n = 0; n < neuronCountPerLayer[i + 1]; ++n)
+				{
+					SimpleNeuron current = SimpleNeuron(i + 1, j + 1);
+					SimpleNeuron destination = SimpleNeuron(i + 2, n + 1);
+
+					Synapse currentParentSynapse = Synapse(current, current);
+					Synapse currentChildSynapse = Synapse(destination, destination);
+
+					currentChildSynapse.SetWeightDiscriminate(currentParentSynapse.GetWeightDiscriminate());
+					currentChildSynapse.SetWeightGenerative(currentParentSynapse.GetWeightGenerative());
+
+					parentOf.push_back(currentParentSynapse);
+
+					if (childrenOf.find(destination) != childrenOf.end())
+						childrenOf.at(destination).push_back(currentChildSynapse);
+					else
+						childrenOf.insert(std::pair<SimpleNeuron, std::vector<Synapse>>(destination,
+						std::vector<Synapse>{ currentChildSynapse }));
+				}
+			}
+
+			else
+			{
+				int featureMapsUp = featureMapsPerLayer[i + 1];
+				int inFeatureMap = featureMapsPerLayer[i] / j;
+				int connections = featureMapConnections[i][inFeatureMap];
+				int startIndex = (neuronCountPerLayer[i + 1] / featureMapsUp) * featureMapStartIndex[i][inFeatureMap];
+				int destinationIndex = startIndex + (neuronCountPerLayer[i + 1] / featureMapsUp) * connections;
+
+				for (int n = startIndex; n < destinationIndex; ++n)
+				{
+					SimpleNeuron current = SimpleNeuron(i + 1, j + 1);
+					SimpleNeuron destination = SimpleNeuron(i + 2, n + 1);
+
+					Synapse currentParentSynapse = Synapse(current, current);
+					Synapse currentChildSynapse = Synapse(destination, destination);
+
+					currentChildSynapse.SetWeightDiscriminate(currentParentSynapse.GetWeightDiscriminate());
+					currentChildSynapse.SetWeightGenerative(currentParentSynapse.GetWeightGenerative());
+
+					parentOf.push_back(currentParentSynapse);
+
+					if (childrenOf.find(destination) != childrenOf.end())
+						childrenOf.at(destination).push_back(currentChildSynapse);
+					else
+						childrenOf.insert(std::pair<SimpleNeuron, std::vector<Synapse>>(destination,
+						std::vector<Synapse>{ currentChildSynapse }));
+				}
+			}
+
+			currentLayer.AddNeuron(Neuron(parentOf, childrenOf.at(SimpleNeuron(i + 1, j + 1))));
+		}
+
+		AddLayer(currentLayer);
+	}
+}
+
 ConvolutionalNeuralNetwork::~ConvolutionalNeuralNetwork()
 {
 }

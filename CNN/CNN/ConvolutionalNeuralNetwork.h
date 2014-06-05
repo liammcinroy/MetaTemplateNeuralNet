@@ -4,6 +4,7 @@
 #include <istream>
 #include <sstream>
 #include <string>
+#include <map>
 
 #include "Layer.h"
 #include "Neuron.h"
@@ -15,6 +16,7 @@ class ConvolutionalNeuralNetwork
 public:
 	ConvolutionalNeuralNetwork();
 	ConvolutionalNeuralNetwork(std::string);
+	ConvolutionalNeuralNetwork(int*, int*, int*, int*[], int*[]);
 	~ConvolutionalNeuralNetwork();
 	void AddLayer(Layer);
 	std::vector<Layer> GetLayers();
