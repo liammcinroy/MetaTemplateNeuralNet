@@ -41,15 +41,16 @@ in the source code's folder. There is also a constructor that will create new ne
 SimpleNeuron is a class that has the basics of a neuron. These include location using the layer and index, and the value of the neuron. The following table
 describes the uses of each function
 
-SimpleNeuron
+####`SimpleNeuron`
 ===========================
- | Method Name | Parameters | Function | 
- | ------------|------------|----------- | 
- | `SimpleNeuron` | `int layer, int index` | Constructor for SimpleNeuron | 
- | `GetValue` | none | Gets the current value | 
- | `SetValue` | `float newValue` | Sets the current value | 
- | `GetLayer` | none | Gets the current layer | 
- | `GetIndex` | none | Gets the current index | 
+
+| Method Name | Parameters | Function | 
+| ------------|------------|----------- | 
+| `SimpleNeuron` | `int layer, int index` | Constructor for SimpleNeuron | 
+| `GetValue` | none | Gets the current value | 
+| `SetValue` | `float newValue` | Sets the current value | 
+| `GetLayer` | none | Gets the current layer | 
+| `GetIndex` | none | Gets the current index | 
 -------------------------------------------------
 
 ###Synapse
@@ -57,18 +58,19 @@ SimpleNeuron
 Synapse is a class containing two SimpleNeurons, a parent and a child. The parent is the SimpleNeuron that the Synapse originates from, and the child is 
 the destination SimpleNeuron. There are two weights, both a discriminative and a generative.
 
-Synapse
+####`Synapse`
 ===========================
- | Method Name | Parameters | Function | 
- | ------------|------------|-----------| 
- | `Synapse` | `SimpleNeuron parent, SimpleNeuron child` | Constructor for Synapse | 
- | `GetParent` | none | Gets the parent SimpleNeuron | 
- | `GetParent` | none | Gets the parent SimpleNeuron | 
- | `GetChild` | none | Gets the child SimpleNeuron | 
- | `GetWeightDiscriminate` | none | Gets the discriminative weight | 
- | `SetWeightDiscriminate` | `float newValue` | Sets the new discriminative weight | 
- | `GetWeightGenerative` | none | Gets the generative weight | 
- | `SetWeightGenerative` | `float newValue` | Sets the new generative weight | 
+
+| Method Name | Parameters | Function | 
+| ------------|------------|-----------| 
+| `Synapse` | `SimpleNeuron parent, SimpleNeuron child` | Constructor for Synapse | 
+| `GetParent` | none | Gets the parent SimpleNeuron | 
+| `GetParent` | none | Gets the parent SimpleNeuron | 
+| `GetChild` | none | Gets the child SimpleNeuron | 
+| `GetWeightDiscriminate` | none | Gets the discriminative weight | 
+| `SetWeightDiscriminate` | `float newValue` | Sets the new discriminative weight | 
+| `GetWeightGenerative` | none | Gets the generative weight | 
+| `SetWeightGenerative` | `float newValue` | Sets the new generative weight | 
 ------------------------------------------------------------------------------------------
 
 ###Neuron
@@ -76,62 +78,65 @@ Synapse
 Neuron is a class that inherits from SimpleNeuron, and contains vectors of the Synapses that it is both a parent and a child of. It also has the 
 code that makes the CNN work. The entire network is made of Neurons. This class also enables the network to fire synapses.
 
-Neuron
+####`Neuron`
 ===========================
- | Method Name | Parameters | Function | 
- | ------------|------------|-----------| 
- | `Neuron` | `std::vector<Synapse> parentOf, std::vector<Synapse> childOf` | Constructor for Neuron | 
- | `GetValue` | none | Gets the current value | 
- | `SetValue` | `float newValue` | Sets the current value | 
- | `GetLayer` | none | Gets the current layer | 
- | `GetIndex` | none | Gets the current index | 
- | `AddParentOfSynapse` | `SimpleNeuron child` | Adds a parent of synapse | 
- | `AddChildOfSynapse` | `SimpleNeuron parent` | Adds a child of synapse | 
- | `GetParentOfSynapses` | none | Gets the parent of synapses | 
- | `GetParentOfSynapseAt` | `int index` | Gets the parent of synapse at index | 
- | `GetChildOfSynapses` | none | Gets the child of synapses | 
- | `GetChildOfSynapseAt` | `int index` | Gets the child of synapse at index | 
- | `FireSynapse` | none | Returns the value of the next neuron when discriminating | 
- | `FireInverseSynapse` | none | Returns the value of the next neuron when generating | 
+
+| Method Name | Parameters | Function | 
+| ------------|------------|-----------| 
+| `Neuron` | `std::vector<Synapse> parentOf, std::vector<Synapse> childOf` | Constructor for Neuron | 
+| `GetValue` | none | Gets the current value | 
+| `SetValue` | `float newValue` | Sets the current value | 
+| `GetLayer` | none | Gets the current layer | 
+| `GetIndex` | none | Gets the current index | 
+| `AddParentOfSynapse` | `SimpleNeuron child` | Adds a parent of synapse | 
+| `AddChildOfSynapse` | `SimpleNeuron parent` | Adds a child of synapse | 
+| `GetParentOfSynapses` | none | Gets the parent of synapses | 
+| `GetParentOfSynapseAt` | `int index` | Gets the parent of synapse at index | 
+| `GetChildOfSynapses` | none | Gets the child of synapses | 
+| `GetChildOfSynapseAt` | `int index` | Gets the child of synapse at index | 
+| `FireSynapse` | none | Returns the value of the next neuron when discriminating | 
+| `FireInverseSynapse` | none | Returns the value of the next neuron when generating | 
 -------------------------------------------------------------------------------------------------
 
 ###Layer
 
 A layer has many neurons, and many methods to interact with those neurons
 
-Layer
+####`Layer`
 ===========================
- | Method Name | Parameters | Function | 
- | ------------|------------|-----------| 
- | `Layer` | `std::vector<Neuron> neurons` | Constructor for Layer | 
- | `GetNeurons` | none | Gets the vector of Neurons | 
- | `GetNeuronAt` | `int index` | Gets the Neuron at index | 
- | `AddNeuron` | `Neuron neuron` | Adds a neuron to the end of the Layer | 
- | `FireNeuronAt` | `int index` | Fires the neuron for discriminating at index | 
- | `FireInverseNeuronAt` | `int index` | Fires the neuron for generating at index | 
+
+| Method Name | Parameters | Function | 
+| ------------|------------|-----------| 
+| `Layer` | `std::vector<Neuron> neurons` | Constructor for Layer | 
+| `GetNeurons` | none | Gets the vector of Neurons | 
+| `GetNeuronAt` | `int index` | Gets the Neuron at index | 
+| `AddNeuron` | `Neuron neuron` | Adds a neuron to the end of the Layer | 
+| `FireNeuronAt` | `int index` | Fires the neuron for discriminating at index | 
+| `FireInverseNeuronAt` | `int index` | Fires the neuron for generating at index | 
 ----------------------------------------------------------------------------------------
 
 ###ConvolutionalNeuralNetwork
 
 This class is the result of the earlier hierarchy. It contains methods for teaching, discriminating, generating, saving, loading, and creating a network.
 
-ConvolutionalNeuralNetwork
+####`ConvolutionalNeuralNetwork`
 ===========================
- | Method Name | Parameters | Function | 
- | ------------|------------|----------- | 
- | `ConvolutionalNeuralNetwork` | `std::string path` | Constructor for network, reads data from path | 
- | `ConvolutionalNeuralNetwork` | `int* neuronsOnEachLayer, int* featureMapsPerLayer, int* featureMapDimensions, int* featureMapConnections[], int* featureMapStartIndex[]` | Constructor for network, creates new network with specified attributes | 
- | `GetLayers` | none | Gets the vector of Layers | 
- | `GetLayerAt` | `int index` | Gets the Layer at index | 
- | `AddLayer` | `Layer newLayer` | Adds a new Layer at the end of the network | 
- | `GetInput` | none | Gets the current input | 
- | `SetInput` | `float* input[], int width, int height` | Sets the current input | 
- | `GetOutput` | none | Gets the current output | 
- | `GetLearningRate` | none | Gets the learning rate | 
- | `SetLearningRate` | `float newRate` | Sets the learning rate | 
- | `Discriminate` | none | Discriminates using current input | 
- | `Generate` | `Layer input` | Generates using the given input from a resulting output | 
- | `LearnCurrentInput` | none | Learns the current input | 
- | `ReadFromFile` | `std::string path` | Clears network and sets to data from path | 
- | `SaveToFile` | `std::string path` | Saves the network to the path | 
+
+| Method Name | Parameters | Function | 
+| ------------|------------|----------- | 
+| `ConvolutionalNeuralNetwork` | `std::string path` | Constructor for network, reads data from path | 
+| `ConvolutionalNeuralNetwork` | `int* neuronsOnEachLayer, int* featureMapsPerLayer, int* featureMapDimensions, int* featureMapConnections[], int* featureMapStartIndex[]` | Constructor for network, creates new network with specified attributes | 
+| `GetLayers` | none | Gets the vector of Layers | 
+| `GetLayerAt` | `int index` | Gets the Layer at index | 
+| `AddLayer` | `Layer newLayer` | Adds a new Layer at the end of the network | 
+| `GetInput` | none | Gets the current input | 
+| `SetInput` | `float* input[], int width, int height` | Sets the current input | 
+| `GetOutput` | none | Gets the current output | 
+| `GetLearningRate` | none | Gets the learning rate | 
+| `SetLearningRate` | `float newRate` | Sets the learning rate | 
+| `Discriminate` | none | Discriminates using current input | 
+| `Generate` | `Layer input` | Generates using the given input from a resulting output | 
+| `LearnCurrentInput` | none | Learns the current input | 
+| `ReadFromFile` | `std::string path` | Clears network and sets to data from path | 
+| `SaveToFile` | `std::string path` | Saves the network to the path | 
  ------------------------------------------------------------------------------------------------------------------------
