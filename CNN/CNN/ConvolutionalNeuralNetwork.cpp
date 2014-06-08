@@ -9,11 +9,10 @@ ConvolutionalNeuralNetwork::ConvolutionalNeuralNetwork(std::string path)
 	ReadFromFile(path);
 }
 
-ConvolutionalNeuralNetwork::ConvolutionalNeuralNetwork(int neuronCountPerLayer[], int featureMapsPerLayer[], int featureMapDimensions [], int* featureMapConnections[], int* featureMapStartIndex[])
+ConvolutionalNeuralNetwork::ConvolutionalNeuralNetwork(std::vector<int> neuronCountPerLayer, std::vector<int> featureMapsPerLayer, std::vector<int> featureMapDimensions, std::vector<std::vector<int>> featureMapConnections, std::vector<std::vector<int>> featureMapStartIndex)
 {
 	std::map<SimpleNeuron, std::vector<Synapse>> childrenOf;
-
-	for (int i = 0; i < (sizeof(neuronCountPerLayer) / sizeof(*neuronCountPerLayer)) - 1; ++i)
+	for (unsigned int i = 0; i < neuronCountPerLayer.size() - 1; ++i)
 	{
 		Layer currentLayer;
 
@@ -73,11 +72,20 @@ ConvolutionalNeuralNetwork::ConvolutionalNeuralNetwork(int neuronCountPerLayer[]
 				}
 			}
 
-			currentLayer.AddNeuron(Neuron(parentOf, childrenOf.at(SimpleNeuron(i + 1, j + 1))));
+			if (childrenOf.find(SimpleNeuron(i + 1, j + 1)) != childrenOf.end())
+				currentLayer.AddNeuron(Neuron(parentOf, childrenOf.at(SimpleNeuron(i + 1, j + 1))));
+			else
+				currentLayer.AddNeuron(Neuron(parentOf, std::vector<Synapse>{}));
 		}
 
 		AddLayer(currentLayer);
 	}
+
+	Layer output;
+
+	for (int i = 0; i < neuronCountPerLayer[neuronCountPerLayer.size() - 1]; ++i)
+		output.AddNeuron(Neuron(std::vector<Synapse>(), childrenOf.at(SimpleNeuron(neuronCountPerLayer.size(), i + 1))));
+	AddLayer(output);
 }
 
 ConvolutionalNeuralNetwork::~ConvolutionalNeuralNetwork()
@@ -110,16 +118,16 @@ Layer ConvolutionalNeuralNetwork::GetInput()
 	return GetLayerAt(1);
 }
 
-void ConvolutionalNeuralNetwork::SetInput(float** input, int width, int height)
+void ConvolutionalNeuralNetwork::SetInput(std::vector<std::vector<float>> input)
 {
 	std::vector<Neuron> neurons;
-	for (int i = 0; i < width; ++i)
+	for (unsigned int i = 0; i < input.size(); ++i)
 	{
-		for (int j = 0; j < height; ++j)
+		for (unsigned int j = 0; j < input[i].size(); ++j)
 		{
 			std::vector<Synapse> parentOf;
 			for (unsigned int n = 1; n < GetLayerAt(2).GetNeurons().size(); ++n)
-				parentOf.push_back(Synapse(SimpleNeuron(1, 1 + i + (j * width)), SimpleNeuron(GetLayerAt(2).GetNeuronAt(n).GetLayer(),
+				parentOf.push_back(Synapse(SimpleNeuron(1, 1 + i + (j * input.size())), SimpleNeuron(GetLayerAt(2).GetNeuronAt(n).GetLayer(),
 				GetLayerAt(2).GetNeuronAt(n).GetIndex())));
 			neurons.push_back(Neuron(parentOf, std::vector<Synapse>(0)));
 		}

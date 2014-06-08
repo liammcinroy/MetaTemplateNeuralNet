@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "ConvolutionalNeuralNetwork.h"
 #include "Layer.h"
 #include "Neuron.h"
@@ -8,16 +6,25 @@
 
 int main(int argc, const char* args[])
 {
-	ConvolutionalNeuralNetwork neuralNetwork("secondCNN.cnn");
+	std::vector<int> numNeurons = { 500, 500, 2000, 10 };
+	std::vector<int> numMaps = { 1, 1, 1, 1 };
 
-	float** input = new float*[2];
+	ConvolutionalNeuralNetwork neuralNetwork(numNeurons, numMaps, numNeurons, std::vector<std::vector<int>>(), std::vector<std::vector<int>>());
+
+	std::cout << "Layers: " << neuralNetwork.GetLayers().size() << ", Neurons on output: " << neuralNetwork.GetOutput().GetNeurons().size() << std::endl;
+
+	neuralNetwork.SaveToFile("test2.cnn");
+
+	std::cout << "Saved" << std::endl;
+
+	std::vector<std::vector<float>> input;
 	for (int i = 0; i < 2; ++i)
-		input[i] = new float[3];
+		input.push_back(std::vector<float>{});
 
 	for (int i = 0; i < 2; ++i)
 		for (int j = 0; j < 3; ++j)
-			input[i][j] = (rand() % 100) / 100;
-	neuralNetwork.SetInput(input, 2, 3);
+			input[i].push_back(rand() % 100);
+	neuralNetwork.SetInput(input);
 
 	Layer output = neuralNetwork.Discriminate();
 	std::cout << "Output: " << output.GetNeuronAt(1).GetValue() << std::endl;
@@ -29,8 +36,5 @@ int main(int argc, const char* args[])
 
 	char c;
 	std::cin >> c;
-	for (int i = 0; i < 2; ++i)
-		delete[] input[i];
-	delete[] input;
 	return 0;
 }

@@ -125,12 +125,13 @@ This class is the result of the earlier hierarchy. It contains methods for teach
 | Method Name | Parameters | Function | 
 | ------------|------------|----------- | 
 | `ConvolutionalNeuralNetwork` | `std::string path` | Constructor for network, reads data from path | 
-| `ConvolutionalNeuralNetwork` | `int* neuronsOnEachLayer, int* featureMapsPerLayer, int* featureMapDimensions, int* featureMapConnections[], int* featureMapStartIndex[]` | Constructor for network, creates new network with specified attributes | 
+| `ConvolutionalNeuralNetwork` | `std::vector<int> neuronCountPerLayer, std::vector<int> featureMapsPerLayer, std::vector<int> featureMapDimensions,
+		std::vector<std::vector<int>> featureMapConnections, std::vector<std::vector<int>> featureMapStartIndex` | Constructor for network, creates new network with specified attributes | 
 | `GetLayers` | none | Gets the vector of Layers | 
 | `GetLayerAt` | `int index` | Gets the Layer at index | 
 | `AddLayer` | `Layer newLayer` | Adds a new Layer at the end of the network | 
 | `GetInput` | none | Gets the current input | 
-| `SetInput` | `float* input[], int width, int height` | Sets the current input | 
+| `SetInput` | `std::vector<std::vector<float>> input` | Sets the current input | 
 | `GetOutput` | none | Gets the current output | 
 | `GetLearningRate` | none | Gets the learning rate | 
 | `SetLearningRate` | `float newRate` | Sets the learning rate | 
