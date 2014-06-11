@@ -8,23 +8,21 @@ Convolutional Neural Network (.cnn)
 
 Neurons
 "newline" or " " - new neuron
-"<p" - start parent of synapses
-"p>" - end parent of synapses
-"<c" - start child of synapses
-"c>" - end child of synapses
+"<p" - start parent of synapse
+"p>" - end parent of synapse
 
 Synapses
 "/" - start synapse
 "\" - end synapse
-"|" - break between synapses
 "p(#,#)p" - The parent neuron (Layer, index)
-"c(#,#)c" - The child neuron (Layer, index)
+"cs(#)sc" - The start child neuron (Layer, index)
+"ce(#)ec" - The end child neuron (Layer, index)
 "d:#" - The disciminate weight
 "g:#" - The generative weight
 
-An example file contents would be:
+An example file contents should be:
 
-<[{ <p|/p(2,1)pc(3,1)pcd:10g:1\|/p(2,1)pc(3,2)pcd:10g:1\|p><cc> <p|/p(2,2)pc(3,1)pcd:10g:1\|/p(2,2)pc(3,2)cd:10g:1\|p><cc> <p|/p(2,3)pc(3,1)cd:10g:1\|/p(2,3)pc(3,2)cd:10g:1\|p><cc>}{ <p|/p(3,1)pc(4,1)cd:10g:1\|p><c|/p(2,1)pc(3,1)cd:10g:1\|/p(2,2)pc(3,1)cd:10g:1\|/p(2,3)pc(3,1)cd:10g:1\|c> <p|/p(3,2)pc(4,1)cd:10g:1\|p><c|/p(2,1)pc(3,2)cd:10g:1\|/p(2,2)pc(3,2)cd:10g:1\|/p(2,3)pc(3,2)cd:10g:1\|c>}{ <pp><c|/p(3,1)pc(4,1)cd:10g:1\|/p(3,2)pc(4,1)cd:10g:1\|c>}]>
+<[{ <p/p(2,1)cs(1)scce(2)ecd:10g:1\p> <p/p(2,2)cs(1)scce(2)ecd:10g:1\p> <p/p(2,3)cs(1)scce(2)ecd:10g:1\p>}{ <p/p(3,1)cs(1)scce(1)ecd:10g:1\p> <p/p(3,2)cs(1)scce(1)ecd:10g:1\p>}{<pp>}]>
 
 Which would produce a neural network that looked like:
 

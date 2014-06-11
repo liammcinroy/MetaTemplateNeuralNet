@@ -1,23 +1,27 @@
 #pragma once
 
-#include "SimpleNeuron.h"
 #include <random>
 
 class Synapse
 {
 public:
 	Synapse();
-	Synapse(SimpleNeuron parent, SimpleNeuron child);
+	Synapse(int parentLayer, int parentIndex, int startChildIndex, int endChildIndex);
 	~Synapse();
-	SimpleNeuron GetParent();
-	SimpleNeuron GetChild();
+	int GetParentIndex();
+	int GetParentLayer();
+	int GetStartChildIndex();
+	int GetEndChildIndex();
+	std::vector<int> GetChildrenIndexes();
 	float GetWeightDiscriminate();
 	void SetWeightDiscriminate(float newValue);
 	float GetWeightGenerative();
 	void SetWeightGenerative(float newValue);
 private:
-	SimpleNeuron m_Parent;
-	SimpleNeuron m_Child;
+	int m_ParentIndex;
+	int m_ParentLayer;
+	int m_StartChildIndex;
+	int m_EndChildIndex;
 	float m_WeightDiscriminate;
 	float m_WeightGenerate;
 };

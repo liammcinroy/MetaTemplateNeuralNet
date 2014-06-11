@@ -2,7 +2,6 @@
 
 #include "Neuron.h"
 #include "Synapse.h"
-#include "SimpleNeuron.h"
 
 class Layer
 {
@@ -12,8 +11,9 @@ public:
 	~Layer();
 	std::vector<Neuron> GetNeurons();
 	Neuron GetNeuronAt(int index);
-	float FireNeuronAt(int index);
-	float FireInverseNeuronAt(int index);
+	void FireNeuronAt(int index, float sum);
+	void FireInverseNeuronAt(int index, float sum);
+	void IncrementParentWeightAt(int index, float amount);
 	void AddNeuron(Neuron neuron);
 	Layer operator-(Layer other);
 	bool operator==(Layer other);

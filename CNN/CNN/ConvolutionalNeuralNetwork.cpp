@@ -11,80 +11,34 @@ ConvolutionalNeuralNetwork::ConvolutionalNeuralNetwork(std::string path)
 
 ConvolutionalNeuralNetwork::ConvolutionalNeuralNetwork(std::vector<int> neuronCountPerLayer, std::vector<int> featureMapsPerLayer, std::vector<int> featureMapDimensions, std::vector<std::vector<int>> featureMapConnections, std::vector<std::vector<int>> featureMapStartIndex)
 {
-	std::map<SimpleNeuron, std::vector<Synapse>> childrenOf;
 	for (unsigned int i = 0; i < neuronCountPerLayer.size() - 1; ++i)
 	{
 		Layer currentLayer;
 
 		for (int j = 0; j < neuronCountPerLayer[i]; ++j)
 		{
-			std::vector<Synapse> parentOf;
-
 			if (featureMapsPerLayer[i] == 1)
-			{
-				for (int n = 0; n < neuronCountPerLayer[i + 1]; ++n)
-				{
-					SimpleNeuron current = SimpleNeuron(i + 1, j + 1);
-					SimpleNeuron destination = SimpleNeuron(i + 2, n + 1);
-
-					Synapse currentParentSynapse = Synapse(current, current);
-					Synapse currentChildSynapse = Synapse(destination, destination);
-
-					currentChildSynapse.SetWeightDiscriminate(currentParentSynapse.GetWeightDiscriminate());
-					currentChildSynapse.SetWeightGenerative(currentParentSynapse.GetWeightGenerative());
-
-					parentOf.push_back(currentParentSynapse);
-
-					if (childrenOf.find(destination) != childrenOf.end())
-						childrenOf.at(destination).push_back(currentChildSynapse);
-					else
-						childrenOf.insert(std::pair<SimpleNeuron, std::vector<Synapse>>(destination,
-						std::vector<Synapse>{ currentChildSynapse }));
-				}
-			}
+				currentLayer.AddNeuron(Neuron(Synapse(i + 1, j + 1, 1, neuronCountPerLayer[i + 1])));
 
 			else
 			{
 				int featureMapsUp = featureMapsPerLayer[i + 1];
 				int inFeatureMap = featureMapsPerLayer[i] / j;
-				int connections = featureMapConnections[i][inFeatureMap];
 				int startIndex = (neuronCountPerLayer[i + 1] / featureMapsUp) * featureMapStartIndex[i][inFeatureMap];
-				int destinationIndex = startIndex + (neuronCountPerLayer[i + 1] / featureMapsUp) * connections;
+				int destinationIndex = startIndex + (neuronCountPerLayer[i + 1] / featureMapsUp) * featureMapConnections[i][inFeatureMap];
 
-				for (int n = startIndex; n < destinationIndex; ++n)
-				{
-					SimpleNeuron current = SimpleNeuron(i + 1, j + 1);
-					SimpleNeuron destination = SimpleNeuron(i + 2, n + 1);
-
-					Synapse currentParentSynapse = Synapse(current, current);
-					Synapse currentChildSynapse = Synapse(destination, destination);
-
-					currentChildSynapse.SetWeightDiscriminate(currentParentSynapse.GetWeightDiscriminate());
-					currentChildSynapse.SetWeightGenerative(currentParentSynapse.GetWeightGenerative());
-
-					parentOf.push_back(currentParentSynapse);
-
-					if (childrenOf.find(destination) != childrenOf.end())
-						childrenOf.at(destination).push_back(currentChildSynapse);
-					else
-						childrenOf.insert(std::pair<SimpleNeuron, std::vector<Synapse>>(destination,
-						std::vector<Synapse>{ currentChildSynapse }));
-				}
+				currentLayer.AddNeuron(Neuron(Synapse(i + 1, j + 1,
+					(neuronCountPerLayer[i + 1] / featureMapsUp) * featureMapStartIndex[i][inFeatureMap],
+					startIndex + (neuronCountPerLayer[i + 1] / featureMapsUp) * featureMapConnections[i][inFeatureMap])));
 			}
-
-			if (childrenOf.find(SimpleNeuron(i + 1, j + 1)) != childrenOf.end())
-				currentLayer.AddNeuron(Neuron(parentOf, childrenOf.at(SimpleNeuron(i + 1, j + 1))));
-			else
-				currentLayer.AddNeuron(Neuron(parentOf, std::vector<Synapse>{}));
 		}
-
 		AddLayer(currentLayer);
 	}
 
 	Layer output;
 
 	for (int i = 0; i < neuronCountPerLayer[neuronCountPerLayer.size() - 1]; ++i)
-		output.AddNeuron(Neuron(std::vector<Synapse>(), childrenOf.at(SimpleNeuron(neuronCountPerLayer.size(), i + 1))));
+		output.AddNeuron(Neuron(Synapse()));
 	AddLayer(output);
 }
 
@@ -122,16 +76,8 @@ void ConvolutionalNeuralNetwork::SetInput(std::vector<std::vector<float>> input)
 {
 	std::vector<Neuron> neurons;
 	for (unsigned int i = 0; i < input.size(); ++i)
-	{
 		for (unsigned int j = 0; j < input[i].size(); ++j)
-		{
-			std::vector<Synapse> parentOf;
-			for (unsigned int n = 1; n < GetLayerAt(2).GetNeurons().size(); ++n)
-				parentOf.push_back(Synapse(SimpleNeuron(1, 1 + i + (j * input.size())), SimpleNeuron(GetLayerAt(2).GetNeuronAt(n).GetLayer(),
-				GetLayerAt(2).GetNeuronAt(n).GetIndex())));
-			neurons.push_back(Neuron(parentOf, std::vector<Synapse>(0)));
-		}
-	}
+			neurons.push_back(Neuron(Synapse(1, i + (j * input[i].size() + 1), 1, m_Layers[1].GetNeurons().size())));
 	m_Layers[0] = Layer(neurons);
 }
 
@@ -140,24 +86,59 @@ Layer ConvolutionalNeuralNetwork::GetOutput()
 	return GetLayerAt(m_Layers.size());
 }
 
-Layer ConvolutionalNeuralNetwork::Discriminate()
+Layer ConvolutionalNeuralNetwork::DiscriminateUntil(unsigned int index)
 {
-	for (unsigned int i = 1; i < m_Layers.size() - 1; ++i)
-		for (unsigned int j = 1; j < GetLayerAt(i).GetNeurons().size(); ++j)
-			for (unsigned int s = 1; s < GetLayerAt(i).GetNeuronAt(j).GetChildOfSynapses().size(); ++s)
-				GetLayerAt(i + 1).GetNeuronAt(GetLayerAt(i).GetNeuronAt(j).GetChildOfSynapseAt(s).GetChild().GetIndex())
-				.SetValue(GetLayerAt(i).FireNeuronAt(j));
-	return GetLayerAt(GetLayers().size());
+	for (unsigned int l = 1; l < index; ++l)
+	{
+		for (unsigned int n = 1; n < m_Layers[l].GetNeurons().size(); ++n)
+		{
+			float sum = 0.0f;
+
+			for (unsigned int n2 = 1; n2 < m_Layers[l - 1].GetNeurons().size(); ++n2)
+			{
+				unsigned int startIndex = m_Layers[l - 1].GetNeuronAt(n2).GetParentOfSynapse().GetStartChildIndex();
+				unsigned int endIndex = m_Layers[l - 1].GetNeuronAt(n2).GetParentOfSynapse().GetEndChildIndex();
+				float weight = m_Layers[l - 1].GetNeuronAt(n2).GetParentOfSynapse().GetWeightGenerative();
+
+				if (startIndex <= n && n <= endIndex)
+					sum += (m_Layers[l - 1].GetNeuronAt(n2).GetValue() * weight);
+			}
+			m_Layers[l].FireNeuronAt(n, sum);
+		}
+	}
+
+	return GetOutput();
 }
 
-Layer ConvolutionalNeuralNetwork::Generate(Layer input)
+Layer ConvolutionalNeuralNetwork::GenerateUntil(Layer input, unsigned int index)
 {
-	for (int i = m_Layers.size(); i > 0; --i)
-		for (int j = GetLayerAt(i).GetNeurons().size(); j > 0; --j)
-			for (unsigned int s = 1; s < GetLayerAt(i).GetNeuronAt(j).GetParentOfSynapses().size(); ++s)
-				m_Layers[i].GetNeuronAt(GetLayerAt(i).GetNeuronAt(j).GetParentOfSynapseAt(s).GetChild().GetIndex())
-				.SetValue(GetLayerAt(i).FireInverseNeuronAt(j));
+	for (unsigned int l = m_Layers.size() - 2; l > index - 1; --l)
+	{
+		for (unsigned int n = 1; n < m_Layers[l].GetNeurons().size(); ++n)
+		{
+			unsigned int startIndex = m_Layers[l].GetNeuronAt(n).GetParentOfSynapse().GetStartChildIndex();
+			unsigned int endIndex = m_Layers[l].GetNeuronAt(n).GetParentOfSynapse().GetEndChildIndex();
+			float weight = m_Layers[l].GetNeuronAt(n).GetParentOfSynapse().GetWeightGenerative();
+
+			float sum = 0.0f;
+			for (unsigned int i = startIndex; i <= endIndex; ++i)
+				sum += (m_Layers[l + 1].GetNeuronAt(i).GetValue() * weight);
+
+			m_Layers[l].FireInverseNeuronAt(n, sum);
+		}
+	}
+
 	return GetLayerAt(1);
+}
+
+Layer ConvolutionalNeuralNetwork::Discriminate()
+{
+	return DiscriminateUntil(m_Layers.size());
+}
+
+Layer ConvolutionalNeuralNetwork::Generate(Layer output)
+{
+	return GenerateUntil(output, 1);
 }
 
 void ConvolutionalNeuralNetwork::LearnCurrentInput()
@@ -172,11 +153,8 @@ void ConvolutionalNeuralNetwork::LearnCurrentInput()
 
 		for (unsigned int i = 1; i < m_Layers.size() - 1; ++i)
 		{
-			for (unsigned int j = 1; j < GetLayerAt(i).GetNeurons().size(); ++j)
-				GetLayerAt(i).GetNeuronAt(j).FireSynapse();
-			for (unsigned int n = dupe.GetLayerAt(i).GetNeurons().size(); n > i - 1; --n)
-				for (int j = dupe.GetLayerAt(n).GetNeurons().size(); j > 0; --j)
-					dupe.GetLayerAt(n).GetNeuronAt(j).FireInverseSynapse();
+			DiscriminateUntil(i);
+			dupe.GenerateUntil(output, i);
 
 			Layer change = GetLayerAt(i) - dupe.GetLayerAt(i);
 			float result = 0.0f;
@@ -186,11 +164,10 @@ void ConvolutionalNeuralNetwork::LearnCurrentInput()
 
 			result = sqrt(result) * GetLearnRate();
 			
+			for (unsigned int j = 1; j < GetLayerAt(i - 1).GetNeurons().size(); ++j)
+				GetLayerAt(i).IncrementParentWeightAt(j, result);
 			for (unsigned int j = 1; j < GetLayerAt(i).GetNeurons().size(); ++j)
-			{
-				GetLayerAt(i).GetNeuronAt(j).IncrementParentWeights(result);
-				GetLayerAt(i + 1).GetNeuronAt(j).DecrementChildWeights(result);
-			}
+				GetLayerAt(i).IncrementParentWeightAt(j, -result);
 		}
 	}
 }
@@ -223,60 +200,28 @@ void ConvolutionalNeuralNetwork::ReadFromFile(std::string path)
 		std::istringstream current(layer);
 		while (std::getline(current, neuron, ' '))
 		{
-			std::string parentSynapse = FindInBetween(neuron, "<p", "p>");
-			std::string childSynapse = FindInBetween(neuron, "<c", "c>");
-
-			std::vector<Synapse> parentSynapses;
-			std::vector<Synapse> childSynapses;
-
-			std::string synapse;
-			std::istringstream parent(parentSynapse);
-			while (std::getline(parent, synapse, '|'))
+			if (neuron != "")
 			{
-				std::string synapseData = FindInBetween(synapse, "/", "\\");
+				std::string synapseData = FindInBetween(neuron, "<p", "p>");
+
+				Synapse parentSynapse;
 
 				std::string parent = FindInBetween(synapseData, "p(", ")p");
 				int layerParent = std::stoi(StringUntil(parent, ","));
 				int indexParent = std::stoi(StringBy(parent, ","));
 
-				std::string child = FindInBetween(synapseData, "c(", ")c");
-				int layerChild = std::stoi(StringUntil(child, ","));
-				int indexChild = std::stoi(StringBy(child, ","));
+				int childStartIndex = std::stoi(FindInBetween(synapseData, "cs(", ")sc"));
+				int childEndIndex = std::stoi(FindInBetween(synapseData, "ce(", ")ec"));
 
 				float weightD = std::stof(FindInBetween(synapseData, "d:", "g:"));
 				float weightG = std::stof(FindInBetween(synapseData, "g:", ""));
 
-				Synapse newSynapse = Synapse(SimpleNeuron(layerParent, indexParent), SimpleNeuron(layerChild, indexChild));
-				newSynapse.SetWeightDiscriminate(weightD);
-				newSynapse.SetWeightGenerative(weightG);
+				parentSynapse = Synapse(layerParent, indexParent, childStartIndex, childEndIndex);
+				parentSynapse.SetWeightDiscriminate(weightD);
+				parentSynapse.SetWeightGenerative(weightG);
 
-				parentSynapses.push_back(newSynapse);
+				newLayer.AddNeuron(Neuron(parentSynapse));
 			}
-
-			std::istringstream child(childSynapse);
-			while (std::getline(child, synapse, '|'))
-			{
-				std::string synapseData = FindInBetween(synapse, "/", "\\");
-
-				std::string parent = FindInBetween(synapseData, "p(", ")p");
-				int layerParent = std::stoi(StringUntil(parent, ","));
-				int indexParent = std::stoi(StringBy(parent, ","));
-
-				std::string child = FindInBetween(synapseData, "c(", ")c");
-				int layerChild = std::stoi(StringUntil(child, ","));
-				int indexChild = std::stoi(StringBy(child, ","));
-
-				float weightD = std::stof(FindInBetween(synapseData, "d:", "g:"));
-				float weightG = std::stof(FindInBetween(synapseData, "g:", ""));
-
-				Synapse newSynapse = Synapse(SimpleNeuron(layerParent, indexParent), SimpleNeuron(layerChild, indexChild));
-				newSynapse.SetWeightDiscriminate(weightD);
-				newSynapse.SetWeightGenerative(weightG);
-
-				childSynapses.push_back(newSynapse);
-			}
-
-			newLayer.AddNeuron(Neuron(parentSynapses, childSynapses));
 		}
 
 		if (iterations < m_Layers.size())
@@ -304,27 +249,14 @@ void ConvolutionalNeuralNetwork::SaveToFile(std::string path)
 		{
 			file << " ";
 
+			Synapse parent = m_Layers[i].GetNeuronAt(j).GetParentOfSynapse();
+
 			file << "<p";
-			for (unsigned int s = 1; s < m_Layers[i].GetNeuronAt(j).GetParentOfSynapses().size() + 1; ++s)
-			{
-				Synapse current = m_Layers[i].GetNeuronAt(j).GetParentOfSynapseAt(s);
-				
-				file << "/p(" << current.GetParent().GetLayer() << "," << current.GetParent().GetIndex() << ")p";
-				file << "c(" << current.GetChild().GetLayer() << "," << current.GetChild().GetIndex() << ")c";
-				file << "d:" << current.GetWeightDiscriminate() << "g:" << current.GetWeightGenerative() << "\\|";
-			}
+			file << "p(" << parent.GetParentLayer() << "," << parent.GetParentIndex() << ")p";
+			file << "cs(" << parent.GetStartChildIndex() << ")sc";
+			file << "ce(" << parent.GetEndChildIndex() << ")ec";
+			file << "d:" << parent.GetWeightDiscriminate() << "g:" << parent.GetWeightGenerative();
 			file << "p>";
-
-			file << "<c";
-			for (unsigned int s = 1; s < m_Layers[i].GetNeuronAt(j).GetChildOfSynapses().size() + 1; ++s)
-			{
-				Synapse current = m_Layers[i].GetNeuronAt(j).GetChildOfSynapseAt(s);
-
-				file << "/p(" << current.GetParent().GetLayer() << "," << current.GetParent().GetIndex() << ")p";
-				file << "c(" << current.GetChild().GetLayer() << "," << current.GetChild().GetIndex() << ")c";
-				file << "d:" << current.GetWeightDiscriminate() << "g:" << current.GetWeightGenerative() << "\\|";
-			}
-			file << "c>";
 		}
 
 		file << "}";

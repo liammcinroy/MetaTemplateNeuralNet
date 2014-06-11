@@ -3,29 +3,28 @@
 #include <vector>
 #include <iterator>
 #include "Synapse.h"
-#include "SimpleNeuron.h"
 
 #define e 2.71828
 
-class Neuron : public SimpleNeuron
+class Neuron
 {
 public:
 	Neuron();
-	Neuron(std::vector<Synapse> parentOf, std::vector<Synapse> childOf);
+	Neuron(Synapse parentOf);
 	~Neuron();
-	float FireSynapse();
-	float FireInverseSynapse();
-	void AddParentOfSynapse(SimpleNeuron child);
-	void AddChildOfSynapse(SimpleNeuron parent);
-	void IncrementParentWeights(float amount);
-	void DecrementChildWeights(float amount);
-	std::vector<Synapse> GetParentOfSynapses();
-	Synapse GetParentOfSynapseAt(int index);
-	std::vector<Synapse> GetChildOfSynapses();
-	Synapse GetChildOfSynapseAt(int index);
+	float GetValue();
+	void SetValue(float);
+	float FireSynapse(float sum);
+	float FireInverseSynapse(float sum);
+	void IncrementParentWeight(float amount);
+	Synapse GetParentOfSynapse();
 	Neuron operator-(Neuron);
+	friend bool operator<(Neuron first, Neuron other)
+	{
+		return first.m_Value < other.m_Value;
+	}
 private:
-	std::vector<Synapse> m_ParentOfSynapses;
-	std::vector<Synapse> m_ChildOfSynapses;
+	float m_Value;
+	Synapse m_ParentOfSynapse;
 };
 

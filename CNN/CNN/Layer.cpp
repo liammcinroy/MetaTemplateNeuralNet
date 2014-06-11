@@ -24,14 +24,19 @@ Neuron Layer::GetNeuronAt(int index)
 	return m_Neurons[index - 1];
 }
 
-float Layer::FireNeuronAt(int index)
+void Layer::FireNeuronAt(int index, float sum)
 {
-	return m_Neurons[index - 1].FireSynapse();
+	m_Neurons[index - 1].SetValue(m_Neurons[index - 1].FireSynapse(sum));
 }
 
-float Layer::FireInverseNeuronAt(int index)
+void Layer::FireInverseNeuronAt(int index, float sum)
 {
-	return m_Neurons[index - 1].FireInverseSynapse();
+	m_Neurons[index - 1].SetValue(m_Neurons[index - 1].FireInverseSynapse(sum));
+}
+
+void Layer::IncrementParentWeightAt(int index, float amount)
+{
+	m_Neurons[index - 1].IncrementParentWeight(amount);
 }
 
 void Layer::AddNeuron(Neuron newNeuron)
@@ -41,14 +46,14 @@ void Layer::AddNeuron(Neuron newNeuron)
 
 Layer Layer::operator-(Layer other)
 {
-	for (int i = 1; i < other.GetNeurons().size(); ++i)
+	for (unsigned int i = 1; i < other.GetNeurons().size(); ++i)
 		m_Neurons[i - 1] = m_Neurons[i - 1] - other.GetNeuronAt(i);
 	return *this;
 }
 
 bool Layer::operator==(Layer other)
 {
-	for (int i = 1; i < other.GetNeurons().size(); ++i)
+	for (unsigned int i = 1; i < other.GetNeurons().size(); ++i)
 		if (m_Neurons[i - 1].GetValue() != other.GetNeuronAt(i).GetValue())
 			return false;
 	return true;

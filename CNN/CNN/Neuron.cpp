@@ -5,23 +5,27 @@ Neuron::Neuron()
 {
 }
 
-Neuron::Neuron(std::vector<Synapse> parentOf, std::vector<Synapse> childOf)
+Neuron::Neuron(Synapse parentOf)
 {
-	m_ParentOfSynapses = parentOf;
-	m_ChildOfSynapses = childOf;
+	m_ParentOfSynapse = parentOf;
 }
 
 Neuron::~Neuron()
 {
 }
 
-float Neuron::FireSynapse()
+float Neuron::GetValue()
 {
-	float sum = 0.0f;
+	return m_Value;
+}
 
-	for (std::vector<Synapse>::iterator it = m_ChildOfSynapses.begin(); it != m_ChildOfSynapses.end(); ++it)
-		sum += ((*it).GetWeightDiscriminate() * (*it).GetParent().GetValue());
+void Neuron::SetValue(float newValue)
+{
+	m_Value = newValue;
+}
 
+float Neuron::FireSynapse(float sum)
+{
 	float probability = (1 / (1 + pow(e, -sum)));
 
 	if (probability > 0.9f)
@@ -40,13 +44,8 @@ float Neuron::FireSynapse()
 	}
 }
 
-float Neuron::FireInverseSynapse()
+float Neuron::FireInverseSynapse(float sum)
 {
-	float sum = 0.0f;
-
-	for (unsigned int i = m_ParentOfSynapses.size() - 1; i > 0; --i)
-		sum += (m_ParentOfSynapses[i].GetWeightGenerative() * m_ParentOfSynapses[i].GetChild().GetValue());
-
 	float probability = -log((1 / sum) - 1);
 
 	if (probability > 0.9f)
@@ -65,46 +64,14 @@ float Neuron::FireInverseSynapse()
 	}
 }
 
-void Neuron::AddParentOfSynapse(SimpleNeuron child)
+Synapse Neuron::GetParentOfSynapse()
 {
-	m_ParentOfSynapses.push_back(Synapse(SimpleNeuron(GetLayer(), GetIndex()), child));
+	return m_ParentOfSynapse;
 }
 
-void Neuron::AddChildOfSynapse(SimpleNeuron parent)
+void Neuron::IncrementParentWeight(float amount)
 {
-	m_ChildOfSynapses.push_back(Synapse(SimpleNeuron(GetLayer(), GetIndex()), parent));
-}
-
-std::vector<Synapse> Neuron::GetParentOfSynapses()
-{
-	return m_ParentOfSynapses;
-}
-
-Synapse Neuron::GetParentOfSynapseAt(int index)
-{
-	return m_ParentOfSynapses[index - 1];
-}
-
-std::vector<Synapse> Neuron::GetChildOfSynapses()
-{
-	return m_ChildOfSynapses;
-}
-
-Synapse Neuron::GetChildOfSynapseAt(int index)
-{
-	return m_ChildOfSynapses[index - 1];
-}
-
-void Neuron::IncrementParentWeights(float amount)
-{
-	for (std::vector<Synapse>::iterator it = m_ParentOfSynapses.begin(); it != m_ParentOfSynapses.end(); ++it)
-		(*it).SetWeightDiscriminate((*it).GetWeightDiscriminate() + amount);
-}
-
-void Neuron::DecrementChildWeights(float amount)
-{
-	for (std::vector<Synapse>::iterator it = m_ChildOfSynapses.begin(); it != m_ChildOfSynapses.end(); ++it)
-		(*it).SetWeightGenerative((*it).GetWeightGenerative() + amount);
+	m_ParentOfSynapse.SetWeightDiscriminate(m_ParentOfSynapse.GetWeightDiscriminate() + amount);
 }
 
 Neuron Neuron::operator-(Neuron other)

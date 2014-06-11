@@ -47,10 +47,10 @@ describes the uses of each function
 | Method Name | Parameters | Function | 
 | ------------|------------|----------- | 
 | `SimpleNeuron` | `int layer, int index` | Constructor for SimpleNeuron | 
-| `GetValue` | none | Gets the current value | 
+| `GetValue` | _none_ | Gets the current value | 
 | `SetValue` | `float newValue` | Sets the current value | 
-| `GetLayer` | none | Gets the current layer | 
-| `GetIndex` | none | Gets the current index | 
+| `GetLayer` | _none_ | Gets the current layer | 
+| `GetIndex` | _none_ | Gets the current index | 
 -------------------------------------------------
 
 ###Synapse
@@ -64,12 +64,12 @@ the destination SimpleNeuron. There are two weights, both a discriminative and a
 | Method Name | Parameters | Function | 
 | ------------|------------|-----------| 
 | `Synapse` | `SimpleNeuron parent, SimpleNeuron child` | Constructor for Synapse | 
-| `GetParent` | none | Gets the parent SimpleNeuron | 
-| `GetParent` | none | Gets the parent SimpleNeuron | 
-| `GetChild` | none | Gets the child SimpleNeuron | 
-| `GetWeightDiscriminate` | none | Gets the discriminative weight | 
+| `GetParent` | _none_ | Gets the parent SimpleNeuron | 
+| `GetParent` | _none_ | Gets the parent SimpleNeuron | 
+| `GetChild` | _none_ | Gets the child SimpleNeuron | 
+| `GetWeightDiscriminate` | _none_ | Gets the discriminative weight | 
 | `SetWeightDiscriminate` | `float newValue` | Sets the new discriminative weight | 
-| `GetWeightGenerative` | none | Gets the generative weight | 
+| `GetWeightGenerative` | _none_ | Gets the generative weight | 
 | `SetWeightGenerative` | `float newValue` | Sets the new generative weight | 
 ------------------------------------------------------------------------------------------
 
@@ -84,18 +84,18 @@ code that makes the CNN work. The entire network is made of Neurons. This class 
 | Method Name | Parameters | Function | 
 | ------------|------------|-----------| 
 | `Neuron` | `std::vector<Synapse> parentOf, std::vector<Synapse> childOf` | Constructor for Neuron | 
-| `GetValue` | none | Gets the current value | 
+| `GetValue` | _none_ | Gets the current value | 
 | `SetValue` | `float newValue` | Sets the current value | 
-| `GetLayer` | none | Gets the current layer | 
-| `GetIndex` | none | Gets the current index | 
+| `GetLayer` | _none_ | Gets the current layer | 
+| `GetIndex` | _none_ | Gets the current index | 
 | `AddParentOfSynapse` | `SimpleNeuron child` | Adds a parent of synapse | 
 | `AddChildOfSynapse` | `SimpleNeuron parent` | Adds a child of synapse | 
-| `GetParentOfSynapses` | none | Gets the parent of synapses | 
+| `GetParentOfSynapses` | _none_ | Gets the parent of synapses | 
 | `GetParentOfSynapseAt` | `int index` | Gets the parent of synapse at index | 
-| `GetChildOfSynapses` | none | Gets the child of synapses | 
+| `GetChildOfSynapses` | _none_ | Gets the child of synapses | 
 | `GetChildOfSynapseAt` | `int index` | Gets the child of synapse at index | 
-| `FireSynapse` | none | Returns the value of the next neuron when discriminating | 
-| `FireInverseSynapse` | none | Returns the value of the next neuron when generating | 
+| `FireSynapse` | _none_ | Returns the value of the next neuron when discriminating | 
+| `FireInverseSynapse` | _none_ | Returns the value of the next neuron when generating | 
 -------------------------------------------------------------------------------------------------
 
 ###Layer
@@ -108,7 +108,7 @@ A layer has many neurons, and many methods to interact with those neurons
 | Method Name | Parameters | Function | 
 | ------------|------------|-----------| 
 | `Layer` | `std::vector<Neuron> neurons` | Constructor for Layer | 
-| `GetNeurons` | none | Gets the vector of Neurons | 
+| `GetNeurons` | _none_ | Gets the vector of Neurons | 
 | `GetNeuronAt` | `int index` | Gets the Neuron at index | 
 | `AddNeuron` | `Neuron neuron` | Adds a neuron to the end of the Layer | 
 | `FireNeuronAt` | `int index` | Fires the neuron for discriminating at index | 
@@ -127,17 +127,26 @@ This class is the result of the earlier hierarchy. It contains methods for teach
 | `ConvolutionalNeuralNetwork` | `std::string path` | Constructor for network, reads data from path | 
 | `ConvolutionalNeuralNetwork` | `std::vector<int> neuronCountPerLayer, std::vector<int> featureMapsPerLayer, std::vector<int> featureMapDimensions,
 		std::vector<std::vector<int>> featureMapConnections, std::vector<std::vector<int>> featureMapStartIndex` | Constructor for network, creates new network with specified attributes | 
-| `GetLayers` | none | Gets the vector of Layers | 
+| `GetLayers` | _none_ | Gets the vector of Layers | 
 | `GetLayerAt` | `int index` | Gets the Layer at index | 
 | `AddLayer` | `Layer newLayer` | Adds a new Layer at the end of the network | 
-| `GetInput` | none | Gets the current input | 
+| `GetInput` | _none_ | Gets the current input | 
 | `SetInput` | `std::vector<std::vector<float>> input` | Sets the current input | 
-| `GetOutput` | none | Gets the current output | 
-| `GetLearningRate` | none | Gets the learning rate | 
+| `GetOutput` | _none_ | Gets the current output | 
+| `GetLearningRate` | _none_ | Gets the learning rate | 
 | `SetLearningRate` | `float newRate` | Sets the learning rate | 
-| `Discriminate` | none | Discriminates using current input | 
+| `Discriminate` | _none_ | Discriminates using current input | 
 | `Generate` | `Layer input` | Generates using the given input from a resulting output | 
-| `LearnCurrentInput` | none | Learns the current input | 
+| `LearnCurrentInput` | _none_ | Learns the current input | 
 | `ReadFromFile` | `std::string path` | Clears network and sets to data from path | 
 | `SaveToFile` | `std::string path` | Saves the network to the path | 
  ------------------------------------------------------------------------------------------------------------------------
+
+ 
+ ##Performance
+ =================================
+ 
+ Currently this code is unoptimized and _very_ slow. To create a new network takes 30 seconds. 
+ To read a network with 3000 neurons from a file took 1530 seconds (~25 minutes).
+ To discriminate took  seconds (~ minutes). Generating took  seconds (~ minutes).
+ This code will be optimized once it is know to be working.

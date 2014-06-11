@@ -10,7 +10,6 @@
 #include "Layer.h"
 #include "Neuron.h"
 #include "Synapse.h"
-#include "SimpleNeuron.h"
 
 class ConvolutionalNeuralNetwork
 {
@@ -26,8 +25,10 @@ public:
 	Layer GetInput();
 	void SetInput(std::vector<std::vector<float>> input);
 	Layer GetOutput();
+	Layer DiscriminateUntil(unsigned int index);
+	Layer GenerateUntil(Layer input, unsigned int index);
 	Layer Discriminate();
-	Layer Generate(Layer input);
+	Layer Generate(Layer output);
 	void LearnCurrentInput();
 	float GetLearnRate();
 	void SetLearnRate(float newRate);
