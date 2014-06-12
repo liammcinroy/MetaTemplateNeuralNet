@@ -146,7 +146,12 @@ This class is the result of the earlier hierarchy. It contains methods for teach
  ##Performance
  =================================
  
- Currently this code is unoptimized and _very_ slow. To create a new network takes 30 seconds. 
+ This was code is unoptimized and _very_ slow. To create a new network takes 30 seconds. 
  To read a network with 3000 neurons from a file took 1530 seconds (~25 minutes).
- To discriminate took  seconds (~ minutes). Generating took  seconds (~ minutes).
+ To discriminate took over 2 days, and I didn't have the patience for the generation
  This code will be optimized once it is know to be working.
+ 
+ #####Update
+ 
+ The code created a network in 18 milliseconds, saved in about 3 seconds, Discriminated in about 5 minutes,
+ and generated in only 2 seconds. This is about 2000+x faster.

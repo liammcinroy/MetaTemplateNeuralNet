@@ -67,15 +67,12 @@
     <ClInclude Include="ConvolutionalNeuralNetwork.h" />
     <ClInclude Include="Layer.h" />
     <ClInclude Include="Neuron.h" />
-    <ClInclude Include="SimpleNeuron.h" />
     <ClInclude Include="Synapse.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ConvolutionalNeuralNetwork.cpp" />
     <ClCompile Include="Layer.cpp" />
-    <ClCompile Include="NetworkGenerator.cpp" />
     <ClCompile Include="Neuron.cpp" />
-    <ClCompile Include="SimpleNeuron.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Synapse.cpp" />
   </ItemGroup>
