@@ -138,7 +138,7 @@ Layer ConvolutionalNeuralNetwork::Discriminate()
 
 Layer ConvolutionalNeuralNetwork::Generate(Layer input)
 {
-	return GenerateUntil(output, 1);
+	return GenerateUntil(input, 1);
 }
 
 void ConvolutionalNeuralNetwork::LearnCurrentInput()
