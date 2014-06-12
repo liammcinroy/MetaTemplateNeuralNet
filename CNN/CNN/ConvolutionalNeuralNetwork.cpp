@@ -136,7 +136,7 @@ Layer ConvolutionalNeuralNetwork::Discriminate()
 	return DiscriminateUntil(m_Layers.size());
 }
 
-Layer ConvolutionalNeuralNetwork::Generate(Layer output)
+Layer ConvolutionalNeuralNetwork::Generate(Layer input)
 {
 	return GenerateUntil(output, 1);
 }

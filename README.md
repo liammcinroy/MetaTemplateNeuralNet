@@ -36,23 +36,6 @@ in the source code's folder. There is also a constructor that will create new ne
 
 ===============================
 
-###SimpleNeuron
-
-SimpleNeuron is a class that has the basics of a neuron. These include location using the layer and index, and the value of the neuron. The following table
-describes the uses of each function
-
-####`SimpleNeuron`
-===========================
-
-| Method Name | Parameters | Function | 
-| ------------|------------|----------- | 
-| `SimpleNeuron` | `int layer, int index` | Constructor for SimpleNeuron | 
-| `GetValue` | _none_ | Gets the current value | 
-| `SetValue` | `float newValue` | Sets the current value | 
-| `GetLayer` | _none_ | Gets the current layer | 
-| `GetIndex` | _none_ | Gets the current index | 
--------------------------------------------------
-
 ###Synapse
 
 Synapse is a class containing two SimpleNeurons, a parent and a child. The parent is the SimpleNeuron that the Synapse originates from, and the child is 
@@ -63,10 +46,12 @@ the destination SimpleNeuron. There are two weights, both a discriminative and a
 
 | Method Name | Parameters | Function | 
 | ------------|------------|-----------| 
-| `Synapse` | `SimpleNeuron parent, SimpleNeuron child` | Constructor for Synapse | 
-| `GetParent` | _none_ | Gets the parent SimpleNeuron | 
-| `GetParent` | _none_ | Gets the parent SimpleNeuron | 
-| `GetChild` | _none_ | Gets the child SimpleNeuron | 
+| `Synapse` | `int parentLayer, int parentIndex, int startChildIndex, int endChildIndex` | Constructor for Synapse | 
+| `GetParentLayer` | _none_ | Gets the parent layer | 
+| `GetParentIndex` | _none_ | Gets the parent index | 
+| `GetStartChildIndex` | _none_ | Gets the child start index | 
+| `GetEndChildIndex` | _none_ | Gets the child end index | 
+| `GetChildrenIndexes` | _none_ | Gets all the children indexes |
 | `GetWeightDiscriminate` | _none_ | Gets the discriminative weight | 
 | `SetWeightDiscriminate` | `float newValue` | Sets the new discriminative weight | 
 | `GetWeightGenerative` | _none_ | Gets the generative weight | 
@@ -75,7 +60,7 @@ the destination SimpleNeuron. There are two weights, both a discriminative and a
 
 ###Neuron
 
-Neuron is a class that inherits from SimpleNeuron, and contains vectors of the Synapses that it is both a parent and a child of. It also has the 
+Neuron is a class that inherits from SimpleNeuron, and contains the synapse the it is the parent of. It also has the 
 code that makes the CNN work. The entire network is made of Neurons. This class also enables the network to fire synapses.
 
 ####`Neuron`
@@ -83,19 +68,11 @@ code that makes the CNN work. The entire network is made of Neurons. This class 
 
 | Method Name | Parameters | Function | 
 | ------------|------------|-----------| 
-| `Neuron` | `std::vector<Synapse> parentOf, std::vector<Synapse> childOf` | Constructor for Neuron | 
+| `Neuron` | `Synapse parentOf` | Constructor for Neuron | 
 | `GetValue` | _none_ | Gets the current value | 
 | `SetValue` | `float newValue` | Sets the current value | 
-| `GetLayer` | _none_ | Gets the current layer | 
-| `GetIndex` | _none_ | Gets the current index | 
-| `AddParentOfSynapse` | `SimpleNeuron child` | Adds a parent of synapse | 
-| `AddChildOfSynapse` | `SimpleNeuron parent` | Adds a child of synapse | 
-| `GetParentOfSynapses` | _none_ | Gets the parent of synapses | 
-| `GetParentOfSynapseAt` | `int index` | Gets the parent of synapse at index | 
-| `GetChildOfSynapses` | _none_ | Gets the child of synapses | 
-| `GetChildOfSynapseAt` | `int index` | Gets the child of synapse at index | 
-| `FireSynapse` | _none_ | Returns the value of the next neuron when discriminating | 
-| `FireInverseSynapse` | _none_ | Returns the value of the next neuron when generating | 
+| `FireSynapse` | `float sum` | Returns the value of the next neuron when discriminating | 
+| `FireInverseSynapse` | `float sum` | Returns the value of the next neuron when generating | 
 -------------------------------------------------------------------------------------------------
 
 ###Layer
@@ -111,8 +88,9 @@ A layer has many neurons, and many methods to interact with those neurons
 | `GetNeurons` | _none_ | Gets the vector of Neurons | 
 | `GetNeuronAt` | `int index` | Gets the Neuron at index | 
 | `AddNeuron` | `Neuron neuron` | Adds a neuron to the end of the Layer | 
-| `FireNeuronAt` | `int index` | Fires the neuron for discriminating at index | 
-| `FireInverseNeuronAt` | `int index` | Fires the neuron for generating at index | 
+| `FireNeuronAt` | `int index, float sum` | Fires the neuron for discriminating at index | 
+| `FireInverseNeuronAt` | `int index, float sum` | Fires the neuron for generating at index | 
+| `IncrementParentWeightAt` | `int index` | Increments the parent weight at index |
 ----------------------------------------------------------------------------------------
 
 ###ConvolutionalNeuralNetwork
@@ -135,6 +113,8 @@ This class is the result of the earlier hierarchy. It contains methods for teach
 | `GetOutput` | _none_ | Gets the current output | 
 | `GetLearningRate` | _none_ | Gets the learning rate | 
 | `SetLearningRate` | `float newRate` | Sets the learning rate | 
+| `DiscriminateUntil` | `int index` | Discriminates until layer at index |
+| `GenerateUntil` | `int index` | Generates until layer at index |
 | `Discriminate` | _none_ | Discriminates using current input | 
 | `Generate` | `Layer input` | Generates using the given input from a resulting output | 
 | `LearnCurrentInput` | _none_ | Learns the current input | 

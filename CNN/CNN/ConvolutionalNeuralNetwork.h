@@ -28,7 +28,7 @@ public:
 	Layer DiscriminateUntil(unsigned int index);
 	Layer GenerateUntil(Layer input, unsigned int index);
 	Layer Discriminate();
-	Layer Generate(Layer output);
+	Layer Generate(Layer input);
 	void LearnCurrentInput();
 	float GetLearnRate();
 	void SetLearnRate(float newRate);
