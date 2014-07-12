@@ -65,16 +65,17 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ConvolutionalNeuralNetwork.h" />
+    <ClInclude Include="Matrix.h" />
     <ClInclude Include="Layer.h" />
-    <ClInclude Include="Neuron.h" />
-    <ClInclude Include="Synapse.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ConvolutionalNeuralNetwork.cpp" />
+    <ClCompile Include="Matrix.cpp" />
     <ClCompile Include="Layer.cpp" />
-    <ClCompile Include="Neuron.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Synapse.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CNN.cd" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -117,7 +117,8 @@ This class is the result of the earlier hierarchy. It contains methods for teach
 | `GenerateUntil` | `int index` | Generates until layer at index |
 | `Discriminate` | _none_ | Discriminates using current input | 
 | `Generate` | `Layer input` | Generates using the given input from a resulting output | 
-| `LearnCurrentInput` | _none_ | Learns the current input | 
+| `LearnCurrentUnlabeledInput` | _none_ | Learns the current unlabeled input | 
+| `LearnCurrentLabeledInput` | `Layer labels` | Learns the current labeled input |
 | `ReadFromFile` | `std::string path` | Clears network and sets to data from path | 
 | `SaveToFile` | `std::string path` | Saves the network to the path | 
  ------------------------------------------------------------------------------------------------------------------------

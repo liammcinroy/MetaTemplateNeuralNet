@@ -1,292 +1,396 @@
 #include "ConvolutionalNeuralNetwork.h"
 
-ConvolutionalNeuralNetwork::ConvolutionalNeuralNetwork()
+convolutional_neural_network::convolutional_neural_network()
 {
 }
 
-ConvolutionalNeuralNetwork::ConvolutionalNeuralNetwork(std::string path)
+convolutional_neural_network::~convolutional_neural_network()
 {
-	ReadFromFile(path);
 }
 
-ConvolutionalNeuralNetwork::ConvolutionalNeuralNetwork(std::vector<int> neuronCountPerLayer, std::vector<int> featureMapsPerLayer, std::vector<int> featureMapDimensions, std::vector<std::vector<int>> featureMapConnections, std::vector<std::vector<int>> featureMapStartIndex)
+matrix<float> convolutional_neural_network::convolve(matrix<float> input_matrix, matrix<float> kernal)
 {
-	for (unsigned int i = 0; i < neuronCountPerLayer.size() - 1; ++i)
+	int M = (kernal.cols - 1) / 2;
+	int N = (kernal.rows - 1) / 2;
+	matrix<float> result = matrix<float>(input_matrix.cols - (2 * M), input_matrix.rows - (2 * N), 1);
+
+	for (int k = 0; k < input_matrix.dims; ++k)
 	{
-		Layer currentLayer;
-
-		for (int j = 0; j < neuronCountPerLayer[i]; ++j)
+		matrix<float> current = matrix<float>(input_matrix.cols - (2 * kernal.cols), input_matrix.rows - (2 * kernal.cols), 1);
+		//apply to every pixel
+		for (int i = M; i < input_matrix.cols - M; ++i)
 		{
-			if (featureMapsPerLayer[i] == 1)
-				currentLayer.AddNeuron(Neuron(Synapse(i + 1, j + 1, 1, neuronCountPerLayer[i + 1])));
-
-			else
+			for (int j = N; j < input_matrix.rows - N; ++j)
 			{
-				int featureMapsUp = featureMapsPerLayer[i + 1];
-				int inFeatureMap = featureMapsPerLayer[i] / j;
-				int startIndex = (neuronCountPerLayer[i + 1] / featureMapsUp) * featureMapStartIndex[i][inFeatureMap];
-				int destinationIndex = startIndex + (neuronCountPerLayer[i + 1] / featureMapsUp) * featureMapConnections[i][inFeatureMap];
-
-				currentLayer.AddNeuron(Neuron(Synapse(i + 1, j + 1,
-					(neuronCountPerLayer[i + 1] / featureMapsUp) * featureMapStartIndex[i][inFeatureMap],
-					startIndex + (neuronCountPerLayer[i + 1] / featureMapsUp) * featureMapConnections[i][inFeatureMap])));
+				//find sum
+				float sum = 0.0f;
+				for (int m = -M; m <= M; ++m)
+					for (int n = -N; n <= N; ++n)
+						sum += (input_matrix.at(i + m, j + n, k) * kernal.at(M - m, N - n, 0));
+				current.set(i - M, j - N, 1, sum);
 			}
 		}
-		AddLayer(currentLayer);
+
+		//add channels
+		for (int i = 0; i < result.cols; ++i)
+			for (int j = 0; j < result.rows; ++j)
+				result.set(i, j, 0, result.at(i, j, 0) + current.at(i, j, 0));
 	}
-
-	Layer output;
-
-	for (int i = 0; i < neuronCountPerLayer[neuronCountPerLayer.size() - 1]; ++i)
-		output.AddNeuron(Neuron(Synapse()));
-	AddLayer(output);
+	return result;
 }
 
-ConvolutionalNeuralNetwork::~ConvolutionalNeuralNetwork()
+matrix<float> convolutional_neural_network::deconvolve(matrix<float> input_matrix, matrix<float> kernal)
 {
-}
+	int N = (kernal.cols - 1) / 2;
+	int M = (kernal.rows - 1) / 2;
+	matrix<std::string> map(kernal.cols, kernal.rows, 1);
+	matrix<std::string> codes(input_matrix.cols + (2 * N), input_matrix.rows + (2 * M), 1);
 
-void ConvolutionalNeuralNetwork::AddLayer(Layer newLayer)
-{
-	if (m_Layers.size() > 0)
-		m_Layers.push_back(newLayer);
-	else
+	int symmetry = 0;
+	if (kernal.at(1, 0, 0) == -kernal.at(kernal.cols - 1, kernal.rows - 2, 0))//bottom left to right diagonal
+		symmetry = 1;
+	else if (kernal.at(1, 0, 0) == -kernal.at(0, kernal.rows - 2, 0))//bottom right to left diagonal
+		symmetry = 2;
+	else if (kernal.at(1, 0, 0) == -kernal.at(1, kernal.rows - 1, 0))//across
+		symmetry = 3;
+	else if (kernal.at(1, 0, 0) == -kernal.at(kernal.cols - 2, 0, 0))//up and down
+		symmetry = 4;
+
+	bool pos_top = (kernal.at(0, 0, 0) != 0) ? (kernal.at(0, 0, 0) > 0) : ((kernal.at(1, 0, 0) != 0) ? (kernal.at(1, 0, 0) > 0) :
+		((kernal.at(0, 1, 0) != 0) ? (kernal.at(0, 1, 0) > 0) : ((kernal.at(1, 1, 0) != 0) ? (kernal.at(1, 1, 0) > 0) : false)));
+	int times_symmetrical = 1;
+	int unknown_constants = 1;
+
+	if (symmetry != 4 && symmetry != 0)
 	{
-		m_Layers.push_back(Layer());
-		m_Layers.push_back(newLayer);
-	}
-}
-
-std::vector<Layer> ConvolutionalNeuralNetwork::GetLayers()
-{
-	return m_Layers;
-}
-
-Layer ConvolutionalNeuralNetwork::GetLayerAt(int index)
-{
-	return m_Layers[index - 1];
-}
-
-Layer ConvolutionalNeuralNetwork::GetInput()
-{
-	return GetLayerAt(1);
-}
-
-void ConvolutionalNeuralNetwork::SetInput(std::vector<std::vector<float>> input)
-{
-	std::vector<Neuron> neurons;
-	for (unsigned int i = 0; i < input.size(); ++i)
-		for (unsigned int j = 0; j < input[i].size(); ++j)
-			neurons.push_back(Neuron(Synapse(1, i + (j * input[i].size() + 1), 1, m_Layers[1].GetNeurons().size())));
-	m_Layers[0] = Layer(neurons);
-}
-
-Layer ConvolutionalNeuralNetwork::GetOutput()
-{
-	return GetLayerAt(m_Layers.size());
-}
-
-Layer ConvolutionalNeuralNetwork::DiscriminateUntil(unsigned int index)
-{
-	for (unsigned int l = 1; l < index; ++l)
-	{
-		for (unsigned int n = 1; n < m_Layers[l].GetNeurons().size(); ++n)
+		for (int i = 0; i < kernal.cols; ++i)
 		{
-			float sum = 0.0f;
-
-			for (unsigned int n2 = 1; n2 < m_Layers[l - 1].GetNeurons().size(); ++n2)
+			for (int j = 0; j < kernal.rows; ++j)
 			{
-				unsigned int startIndex = m_Layers[l - 1].GetNeuronAt(n2).GetParentOfSynapse().GetStartChildIndex();
-				unsigned int endIndex = m_Layers[l - 1].GetNeuronAt(n2).GetParentOfSynapse().GetEndChildIndex();
-				float weight = m_Layers[l - 1].GetNeuronAt(n2).GetParentOfSynapse().GetWeightGenerative();
+				if (kernal.at(i, j, 0) == 0)
+				{
+					map.set(i, j, 0, "U" + unknown_constants);
+					++unknown_constants;
+					break;
+				}
 
-				if (startIndex <= n && n <= endIndex)
-					sum += (m_Layers[l - 1].GetNeuronAt(n2).GetValue() * weight);
+				else
+				{
+					switch (symmetry)
+					{
+					case 1:
+						if (pos_top)
+						{
+							map.set(i, j, 0, "S" + times_symmetrical);
+							map.set(j, kernal.rows - 1 - i, 0, "S" + (-times_symmetrical));
+							++times_symmetrical;
+						}
+
+						else
+						{
+							map.set(i, j, 0, "S" + (-times_symmetrical));
+							map.set(j, kernal.rows - 1 - i, 0, "S" + times_symmetrical);
+							++times_symmetrical;
+						}
+						break;
+					case 2:
+						if (pos_top)
+						{
+							map.set(i, j, 0, "S" + times_symmetrical);
+							map.set(j, i, 0, "S" + (-times_symmetrical));
+							++times_symmetrical;
+						}
+
+						else
+						{
+							map.set(i, j, 0, "S" + (-times_symmetrical));
+							map.set(j, i, 0, "S" + times_symmetrical);
+							++times_symmetrical;
+						}
+						break;
+					case 3:
+						if (pos_top)
+						{
+							map.set(i, j, 0, "S" + times_symmetrical);
+							map.set(i, kernal.rows - 1 - j, 0, "S" + (-times_symmetrical));
+							++times_symmetrical;
+						}
+
+						else
+						{
+							map.set(i, j, 0, "S" + (-times_symmetrical));
+							map.set(i, kernal.rows - 1 - j, 0, "S" + times_symmetrical);
+							++times_symmetrical;
+						}
+						break;
+					}
+				}
 			}
-			m_Layers[l].FireNeuronAt(n, sum);
 		}
 	}
 
-	return GetOutput();
-}
-
-Layer ConvolutionalNeuralNetwork::GenerateUntil(Layer input, unsigned int index)
-{
-	for (unsigned int l = m_Layers.size() - 2; l > index - 1; --l)
+	else if (symmetry == 4)
 	{
-		for (unsigned int n = 1; n < m_Layers[l].GetNeurons().size(); ++n)
+		for (int j = 0; j < kernal.rows; ++j)
 		{
-			unsigned int startIndex = m_Layers[l].GetNeuronAt(n).GetParentOfSynapse().GetStartChildIndex();
-			unsigned int endIndex = m_Layers[l].GetNeuronAt(n).GetParentOfSynapse().GetEndChildIndex();
-			float weight = m_Layers[l].GetNeuronAt(n).GetParentOfSynapse().GetWeightGenerative();
+			for (int i = 0; i < kernal.cols; ++i)
+			{
+				if (kernal.at(i, j, 0) == 0)
+				{
+					map.set(i, j, 0, "U" + unknown_constants);
+					++unknown_constants;
+					break;
+				}
 
-			float sum = 0.0f;
-			for (unsigned int i = startIndex; i <= endIndex; ++i)
-				sum += (m_Layers[l + 1].GetNeuronAt(i).GetValue() * weight);
+				else
+				{
+					if (pos_top)
+					{
+						map.set(i, j, 0, "S" + times_symmetrical);
+						map.set(kernal.cols - 1 - i, j, 0, "S" + (-times_symmetrical));
+						++times_symmetrical;
+					}
 
-			m_Layers[l].FireInverseNeuronAt(n, sum);
+					else
+					{
+						map.set(i, j, 0, "S" + (-times_symmetrical));
+						map.set(kernal.cols - 1 - i, j, 0, "S" + times_symmetrical);
+						++times_symmetrical;
+					}
+				}
+			}
 		}
 	}
 
-	return GetLayerAt(1);
-}
-
-Layer ConvolutionalNeuralNetwork::Discriminate()
-{
-	return DiscriminateUntil(m_Layers.size());
-}
-
-Layer ConvolutionalNeuralNetwork::Generate(Layer input)
-{
-	return GenerateUntil(input, 1);
-}
-
-void ConvolutionalNeuralNetwork::LearnCurrentInput()
-{
-	Layer output = Discriminate();
-	while (true)
+	//find all non perfectly canceled cells
+	for (int i = N; i < codes.cols - N; ++i)
 	{
-		ConvolutionalNeuralNetwork dupe = ConvolutionalNeuralNetwork(*this);
-
-		if (dupe.Generate(output) == GetInput())
-			break;
-
-		for (unsigned int i = 1; i < m_Layers.size() - 1; ++i)
+		for (int j = M; j < codes.rows - M; ++j)
 		{
-			DiscriminateUntil(i);
-			dupe.GenerateUntil(output, i);
+			if (input_matrix.at(i, j, 0) > 0)
+			{
+				float difference_multiplier = input_matrix.at(i, j, 0);
+				for (int x = 0; x < map.cols; ++x)
+					for (int y = 0; y < map.rows; ++y)
+						if (map.at(x, y, 0).substr(0, 1) == "S")
+							difference_multiplier /= abs(kernal.at(x, y, 0));
+				for (int i2 = i - N; i2 < map.cols + i - N; ++i2)
+				{
+					for (int j2 = j - M; j2 < map.rows + j - M; ++j2)
+					{
+						if (codes.at(i2, j2, 0).substr(0, 1) != "S" || codes.at(i2, j2, 0).find("*") == std::string::npos)
+							//overwrite non multipliers
+							codes.set(i2, j2, 0, map.at(map.cols - (i2 - map.cols), map.rows - (j2 - map.rows), 0)
+							+ "*" + std::to_string(difference_multiplier));
+						else if (codes.at(i2, j2, 0).find("*") != std::string::npos)
+						{
+							//merge multipliers
+							float current_multiplier = std::stof(codes.at(i2, j2, 0).substr(codes.at(i2, j2, 0).find("*") + 1, codes.at(i2, j2, 0).length()));
+							std::string new_multiplier = std::to_string((current_multiplier + difference_multiplier) / 2);
+							codes.set(i2, j2, 0, (codes.at(i2, j2, 0).replace(codes.at(i2, j2, 0).find("*") + 1, new_multiplier.length(), new_multiplier)));
+						}
+					}
+				}
+			}
 
-			Layer change = GetLayerAt(i) - dupe.GetLayerAt(i);
-			float result = 0.0f;
-			
-			for (unsigned int n = 1; n < change.GetNeurons().size(); ++n)
-				result += pow(change.GetNeuronAt(n).GetValue(), 2);
-
-			result = sqrt(result) * GetLearnRate();
-			
-			for (unsigned int j = 1; j < GetLayerAt(i - 1).GetNeurons().size(); ++j)
-				GetLayerAt(i).IncrementParentWeightAt(j, result);
-			for (unsigned int j = 1; j < GetLayerAt(i).GetNeurons().size(); ++j)
-				GetLayerAt(i).IncrementParentWeightAt(j, -result);
+			else if (input_matrix.at(i, j, 0) < 0)
+			{
+				float difference_multiplier = input_matrix.at(i, j, 0);
+				for (int x = 0; x < map.cols; ++x)
+					for (int y = 0; y < map.rows; ++y)
+						if (map.at(x, y, 0).substr(0, 2) == "S-")
+							difference_multiplier /= abs(kernal.at(x, y, 0));
+				for (int i2 = i - N; i2 < map.cols + i - N; ++i2)
+				{
+					for (int j2 = j - M; j2 < map.rows + j - M; ++j2)
+					{
+						if (codes.at(i2, j2, 0).substr(0, 1) != "S" || codes.at(i2, j2, 0).find("*") == std::string::npos
+							&& input_matrix.at(i2 - N, j2 - N, 0) != 0)
+							codes.set(i2, j2, 0, map.at(map.cols - (i2 - map.cols), map.rows - (j2 - map.rows), 0)
+							+ "*" + std::to_string(difference_multiplier));
+						else if (codes.at(i2, j2, 0).find("*") != std::string::npos && input_matrix.at(i2 - N, j2 - N, 0) != 0)
+						{
+							//merge multipliers
+							float current_multiplier = std::stof(codes.at(i2, j2, 0).substr(codes.at(i2, j2, 0).find("*") + 1, codes.at(i2, j2, 0).length()));
+							std::string new_multiplier = std::to_string((current_multiplier + difference_multiplier) / 2);
+							codes.set(i2, j2, 0, (codes.at(i2, j2, 0).replace(codes.at(i2, j2, 0).find("*") + 1, new_multiplier.length(), new_multiplier)));
+						}
+					}
+				}
+			}
 		}
 	}
+
+	//find all perfectly canceled cells
+	for (int i = N; i < codes.cols - N; ++i)
+	{
+		for (int j = M; j < codes.rows - M; ++j)
+		{
+			if (input_matrix.at(i, j, 0) == 0)
+			{
+				//map for multipliers for each
+				std::map<std::string, float> multipliers;
+				for (int i2 = i - N; i2 < map.cols + i - N; ++i2)
+					for (int j2 = j - M; j2 < map.rows + j - M; ++j2)
+						if (kernal.at(kernal.cols - (i2 - kernal.cols), kernal.rows - (j2 - kernal.rows), 0) != 0)
+							if (multipliers.find(codes.at(i2, j2, 0).substr(0, codes.at(i2, j2, 0).find("*") - 1)) == multipliers.end())
+								multipliers.insert(std::pair<std::string, float>(codes.at(i2, j2, 0).substr(0, codes.at(i2, j2, 0).find("*") - 1),
+								std::stof(codes.at(i2, j2, 0).substr(codes.at(i2, j2, 0).find("*") + 1, codes.at(i2, j2, 0).length()))));
+				//merge symmetric
+				for (int i2 = 0; i2 < times_symmetrical; ++i2)
+				{
+					float new_multiplier = (multipliers["S" + i2] + multipliers["S" + (-i2)]) / 2;
+					multipliers["S" + i2] = new_multiplier;
+					multipliers["S" + (-i2)] = new_multiplier;
+				}
+				for (int i2 = i - N; i2 < map.cols + i - N; ++i2)
+					for (int j2 = j - M; j2 < map.rows + j - M; ++j2)
+						if (kernal.at(kernal.cols - (i2 - kernal.cols), kernal.rows - (j2 - kernal.rows), 0) != 0)
+							codes.set(i2, j2, 0, codes.at(i2, j2, 0).substr(0, codes.at(i2, j2, 0).find("*") - 1) + "*"
+							+ std::to_string(multipliers[codes.at(i2, j2, 0).substr(0, codes.at(i2, j2, 0).find("*") - 1)]));
+			}
+		}
+	}
+
+	matrix<float> result(codes.cols, codes.rows, 0);
+
+	//convert to vectors
+	std::vector<float> kernal_vector;
+	for (int i = 0; i < kernal.cols; ++i)
+		for (int j = 0; j < kernal.rows; ++j)
+			if (kernal.at(i, j, 0) != 0)
+				kernal_vector.push_back(kernal.at(i, j, 0));
+
+	std::vector<float> outputs;
+	for (int i = 0; i < input_matrix.cols; ++i)
+		for (int j = 0; j < input_matrix.rows; ++j)
+			outputs.push_back(input_matrix.at(i, j, 0));
+
+	for (int i = 0; i < codes.cols; i += map.cols)
+	{
+		for (int j = 0; j < codes.rows; j += map.rows)
+		{
+			std::vector<float> multipliers_vector(kernal_vector.size());
+			for (int i2 = i; i2 < i + map.cols; ++i2)
+				for (int j2 = j; j2 < j + map.rows; ++j2)
+					multipliers_vector.push_back(std::stof(codes.at(i2, j2, 0).substr(codes.at(i2, j2, 0).find("*") + 1,
+					codes.at(i2, j2, 0).length())));
+
+			float current_output = outputs[((i / map.cols) * i) + (j / map.rows)];
+
+			//find dot product
+			float dot = 0.0f;
+			for (int n = 0; n < kernal_vector.size(); ++n)
+				dot += (kernal_vector[n] * multipliers_vector[n]);
+
+			//substitute in value
+			for (int i2 = i; i2 < i + map.cols; ++i2)
+				for (int j2 = j; j2 < j + map.rows; ++j2)
+					result.set(i2, j2, 0, current_output / dot);
+		}
+	}
+
+	return result;
 }
 
-float ConvolutionalNeuralNetwork::GetLearnRate()
+matrix<float> convolutional_neural_network::feed_forward(layer input_layer, int num_output)
 {
-	return m_LearnRate;
+	matrix<float> result(num_output, 1, 1);
+
+	for (int i = 0; i < num_output; ++i)
+	{
+		//Find sum of weights and run through ReL
+		float sum = 0.0f;
+		for (int j = 0; j < input_layer.at(0).cols; ++j)
+			sum += (input_layer.neuron_at(0, j, 0, 0) * input_layer.data_value_at(i, j, 0, 0));
+		result.set(i, 0, 0, max(0, sum));
+	}
+	return result;
 }
 
-void ConvolutionalNeuralNetwork::SetLearnRate(float newValue)
+matrix<float> convolutional_neural_network::maxpool(matrix<float> input_matrix, int cols, int rows)
 {
-	m_LearnRate = newValue;
-}
+	std::vector<std::vector<matrix<float>>> samples;
+	int across = input_matrix.cols / cols;
+	int down = input_matrix.rows / rows;
 
-void ConvolutionalNeuralNetwork::ReadFromFile(std::string path)
-{
-	std::ifstream file = std::ifstream(path);
-	std::string contents = FindInBetween(std::string((std::istreambuf_iterator<char>(file)),
-		std::istreambuf_iterator<char>()), "<[", "]>");
+	//get samples
+	for (int i = 0; i < cols; ++i)
+	{
+		samples.push_back(std::vector<matrix<float>>());
+		for (int j = 0; j < rows; ++j)
+			samples[i].push_back(input_matrix.from(i * across, j * down, across, down));
+	}
 	
-	std::string layer;
-	unsigned int iterations = 0;
-	m_Layers.clear();
-	std::istringstream content(contents);
-	while (std::getline(content, layer, '{'))
+	//cycle through each sample
+	matrix<float> result(cols, rows, 1);
+	for (int i = 0; i < samples.size(); ++i)
 	{
-		Layer newLayer;
-
-		std::string neuron;
-		std::istringstream current(layer);
-		while (std::getline(current, neuron, ' '))
+		for (int j = 0; j < samples[i].size(); ++j)
 		{
-			if (neuron != "")
+			//cycle through sample and find max
+			float max_value = 0.0f;
+			for (int x = 0; x < samples[i][j].cols; ++x)
+				for (int y = 0; y < samples[i][j].rows; ++y)
+					max_value = max(max_value, samples[i][j].at(x, y, 0));
+			result.set(i, j, 0, max_value);
+		}
+	}
+	return result;
+}
+
+layer convolutional_neural_network::discriminate_to(int i)
+{
+	layer current = m_layers[0];
+	for (int j = 0; j < i; ++j)
+	{
+		std::vector<matrix<float>> feature_maps;
+		switch (current.type)
+		{
+		case CNN_CONVOLUTION:
+			for (int i2 = 0; i2 = current.feature_map_count; ++i2)
 			{
-				std::string synapseData = FindInBetween(neuron, "<p", "p>");
-
-				Synapse parentSynapse;
-
-				std::string parent = FindInBetween(synapseData, "p(", ")p");
-				int layerParent = std::stoi(StringUntil(parent, ","));
-				int indexParent = std::stoi(StringBy(parent, ","));
-
-				int childStartIndex = std::stoi(FindInBetween(synapseData, "cs(", ")sc"));
-				int childEndIndex = std::stoi(FindInBetween(synapseData, "ce(", ")ec"));
-
-				float weightD = std::stof(FindInBetween(synapseData, "d:", "g:"));
-				float weightG = std::stof(FindInBetween(synapseData, "g:", ""));
-
-				parentSynapse = Synapse(layerParent, indexParent, childStartIndex, childEndIndex);
-				parentSynapse.SetWeightDiscriminate(weightD);
-				parentSynapse.SetWeightGenerative(weightG);
-
-				newLayer.AddNeuron(Neuron(parentSynapse));
+				matrix<float> total = convolve(current.at(i2), current.data_at(0));
+				for (int k = 1; k < current.data_count; ++k)
+					total += convolve(current.at(i2), current.data_at(k));
+				feature_maps.push_back(total);
 			}
+			current = m_layers[j + 1];
+			current.set_feature_maps(feature_maps);
+			break;
+		case CNN_FEED_FORWARD:
+			feature_maps.push_back(feed_forward(current, m_layers[j + 1].at(0).cols));
+			current = m_layers[j + 1];
+			current.set_feature_maps(feature_maps);
+			break;
+		case CNN_OUTPUT:
+			current.set_feature_maps({ logistic_regression(current.at(0)) });
+			return current;
+			break;
 		}
-
-		if (iterations < m_Layers.size())
-			m_Layers[iterations] = newLayer;
-		else
-			AddLayer(newLayer);
-		++iterations;
 	}
-
-	file.close();
+	return current;
 }
 
-void ConvolutionalNeuralNetwork::SaveToFile(std::string path)
+layer convolutional_neural_network::generate_until(int i, matrix<float> input_matrix)
 {
-	std::ofstream file = std::ofstream(path);
-	file.clear();
-
-	file << "<[";
-
-	for (unsigned int i = 1; i < m_Layers.size(); ++i)
-	{
-		file << "{";
-
-		for (unsigned int j = 1; j < m_Layers[i].GetNeurons().size() + 1; ++j)
-		{
-			file << " ";
-
-			Synapse parent = m_Layers[i].GetNeuronAt(j).GetParentOfSynapse();
-
-			file << "<p";
-			file << "p(" << parent.GetParentLayer() << "," << parent.GetParentIndex() << ")p";
-			file << "cs(" << parent.GetStartChildIndex() << ")sc";
-			file << "ce(" << parent.GetEndChildIndex() << ")ec";
-			file << "d:" << parent.GetWeightDiscriminate() << "g:" << parent.GetWeightGenerative();
-			file << "p>";
-		}
-
-		file << "}";
-	}
-
-	file << "]>";
+	return layer();
 }
 
-std::string ConvolutionalNeuralNetwork::StringUntil(std::string input, std::string key)
+float convolutional_neural_network::max(float a, float b)
 {
-	std::string result;
-	size_t index = input.rfind(key);
-	if (index != std::string::npos)
-	for (unsigned int i = 0; i < index; ++i)
-		result += input[i];
+	return (a > b) ? a : b;
+}
+
+matrix<float> convolutional_neural_network::logistic_regression(matrix<float> input_data)
+{
+	matrix<float> result(input_data.cols, 1, 1);
+
+	float sum = 0.0f;
+	for (int i = 0; i < input_data.cols; ++i)
+		sum += exp(input_data.at(i, 0, 0));
+
+	for (int i = 0; i < input_data.cols; ++i)
+		result.set(i, 0, 0, (exp(input_data.at(i, 0, 0) / sum)));
 	return result;
-}
-
-std::string ConvolutionalNeuralNetwork::StringBy(std::string input, std::string key)
-{
-	std::string result;
-	size_t index = input.rfind(key);
-	if (index != std::string::npos)
-	for (unsigned int i = index + key.length(); i < input.length(); ++i)
-		result += input[i];
-	return result;
-}
-
-std::string ConvolutionalNeuralNetwork::FindInBetween(std::string input, std::string first, std::string second)
-{
-	std::string firstSeg = StringUntil(input, second);
-	return StringBy(firstSeg, first);
 }

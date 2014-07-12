@@ -1,60 +1,153 @@
 #include "Layer.h"
 
-
-Layer::Layer()
+layer::layer()
 {
 }
 
-Layer::Layer(std::vector<Neuron> neurons)
+layer::layer(int num, int feature_rows, int feature_cols, int kind, int amount, int rows = 1, int cols = 1, int dims = 1, bool use_random_values = false)
 {
-	m_Neurons = neurons;
+	for (int i = 0; i < num; ++i)
+		m_feature_maps.push_back(matrix<float>(feature_cols, feature_rows, 1));
+	type = kind;
+	data_count = amount;
+	switch (kind)
+	{
+	case CNN_CONVOLUTION:
+		if (use_random_values)
+			for (int i = 0; i < amount; ++i)
+				m_data.push_back(matrix<float>(cols, rows, dims, rand()));
+		else
+			for (int i = 0; i < amount; ++i)
+				m_data.push_back(matrix<float>(cols, rows, dims));
+		break;
+	case CNN_FEED_FORWARD:
+		if (use_random_values)
+			for (int i = 0; i < amount; ++i)
+				m_data.push_back(matrix<float>(cols, rows, dims, rand()));
+		else
+			for (int i = 0; i < amount; ++i)
+				m_data.push_back(matrix<float>(cols, rows, dims, rand()));
+		break;
+	case CNN_OUTPUT:
+		break;
+	default:
+		break;
+	}
 }
 
-Layer::~Layer()
+layer::layer(int num, int feature_rows, int feature_cols, int kind, int amount, int rows = 1, int cols = 1, int dims = 1, float values = 0.0f)
+{
+	for (int i = 0; i < num; ++i)
+		m_feature_maps.push_back(matrix<float>(feature_cols, feature_rows, 1));
+	type = kind;
+	data_count = amount;
+	switch (kind)
+	{
+	case CNN_CONVOLUTION:
+		for (int i = 0; i < amount; ++i)
+			m_data.push_back(matrix<float>(cols, rows, dims, values));
+		break;
+	case CNN_FEED_FORWARD:
+		for (int i = 0; i < amount; ++i)
+			m_data.push_back(matrix<float>(cols, rows, dims, values));
+		break;
+	case CNN_OUTPUT:
+		break;
+	default:
+		break;
+	}
+}
+
+layer::layer(int num, int feature_rows, int feature_cols, int kind, int amount, matrix<float> example, bool use_random_values = false)
+{
+	for (int i = 0; i < num; ++i)
+		m_feature_maps.push_back(matrix<float>(feature_cols, feature_rows, 1));
+	type = kind;
+	data_count = amount;
+
+	int cols = example.cols;
+	int rows = example.rows;
+	int dims = example.dims;
+	switch (kind)
+	{
+	case CNN_CONVOLUTION:
+		if (use_random_values)
+			for (int i = 0; i < amount; ++i)
+				m_data.push_back(matrix<float>(cols, rows, dims, rand()));
+		else
+			for (int i = 0; i < amount; ++i)
+				m_data.push_back(example);
+		break;
+	case CNN_FEED_FORWARD:
+		if (use_random_values)
+			for (int i = 0; i < amount; ++i)
+				m_data.push_back(matrix<float>(cols, rows, dims, rand()));
+		else
+			for (int i = 0; i < amount; ++i)
+				m_data.push_back(example);
+		break;
+	case CNN_OUTPUT:
+		break;
+	default:
+		break;
+	}
+}
+
+layer::~layer()
 {
 }
 
-std::vector<Neuron> Layer::GetNeurons()
+matrix<float> layer::at(int i)
 {
-	return m_Neurons;
+	return m_feature_maps[i];
 }
 
-Neuron Layer::GetNeuronAt(int index)
+void layer::set_feature_maps(std::vector<matrix<float>> new_maps)
 {
-	return m_Neurons[index - 1];
+	m_feature_maps = new_maps;
 }
 
-void Layer::FireNeuronAt(int index, float sum)
+float layer::neuron_at(int f, int i, int j, int k)
 {
-	m_Neurons[index - 1].SetValue(m_Neurons[index - 1].FireSynapse(sum));
+	return m_feature_maps[f].at(i, j, k);
 }
 
-void Layer::FireInverseNeuronAt(int index, float sum)
+void layer::set_neuron(int f, int i, int j, int k, float value)
 {
-	m_Neurons[index - 1].SetValue(m_Neurons[index - 1].FireInverseSynapse(sum));
+	m_feature_maps[f].set(i, j, k, value);
 }
 
-void Layer::IncrementParentWeightAt(int index, float amount)
+matrix<float> layer::data_at(int i)
 {
-	m_Neurons[index - 1].IncrementParentWeight(amount);
+	return m_data[i];
 }
 
-void Layer::AddNeuron(Neuron newNeuron)
+matrix<float> layer::data_at(int i, int k)
 {
-	m_Neurons.push_back(newNeuron);
+	return m_data[i].at_channel(k);
 }
 
-Layer Layer::operator-(Layer other)
+void layer::set_data(int i, matrix<float> value)
 {
-	for (unsigned int i = 1; i < other.GetNeurons().size(); ++i)
-		m_Neurons[i - 1] = m_Neurons[i - 1] - other.GetNeuronAt(i);
-	return *this;
+	m_data[i] = value;
 }
 
-bool Layer::operator==(Layer other)
+void layer::set_data(int i, std::vector<std::vector<std::vector<float>>> value)
 {
-	for (unsigned int i = 1; i < other.GetNeurons().size(); ++i)
-		if (m_Neurons[i - 1].GetValue() != other.GetNeuronAt(i).GetValue())
-			return false;
-	return true;
+	m_data[i] = value;
+}
+
+void layer::set_data(int i, std::vector<std::vector<float>> value)
+{
+	m_data[i] = value;
+}
+
+float layer::data_value_at(int f, int i, int j, int k)
+{
+	return m_data[f].at(i, j, k);
+}
+
+void layer::set_data_value_at(int f, int i, int j, int k, float value)
+{
+	m_data[f].set(i, j, k, value);
 }

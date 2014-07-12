@@ -1,44 +1,36 @@
 #pragma once
 
 #include <map>
-#include <fstream>
-#include <istream>
-#include <iostream>
-#include <sstream>
 #include <string>
 
-#include "Layer.h"
-#include "Neuron.h"
-#include "Synapse.h"
+#include "matrix.h"
+#include "layer.h"
 
-class ConvolutionalNeuralNetwork
+class convolutional_neural_network
 {
 public:
-	ConvolutionalNeuralNetwork();
-	ConvolutionalNeuralNetwork(std::string path);
-	ConvolutionalNeuralNetwork(std::vector<int> neuronCountPerLayer, std::vector<int> featureMapsPerLayer, std::vector<int> featureMapDimensions,
-		std::vector<std::vector<int>> featureMapConnections, std::vector<std::vector<int>> featureMapStartIndex);
-	~ConvolutionalNeuralNetwork();
-	void AddLayer(Layer newLayers);
-	std::vector<Layer> GetLayers();
-	Layer GetLayerAt(int index);
-	Layer GetInput();
-	void SetInput(std::vector<std::vector<float>> input);
-	Layer GetOutput();
-	Layer DiscriminateUntil(unsigned int index);
-	Layer GenerateUntil(Layer input, unsigned int index);
-	Layer Discriminate();
-	Layer Generate(Layer input);
-	void LearnCurrentInput();
-	float GetLearnRate();
-	void SetLearnRate(float newRate);
-	void ReadFromFile(std::string path);
-	void SaveToFile(std::string path);
+	convolutional_neural_network();
+	~convolutional_neural_network();
+	float learning_rate;
+	matrix<float> input;
+	bool use_dropout;
+	void discriminate();
+	void generate(matrix<float> input_matrix);
+	void learn();
+	matrix<float> augment(matrix<float> input_matrix);
 private:
-	std::vector<Layer> m_Layers;
-	float m_LearnRate;
-	std::string StringUntil(std::string, std::string);
-	std::string StringBy(std::string, std::string);
-	std::string FindInBetween(std::string, std::string, std::string);
+	std::vector<layer> m_layers;
+	float max(float a, float b);//done
+	matrix<float> logistic_regression(matrix<float> input_data);//done
+	matrix<float> feed_forward(layer input_layer, int num_output_neurons);//done
+	matrix<float> convolve(matrix<float> input_matrix, matrix<float> kernal);//done
+	matrix<float> deconvolve(matrix<float> input_matrix, matrix<float> kernal);//done
+	matrix<float> maxpool(matrix<float> input_matrix, int output_cols, int output_rows);//done
+	layer discriminate_to(int i);//done
+	layer generate_until(int i, matrix<float> input_matrix);
+	void backpropogate(int i);
+	float backpropogate_difference(int i);
+	void stochastic_gradient_descent(int i);
+	void dropout(int i);
 };
 
