@@ -1,8 +1,5 @@
 #pragma once
 
-#include <map>
-#include <string>
-
 #include "matrix.h"
 #include "layer.h"
 
@@ -25,6 +22,7 @@ private:
 	matrix<float> feed_forward(layer input_layer, int num_output_neurons);//done
 	matrix<float> convolve(matrix<float> input_matrix, matrix<float> kernal);//done
 	matrix<float> deconvolve(matrix<float> input_matrix, matrix<float> kernal);//done
+	matrix<float> deconvolve_single(float input_value, matrix<float> kernal);//done
 	matrix<float> maxpool(matrix<float> input_matrix, int output_cols, int output_rows);//done
 	layer discriminate_to(int i);//done
 	layer generate_until(int i, matrix<float> input_matrix);

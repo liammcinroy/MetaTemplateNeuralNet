@@ -70,7 +70,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ConvolutionalNeuralNetwork.cpp" />
-    <ClCompile Include="Matrix.cpp" />
     <ClCompile Include="Layer.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
