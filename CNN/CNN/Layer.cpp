@@ -151,3 +151,13 @@ void layer::set_data_value_at(int f, int i, int j, int k, float value)
 {
 	m_data[f].set(i, j, k, value);
 }
+
+layer layer::operator-(layer subtacted)
+{
+	for (int f = 0; f < this->feature_map_count; ++f)
+		for (int k = 0; k < this->at(f).dims; ++k)
+			for (int i = 0; i < this->at(f).rows; ++i)
+				for (int j = 0; j < this->at(f).cols; ++j)
+					this->set_neuron(f, i, j, k, this->neuron_at(f, i, j, k) - subtacted.neuron_at(f, i, j, k));
+	return (*this);
+}

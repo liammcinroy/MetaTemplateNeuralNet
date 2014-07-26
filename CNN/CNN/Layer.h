@@ -28,6 +28,7 @@ public:
 	void set_data(int i, std::vector<std::vector<float>> value);
 	float data_value_at(int f, int i, int j, int k);
 	void set_data_value_at(int f, int i, int j, int k, float value);
+	layer operator-(layer subtracted);
 private:
 	std::vector<matrix<float>> m_feature_maps;
 	std::vector<matrix<float>> m_data;

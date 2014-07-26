@@ -241,6 +241,50 @@ matrix<float> deconvolve(matrix<float> input_matrix, matrix<float> kernal)
 	return result;
 }
 
+matrix<float> maxpool(matrix<float> input_matrix, int cols, int rows)
+{
+	std::vector<std::vector<matrix<float>>> samples;
+	int across = input_matrix.cols / cols;
+	int down = input_matrix.rows / rows;
+
+	//get samples
+	for (int j = 0; j < rows; ++j)
+	{
+		samples.push_back(std::vector<matrix<float>>());
+		for (int i = 0; i < cols; ++i)
+			samples[i].push_back(input_matrix.from(i * across, j * down, across, down));
+	}
+
+	//cycle through each sample
+	matrix<float> result(cols, rows, 1);
+	for (int i = 0; i < samples.size(); ++i)
+	{
+		for (int j = 0; j < samples[i].size(); ++j)
+		{
+			//cycle through sample and find max
+			float max_value = 0.0f;
+			for (int x = 0; x < samples[i][j].rows; ++x)
+				for (int y = 0; y < samples[i][j].cols; ++y)
+					max_value = max(max_value, samples[i][j].at(x, y, 0));
+			result.set(i, j, 0, max_value);
+		}
+	}
+	return result;
+}
+
+matrix<float> logistic_regression(matrix<float> input_data)
+{
+	matrix<float> result(input_data.cols, 1, 1);
+
+	float sum = 0.0f;
+	for (int j = 0; j < input_data.cols; ++j)
+		sum += exp(input_data.at(0, j, 0));
+
+	for (int j = 0; j < input_data.cols; ++j)
+		result.set(0, j, 0, (exp(input_data.at(0, j, 0)) / sum));
+	return result;
+}
+
 void print_matrix(matrix<float> input)
 {
 	for (int i = 0; i < input.rows; ++i)
@@ -254,34 +298,14 @@ void print_matrix(matrix<float> input)
 int main(int argc, const char* args[])
 {
 	matrix<float> initial;
-	initial = {
-		{ 1, 1, 1, 1 },
-		{ 2, 2, 2, 2 },
-		{ 3, 3, 3, 3 } };
+	initial = { { 1, 2, 3 }, { 0, 1, 0 } };
 
-	matrix<float> kernal;
-	kernal = {
-		{ 1, 1, 1, },
-		{ 0, 0, 0 },
-		{ -1, -1, -1 } };
+	std::cout << "Input:" << std::endl;
+	print_matrix(initial);
 
-	std::cout << "Kernal:" << std::endl;
-	print_matrix(kernal);
-
-	std::cout << "\n\n" << "Convolved:" << std::endl;
-	matrix<float> convolved = convolve(initial, kernal);
-	print_matrix(convolved);
-
-	std::cout << "\n\n" << "First deconvolved:" << std::endl;
-	print_matrix(deconvolve_single(-6, kernal));
-
-	std::cout << "\n\n" << "Deconvolved:" << std::endl;
-	matrix<float> deconvolved = deconvolve(convolved, kernal);
-	print_matrix(deconvolved);
-
-	std::cout << "\n\n" << "Convolved with deconvolved:" << std::endl;
-	matrix<float> reconvolved = convolve(deconvolved, kernal);
-	print_matrix(reconvolved);
+	std::cout << "\n\n" << "After logistic regression:" << std::endl;
+	matrix<float> regressed = logistic_regression(initial);
+	print_matrix(regressed);
 
 	char c;
 	std::cin >> c;

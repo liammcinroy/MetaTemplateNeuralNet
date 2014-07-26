@@ -1,7 +1,7 @@
-﻿Build started 7/24/2014 5:40:38 PM.
+﻿Build started 7/25/2014 9:52:05 AM.
      1>Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ConvolutionalNeuralNetwork.cpp main.cpp
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt main.cpp
          main.cpp
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(84): warning C4018: '<' : signed/unsigned mismatch
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(110): warning C4018: '<' : signed/unsigned mismatch
@@ -10,21 +10,10 @@
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(130): warning C4018: '<' : signed/unsigned mismatch
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(139): warning C4018: '<' : signed/unsigned mismatch
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(160): warning C4018: '<' : signed/unsigned mismatch
-         ConvolutionalNeuralNetwork.cpp
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\convolutionalneuralnetwork.cpp(149): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\convolutionalneuralnetwork.cpp(175): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\convolutionalneuralnetwork.cpp(177): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\convolutionalneuralnetwork.cpp(190): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\convolutionalneuralnetwork.cpp(195): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\convolutionalneuralnetwork.cpp(204): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\convolutionalneuralnetwork.cpp(225): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\convolutionalneuralnetwork.cpp(274): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\convolutionalneuralnetwork.cpp(276): warning C4018: '<' : signed/unsigned mismatch
-         Generating Code...
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\convolutionalneuralnetwork.cpp(46): warning C4756: overflow in constant arithmetic
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\convolutionalneuralnetwork.cpp(71): warning C4756: overflow in constant arithmetic
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\convolutionalneuralnetwork.cpp(102): warning C4756: overflow in constant arithmetic
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\convolutionalneuralnetwork.cpp(46): warning C4756: overflow in constant arithmetic
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(260): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(262): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(268): warning C4244: 'argument' : conversion from 'float' to 'int', possible loss of data
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(268): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(182): warning C4756: overflow in constant arithmetic
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(207): warning C4756: overflow in constant arithmetic
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(238): warning C4756: overflow in constant arithmetic
@@ -38,4 +27,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:02.71
+Time Elapsed 00:00:01.11

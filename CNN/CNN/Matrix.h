@@ -68,12 +68,12 @@ public:
 	}
 	matrix<T> from(int left, int top, int width, int height)
 	{
-		matrix sample(width, height, dims);
+		matrix<T> sample(width, height, dims);
 
 		for (int k = 0; k < dims; ++k)
 			for (int i = top; i < top + height; ++i)
 				for (int j = left; j < left + width; ++j)
-					sample.set(i, j, k, (*this).at(i, j, k));
+					sample.set(i - top, j - left, k, (*this).at(i, j, k));
 		return sample;
 	}
 	std::vector<T> at_row(int i, int k)
