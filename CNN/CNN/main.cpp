@@ -9,10 +9,10 @@ int max(int a, int b)
 	return (a >= b) ? a : b;
 }
 
-matrix<float> convolve(matrix<float> input_matrix, matrix<float> kernal)
+matrix<float> convolve(matrix<float> input_matrix, matrix<float> kernel)
 {
-	int M = (kernal.cols - 1) / 2;
-	int N = (kernal.rows - 1) / 2;
+	int M = (kernel.cols - 1) / 2;
+	int N = (kernel.rows - 1) / 2;
 	matrix<float> result(input_matrix.cols - (2 * M), input_matrix.rows - (2 * N), 1);
 
 	for (int k = 0; k < input_matrix.dims; ++k)
@@ -27,7 +27,7 @@ matrix<float> convolve(matrix<float> input_matrix, matrix<float> kernal)
 				float sum = 0.0f;
 				for (int m = -M; m <= M; ++m)
 					for (int n = -N; n <= N; ++n)
-						sum += (input_matrix.at(i + m, j + n, k) * kernal.at(M + m, N + n, 0));
+						sum += (input_matrix.at(i + m, j + n, k) * kernel.at(M + m, N + n, 0));
 				current.set(i - M, j - N, 0, sum);
 			}
 		}
@@ -40,44 +40,44 @@ matrix<float> convolve(matrix<float> input_matrix, matrix<float> kernal)
 	return result;
 }
 
-matrix<float> deconvolve_single(float input_value, matrix<float> kernal)
+matrix<float> deconvolve_single(float input_value, matrix<float> kernel)
 {
-	int N = (kernal.cols - 1) / 2;
-	int M = (kernal.rows - 1) / 2;
+	int N = (kernel.cols - 1) / 2;
+	int M = (kernel.rows - 1) / 2;
 	int symmetry = 0;
 
-	matrix<float> result(kernal.cols, kernal.rows, 1);
+	matrix<float> result(kernel.cols, kernel.rows, 1);
 	std::vector<float> p;
 	std::vector<float> s;
 
 	std::vector<std::pair<int, int>> matched;
 
-	for (int i = 0; i < kernal.rows; ++i)
+	for (int i = 0; i < kernel.rows; ++i)
 	{
-		for (int j = 0; j < kernal.cols; ++j)
+		for (int j = 0; j < kernel.cols; ++j)
 		{
 			std::pair<int, int> coords(i, j);
 
 			std::pair<int, int> matched_coords;
-			if (kernal.at(i, j, 0) == -kernal.at(kernal.cols - 1 - j, kernal.rows - 1 - i, 0))//bottom left to right diagonal
+			if (kernel.at(i, j, 0) == -kernel.at(kernel.cols - 1 - j, kernel.rows - 1 - i, 0))//bottom left to right diagonal
 			{
 				symmetry = 1;
-				matched_coords = std::pair<int, int>(kernal.cols - i - j, kernal.rows - 1 - i);
+				matched_coords = std::pair<int, int>(kernel.cols - i - j, kernel.rows - 1 - i);
 			}
-			else if (kernal.at(i, j, 0) == -kernal.at(j, kernal.rows - 1 - i, 0))//bottom right to left diagonal
+			else if (kernel.at(i, j, 0) == -kernel.at(j, kernel.rows - 1 - i, 0))//bottom right to left diagonal
 			{
 				symmetry = 2;
-				matched_coords = std::pair<int, int>(j, kernal.rows - 1 - i);
+				matched_coords = std::pair<int, int>(j, kernel.rows - 1 - i);
 			}
-			else if (kernal.at(i, j, 0) == -kernal.at(i, kernal.rows - 1 - j, 0))//across
+			else if (kernel.at(i, j, 0) == -kernel.at(i, kernel.rows - 1 - j, 0))//across
 			{
 				symmetry = 3;
-				matched_coords = std::pair<int, int>(i, kernal.rows - 1 - j);
+				matched_coords = std::pair<int, int>(i, kernel.rows - 1 - j);
 			}
-			else if (kernal.at(i, j, 0) == -kernal.at(kernal.cols - 1 - i, j, 0))//up and down
+			else if (kernel.at(i, j, 0) == -kernel.at(kernel.cols - 1 - i, j, 0))//up and down
 			{
 				symmetry = 4;
-				matched_coords = std::pair<int, int>(kernal.cols - 1 - i, j);
+				matched_coords = std::pair<int, int>(kernel.cols - 1 - i, j);
 			}
 
 			bool matched_before = false;
@@ -90,16 +90,16 @@ matrix<float> deconvolve_single(float input_value, matrix<float> kernal)
 				}
 			}
 
-			if (symmetry != 0 && kernal.at(i, j, 0) != 0 && !matched_before &&
-				((kernal.at(i, j, 0) > 0 && input_value > 0) || (kernal.at(i, j, 0) < 0 && input_value < 0)))
+			if (symmetry != 0 && kernel.at(i, j, 0) != 0 && !matched_before &&
+				((kernel.at(i, j, 0) > 0 && input_value > 0) || (kernel.at(i, j, 0) < 0 && input_value < 0)))
 			{
-				p.push_back(kernal.at(i, j, 0));
+				p.push_back(kernel.at(i, j, 0));
 				matched.push_back(matched_coords);
 				matched.push_back(coords);
 			}
 
-			if ((kernal.at(i, j, 0) > 0 && input_value > 0) || (kernal.at(i, j, 0) < 0 && input_value < 0))
-				s.push_back(kernal.at(i, j, 0));
+			if ((kernel.at(i, j, 0) > 0 && input_value > 0) || (kernel.at(i, j, 0) < 0 && input_value < 0))
+				s.push_back(kernel.at(i, j, 0));
 			symmetry = 0;
 		}
 	}
@@ -117,9 +117,9 @@ matrix<float> deconvolve_single(float input_value, matrix<float> kernal)
 
 	//k
 	std::vector<float> k;
-	for (int i = 0; i < kernal.rows; ++i)
-		for (int j = 0; j < kernal.cols; ++j)
-			k.push_back(kernal.at(i, j, 0));
+	for (int i = 0; i < kernel.rows; ++i)
+		for (int j = 0; j < kernel.cols; ++j)
+			k.push_back(kernel.at(i, j, 0));
 	//m_n
 	std::vector<float> m(k.size());
 	for (int n = 0; n < k.size(); ++n)
@@ -160,7 +160,9 @@ matrix<float> deconvolve_single(float input_value, matrix<float> kernal)
 	for (int i = 0; i < k.size(); ++i)
 		sum += k[i] * m[i];
 
-	float C = input_value / sum;
+	float C = 0.0f;
+	if (sum != 0)
+		 C = input_value / sum;
 
 	int n = 0;
 	for (int i = 0; i < result.rows; ++i)
@@ -175,15 +177,15 @@ matrix<float> deconvolve_single(float input_value, matrix<float> kernal)
 	return result;
 }
 
-matrix<float> deconvolve(matrix<float> input_matrix, matrix<float> kernal)
+matrix<float> deconvolve(matrix<float> input_matrix, matrix<float> kernel)
 {
-	int N = (kernal.cols - 1) / 2;
-	int M = (kernal.rows - 1) / 2;
+	int N = (kernel.cols - 1) / 2;
+	int M = (kernel.rows - 1) / 2;
 	matrix<float> result(input_matrix.cols + (2 * N), input_matrix.rows + (2 * N), 1, INFINITY);
 
-	matrix<float> top_left = deconvolve_single(input_matrix.at(0, 0, 0), kernal);
-	for (int i = 0; i < kernal.rows; ++i)
-		for (int j = 0; j< kernal.cols; ++j)
+	matrix<float> top_left = deconvolve_single(input_matrix.at(0, 0, 0), kernel);
+	for (int i = 0; i < kernel.rows; ++i)
+		for (int j = 0; j< kernel.cols; ++j)
 			if (top_left.at(i, j, 0) != 0)
 				result.set(i, j, 0, top_left.at(i, j, 0));
 
@@ -191,8 +193,8 @@ matrix<float> deconvolve(matrix<float> input_matrix, matrix<float> kernal)
 	{
 		for (int j = 1; j < input_matrix.cols; ++j)
 		{
-			matrix<float> current_matrix = deconvolve_single(input_matrix.at(i, j, 0), kernal);
-			matrix<float> new_kernal = kernal;
+			matrix<float> current_matrix = deconvolve_single(input_matrix.at(i, j, 0), kernel);
+			matrix<float> new_kernel = kernel;
 
 			float overlap_sum = 0.0f;
 			int new_i = i + N;
@@ -206,8 +208,8 @@ matrix<float> deconvolve(matrix<float> input_matrix, matrix<float> kernal)
 				{
 					if (result.at(i2, j2, 0) != INFINITY)
 					{
-						overlap_sum += kernal.at(n, m, 0) * result.at(i2, j2, 0);
-						new_kernal.set(n, m, 0, 0);
+						overlap_sum += kernel.at(n, m, 0) * result.at(i2, j2, 0);
+						new_kernel.set(n, m, 0, 0);
 					}
 					++m;
 				}
@@ -215,7 +217,7 @@ matrix<float> deconvolve(matrix<float> input_matrix, matrix<float> kernal)
 				++n;
 			}
 
-			matrix<float> new_matrix = deconvolve_single(input_matrix.at(i, j, 0) - overlap_sum, new_kernal);
+			matrix<float> new_matrix = deconvolve_single(input_matrix.at(i, j, 0) - overlap_sum, new_kernel);
 
 			n = 0;
 			m = 0;
@@ -298,14 +300,20 @@ void print_matrix(matrix<float> input)
 int main(int argc, const char* args[])
 {
 	matrix<float> initial;
-	initial = { { 1, 2, 3 }, { 0, 1, 0 } };
+	initial = { { 6, -6 } };
+
+	matrix<float> kernel;
+	kernel = {
+		{ 1, 1, 1 },
+		{ 0, 0, 0 },
+		{ -1, -1, -1 } };
 
 	std::cout << "Input:" << std::endl;
 	print_matrix(initial);
 
-	std::cout << "\n\n" << "After logistic regression:" << std::endl;
-	matrix<float> regressed = logistic_regression(initial);
-	print_matrix(regressed);
+	std::cout << "\n\n" << "After Deconvolution:" << std::endl;
+	matrix<float> deconvolved = deconvolve_single(-3, kernel);
+	print_matrix(deconvolved);
 
 	char c;
 	std::cin >> c;
