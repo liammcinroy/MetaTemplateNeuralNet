@@ -4,7 +4,8 @@ layer::layer()
 {
 }
 
-layer::layer(int num, int feature_rows, int feature_cols, int kind, int amount, int rows = 1, int cols = 1, int dims = 1, bool use_random_values = false)
+layer::layer(unsigned int num, unsigned int feature_rows, unsigned int feature_cols, unsigned int kind, unsigned int amount, unsigned int rows = 1, 
+	unsigned int cols = 1, unsigned int dims = 1, bool use_random_values = false)
 {
 	for (int i = 0; i < num; ++i)
 		m_feature_maps.push_back(matrix<float>(feature_cols, feature_rows, 1));
@@ -35,7 +36,8 @@ layer::layer(int num, int feature_rows, int feature_cols, int kind, int amount, 
 	}
 }
 
-layer::layer(int num, int feature_rows, int feature_cols, int kind, int amount, int rows = 1, int cols = 1, int dims = 1, float values = 0.0f)
+layer::layer(unsigned int num, unsigned int feature_rows, unsigned int feature_cols, unsigned int kind, unsigned int amount, unsigned int rows = 1,
+	unsigned int cols = 1, unsigned int dims = 1, float values = 0.0f)
 {
 	for (int i = 0; i < num; ++i)
 		m_feature_maps.push_back(matrix<float>(feature_cols, feature_rows, 1));
@@ -58,7 +60,8 @@ layer::layer(int num, int feature_rows, int feature_cols, int kind, int amount, 
 	}
 }
 
-layer::layer(int num, int feature_rows, int feature_cols, int kind, int amount, matrix<float> example, bool use_random_values = false)
+layer::layer(unsigned int num, unsigned int feature_rows, unsigned int feature_cols, unsigned int kind, unsigned int amount,
+	matrix<float> example, bool use_random_values = false)
 {
 	for (int i = 0; i < num; ++i)
 		m_feature_maps.push_back(matrix<float>(feature_cols, feature_rows, 1));
@@ -97,7 +100,7 @@ layer::~layer()
 {
 }
 
-matrix<float> layer::at(int i)
+matrix<float> layer::at(unsigned int i)
 {
 	return m_feature_maps[i];
 }
@@ -107,47 +110,52 @@ void layer::set_feature_maps(std::vector<matrix<float>> new_maps)
 	m_feature_maps = new_maps;
 }
 
-float layer::neuron_at(int f, int i, int j, int k)
+float layer::neuron_at(unsigned int f, unsigned int i, unsigned int j, unsigned int k)
 {
 	return m_feature_maps[f].at(i, j, k);
 }
 
-void layer::set_neuron(int f, int i, int j, int k, float value)
+void layer::set_neuron(unsigned int f, unsigned int i, unsigned int j, unsigned int k, float value)
 {
 	m_feature_maps[f].set(i, j, k, value);
 }
 
-matrix<float> layer::data_at(int i)
+matrix<float> layer::data_at(unsigned int i)
 {
 	return m_data[i];
 }
 
-matrix<float> layer::data_at(int i, int k)
+matrix<float> layer::data_at(unsigned int i, unsigned int k)
 {
 	return m_data[i].at_channel(k);
 }
 
-void layer::set_data(int i, matrix<float> value)
+void layer::set_data(std::vector<matrix<float>> value)
+{
+	m_data = value;
+}
+
+void layer::set_data(unsigned int i, matrix<float> value)
 {
 	m_data[i] = value;
 }
 
-void layer::set_data(int i, std::vector<std::vector<std::vector<float>>> value)
+void layer::set_data(unsigned int i, std::vector<std::vector<std::vector<float>>> value)
 {
 	m_data[i] = value;
 }
 
-void layer::set_data(int i, std::vector<std::vector<float>> value)
+void layer::set_data(unsigned int i, std::vector<std::vector<float>> value)
 {
 	m_data[i] = value;
 }
 
-float layer::data_value_at(int f, int i, int j, int k)
+float layer::data_value_at(unsigned int f, unsigned int i, unsigned int j, unsigned int k)
 {
 	return m_data[f].at(i, j, k);
 }
 
-void layer::set_data_value_at(int f, int i, int j, int k, float value)
+void layer::set_data_value_at(unsigned int f, unsigned int i, unsigned int j, unsigned int k, float value)
 {
 	m_data[f].set(i, j, k, value);
 }

@@ -8,7 +8,7 @@ public:
 	matrix<T>()
 	{
 	}
-	matrix<T>(int width, int height, int depth)
+	matrix<T>(unsigned int width, unsigned int height, unsigned int depth)
 	{
 		m_cells = std::vector<std::vector<std::vector<T>>>();
 		for (int k = 0; k < depth; ++k)
@@ -27,7 +27,7 @@ public:
 		rows = height;
 		dims = depth;
 	}
-	matrix<T>(int width, int height, int depth, T defaultValue)
+	matrix<T>(unsigned int width, unsigned int height, unsigned int depth, T defaultValue)
 	{
 		m_cells = std::vector<std::vector<std::vector<T>>>();
 		for (int k = 0; k < depth; ++k)
@@ -49,24 +49,24 @@ public:
 	~matrix<T>()
 	{
 	}
-	int rows;
-	int cols;
-	int dims;
-	T at(int i, int j, int k)
+	unsigned int rows;
+	unsigned int cols;
+	unsigned int dims;
+	T at(unsigned int i, unsigned int j, unsigned int k)
 	{
 		return m_cells[k][i][j];
 	}
-	void set(int i, int j, int k, T value)
+	void set(unsigned int i, unsigned int j, unsigned int k, T value)
 	{
 		m_cells[k][i][j] = value;
 	}
-	matrix<T> at_channel(int k)
+	matrix<T> at_channel(unsigned int k)
 	{
 		matrix result;
 		result = m_cells[k];
 		return result;
 	}
-	matrix<T> from(int left, int top, int width, int height)
+	matrix<T> from(unsigned int left, unsigned int top, unsigned int width, unsigned int height)
 	{
 		matrix<T> sample(width, height, dims);
 
@@ -76,11 +76,11 @@ public:
 					sample.set(i - top, j - left, k, (*this).at(i, j, k));
 		return sample;
 	}
-	std::vector<T> at_row(int i, int k)
+	std::vector<T> at_row(unsigned int i, unsigned int k)
 	{
 		return m_cells[k][i];
 	}
-	void set_row(int i, int k, std::vector<T> row_value)
+	void set_row(unsigned int i, unsigned int k, std::vector<T> row_value)
 	{
 		m_cells[k][i] = row_value;
 	}
@@ -107,6 +107,15 @@ public:
 		rows = arr.size();
 		cols = arr[0].size();
 		return *this;
+	}
+	bool operator==(matrix<T> other)
+	{
+		for (int k = 0; k < this->dims; ++k)
+			for (int i = 0; i < this->rows; ++i)
+				for (int j = 0; j < this->cols; ++j)
+					if (this->at(i, j, k) != other.at(i, j, k))
+						return false;
+		return true;
 	}
 private:
 	std::vector<std::vector<std::vector<T>>> m_cells;
