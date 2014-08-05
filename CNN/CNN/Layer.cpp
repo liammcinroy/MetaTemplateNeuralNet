@@ -4,30 +4,23 @@ layer::layer()
 {
 }
 
-layer::layer(unsigned int num, unsigned int feature_rows, unsigned int feature_cols, unsigned int kind, unsigned int amount, unsigned int rows = 1, 
-	unsigned int cols = 1, unsigned int dims = 1, bool use_random_values = false)
+layer::layer(unsigned int num, unsigned int feature_rows, unsigned int feature_cols, unsigned int kind, unsigned int amount, unsigned int rows, 
+	unsigned int cols, unsigned int dims)
 {
 	for (int i = 0; i < num; ++i)
 		m_feature_maps.push_back(matrix<float>(feature_cols, feature_rows, 1));
+	feature_map_count = num;
 	type = kind;
 	data_count = amount;
 	switch (kind)
 	{
 	case CNN_CONVOLUTION:
-		if (use_random_values)
-			for (int i = 0; i < amount; ++i)
-				m_data.push_back(matrix<float>(cols, rows, dims, rand()));
-		else
-			for (int i = 0; i < amount; ++i)
-				m_data.push_back(matrix<float>(cols, rows, dims));
+		for (int i = 0; i < amount; ++i)
+			m_data.push_back(matrix<float>(cols, rows, dims, rand() % 255));
 		break;
 	case CNN_FEED_FORWARD:
-		if (use_random_values)
-			for (int i = 0; i < amount; ++i)
-				m_data.push_back(matrix<float>(cols, rows, dims, rand()));
-		else
-			for (int i = 0; i < amount; ++i)
-				m_data.push_back(matrix<float>(cols, rows, dims, rand()));
+		for (int i = 0; i < amount; ++i)
+			m_data.push_back(matrix<float>(cols, rows, dims, rand() % 255));
 		break;
 	case CNN_OUTPUT:
 		break;
@@ -36,11 +29,12 @@ layer::layer(unsigned int num, unsigned int feature_rows, unsigned int feature_c
 	}
 }
 
-layer::layer(unsigned int num, unsigned int feature_rows, unsigned int feature_cols, unsigned int kind, unsigned int amount, unsigned int rows = 1,
-	unsigned int cols = 1, unsigned int dims = 1, float values = 0.0f)
+layer::layer(unsigned int num, unsigned int feature_rows, unsigned int feature_cols, unsigned int kind, unsigned int amount, float values, unsigned int rows,
+	unsigned int cols, unsigned int dims)
 {
 	for (int i = 0; i < num; ++i)
 		m_feature_maps.push_back(matrix<float>(feature_cols, feature_rows, 1));
+	feature_map_count = num;
 	type = kind;
 	data_count = amount;
 	switch (kind)
@@ -61,10 +55,11 @@ layer::layer(unsigned int num, unsigned int feature_rows, unsigned int feature_c
 }
 
 layer::layer(unsigned int num, unsigned int feature_rows, unsigned int feature_cols, unsigned int kind, unsigned int amount,
-	matrix<float> example, bool use_random_values = false)
+	matrix<float> example, bool use_random_values)
 {
 	for (int i = 0; i < num; ++i)
 		m_feature_maps.push_back(matrix<float>(feature_cols, feature_rows, 1));
+	feature_map_count = num;
 	type = kind;
 	data_count = amount;
 
@@ -76,7 +71,7 @@ layer::layer(unsigned int num, unsigned int feature_rows, unsigned int feature_c
 	case CNN_CONVOLUTION:
 		if (use_random_values)
 			for (int i = 0; i < amount; ++i)
-				m_data.push_back(matrix<float>(cols, rows, dims, rand()));
+				m_data.push_back(matrix<float>(cols, rows, dims, rand() % 255));
 		else
 			for (int i = 0; i < amount; ++i)
 				m_data.push_back(example);
@@ -84,7 +79,7 @@ layer::layer(unsigned int num, unsigned int feature_rows, unsigned int feature_c
 	case CNN_FEED_FORWARD:
 		if (use_random_values)
 			for (int i = 0; i < amount; ++i)
-				m_data.push_back(matrix<float>(cols, rows, dims, rand()));
+				m_data.push_back(matrix<float>(cols, rows, dims, rand() % 255));
 		else
 			for (int i = 0; i < amount; ++i)
 				m_data.push_back(example);
@@ -158,6 +153,50 @@ float layer::data_value_at(unsigned int f, unsigned int i, unsigned int j, unsig
 void layer::set_data_value_at(unsigned int f, unsigned int i, unsigned int j, unsigned int k, float value)
 {
 	m_data[f].set(i, j, k, value);
+}
+
+layer layer::maxpool()
+{
+	layer output((unsigned int)m_feature_maps.size(), maxpool_rows, maxpool_cols, type, 0);
+	output.set_data(m_data);
+
+	std::vector<matrix<float>> new_features;
+	for (int i = 0; i < m_feature_maps.size(); ++i)
+		new_features.push_back(maxpool(m_feature_maps[i], maxpool_rows, maxpool_cols));
+	output.set_feature_maps(new_features);
+	
+	return output;
+}
+
+matrix<float> layer::maxpool(matrix<float> input_matrix, unsigned int rows, unsigned int cols)
+{
+	std::vector<std::vector<matrix<float>>> samples;
+	int across = input_matrix.cols / cols;
+	int down = input_matrix.rows / rows;
+
+	//get samples
+	for (int j = 0; j < rows; ++j)
+	{
+		samples.push_back(std::vector<matrix<float>>());
+		for (int i = 0; i < cols; ++i)
+			samples[i].push_back(input_matrix.from(i * across, j * down, across, down));
+	}
+
+	//cycle through each sample
+	matrix<float> result(cols, rows, 1);
+	for (int i = 0; i < rows; ++i)
+	{
+		for (int j = 0; j < cols; ++j)
+		{
+			//cycle through sample and find max
+			float max_value = 0.0f;
+			for (int x = 0; x < samples[j][i].rows; ++x)
+				for (int y = 0; y < samples[j][i].cols; ++y)
+					max_value = (max_value > samples[j][i].at(x, y, 0)) ? max_value : samples[j][i].at(x, y, 0);
+			result.set(i, j, 0, max_value);
+		}
+	}
+	return result;
 }
 
 layer layer::operator-(layer subtacted)

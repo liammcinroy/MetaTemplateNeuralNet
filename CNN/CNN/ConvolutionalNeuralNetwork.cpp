@@ -1,21 +1,27 @@
 #include "ConvolutionalNeuralNetwork.h"
 
-convolutional_neural_network::convolutional_neural_network()
+convolutional_neural_network::convolutional_neural_network(bool dropout)
 {
+	m_layers = std::vector<layer>();
+	use_dropout = dropout;
+	srand(time(NULL));
 }
 
 convolutional_neural_network::~convolutional_neural_network()
 {
 }
 
-void convolutional_neural_network::push_layer(layer new_layer)
+void convolutional_neural_network::push_layer(layer new_layer, bool maxpool, int rows, int cols)
 {
+	new_layer.use_maxpool = maxpool;
+	new_layer.maxpool_rows = rows;
+	new_layer.maxpool_cols = cols;
 	m_layers.push_back(new_layer);
 }
 
 layer convolutional_neural_network::discriminate()
 {
-	return discriminate_to(m_layers.size() - 1);
+	return discriminate_to(m_layers.size());
 }
 
 layer convolutional_neural_network::generate(matrix<float> labels)
@@ -317,7 +323,7 @@ matrix<float> convolutional_neural_network::deconvolve_single(float input_value,
 
 matrix<float> convolutional_neural_network::feed_forward(layer input_layer, unsigned int num_output)
 {
-	matrix<float> result(num_output, 1, 1);
+	matrix<float> result(1, num_output, 1);
 
 	for (int i = 0; i < num_output; ++i)
 	{
@@ -345,47 +351,21 @@ matrix<float> convolutional_neural_network::feed_backwards(layer input_layer, la
 	return result;
 }
 
-matrix<float> convolutional_neural_network::maxpool(matrix<float> input_matrix, unsigned int cols, unsigned int rows)
-{
-	std::vector<std::vector<matrix<float>>> samples;
-	int across = input_matrix.cols / cols;
-	int down = input_matrix.rows / rows;
-
-	//get samples
-	for (int j = 0; j < rows; ++j)
-	{
-		samples.push_back(std::vector<matrix<float>>());
-		for (int i = 0; i < cols; ++i)
-			samples[i].push_back(input_matrix.from(i * across, j * down, across, down));
-	}
-
-	//cycle through each sample
-	matrix<float> result(cols, rows, 1);
-	for (int i = 0; i < samples.size(); ++i)
-	{
-		for (int j = 0; j < samples[i].size(); ++j)
-		{
-			//cycle through sample and find max
-			float max_value = 0.0f;
-			for (int x = 0; x < samples[i][j].rows; ++x)
-			for (int y = 0; y < samples[i][j].cols; ++y)
-				max_value = max(max_value, samples[i][j].at(x, y, 0));
-			result.set(i, j, 0, max_value);
-		}
-	}
-	return result;
-}
-
 layer convolutional_neural_network::discriminate_to(unsigned int i)
 {
 	layer current = m_layers[0];
+	std::vector<matrix<float>> first_layer;
+	for (int j = 0; j < input.dims; ++j)
+		first_layer.push_back(input.at_channel(j));
+	current.set_feature_maps(first_layer);
+
 	for (int j = 0; j < i; ++j)
 	{
 		std::vector<matrix<float>> feature_maps;
 		switch (current.type)
 		{
 		case CNN_CONVOLUTION:
-			for (int i2 = 0; i2 = current.feature_map_count; ++i2)
+			for (int i2 = 0; i2 < current.feature_map_count; ++i2)
 			{
 				matrix<float> total = convolve(current.at(i2), current.data_at(0));
 				for (int k = 1; k < current.data_count; ++k)
@@ -397,6 +377,8 @@ layer convolutional_neural_network::discriminate_to(unsigned int i)
 			current.set_feature_maps(feature_maps);
 			if (use_dropout)
 				current = dropout(current);
+			if (current.use_maxpool)
+				current = current.maxpool();
 			break;
 		case CNN_FEED_FORWARD:
 			feature_maps.push_back(feed_forward(current, m_layers[j + 1].at(0).cols));
@@ -404,6 +386,8 @@ layer convolutional_neural_network::discriminate_to(unsigned int i)
 			current.set_feature_maps(feature_maps);
 			if (use_dropout)
 				current = dropout(current);
+			if (current.use_maxpool)
+				current = current.maxpool();
 			break;
 		case CNN_OUTPUT:
 			current.set_feature_maps({ logistic_regression(current.at(0)) });
@@ -437,6 +421,7 @@ layer convolutional_neural_network::generate_to(unsigned int i, matrix<float> la
 				current.set_feature_maps(feature_maps);
 				if (use_dropout)
 					current = dropout(current);
+				//TODO: Handle max pooling
 				break;
 			case CNN_FEED_FORWARD:
 				feature_maps.push_back(feed_backwards(current, m_layers[j]));
@@ -444,6 +429,7 @@ layer convolutional_neural_network::generate_to(unsigned int i, matrix<float> la
 				current.set_feature_maps(feature_maps);
 				if (use_dropout)
 					current = dropout(current);
+				//TODO: Handle max pooling
 				break;
 			}
 		}
@@ -604,14 +590,15 @@ float convolutional_neural_network::max(float a, float b)
 
 matrix<float> convolutional_neural_network::logistic_regression(matrix<float> input_data)
 {
-	matrix<float> result(input_data.cols, 1, 1);
+	//add exp at some point
+	matrix<float> result(1, input_data.rows, 1);
 
 	float sum = 0.0f;
-	for (int j = 0; j < input_data.cols; ++j)
-		sum += exp(input_data.at(0, j, 0));
+	for (int j = 0; j < input_data.rows; ++j)
+		sum += input_data.at(j, 0, 0);
 
-	for (int j = 0; j < input_data.cols; ++j)
-		result.set(0, j, 0, (exp(input_data.at(0, j, 0)) / sum));
+	for (int j = 0; j < input_data.rows; ++j)
+		result.set(j, 0, 0, input_data.at(j, 0, 0) / sum);
 	return result;
 }
 

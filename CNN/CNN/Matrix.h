@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <string>
+#include <sstream>
 
 template<class T> class matrix
 {
@@ -46,6 +48,21 @@ public:
 		rows = height;
 		dims = depth;
 	}
+	matrix<T>(std::vector<std::vector<std::vector<T>>> arr)
+	{
+		m_cells = arr;
+		dims = arr.size();
+		rows = arr[0].size();
+		cols = arr[0][0].size();
+	}
+	matrix<T>(std::vector<std::vector<T>> arr)
+	{
+		m_cells = std::vector<std::vector<std::vector<T>>>(1);
+		m_cells[0] = arr;
+		dims = 1;
+		rows = arr.size();
+		cols = arr[0].size();
+	}
 	~matrix<T>()
 	{
 	}
@@ -71,10 +88,30 @@ public:
 		matrix<T> sample(width, height, dims);
 
 		for (int k = 0; k < dims; ++k)
-			for (int i = top; i < top + height; ++i)
-				for (int j = left; j < left + width; ++j)
-					sample.set(i - top, j - left, k, (*this).at(i, j, k));
+		for (int i = top; i < top + height; ++i)
+		for (int j = left; j < left + width; ++j)
+			sample.set(i - top, j - left, k, (*this).at(i, j, k));
 		return sample;
+	}
+	matrix<T> transpose()
+	{
+		matrix<T> result(rows, cols, dims);
+		for (int k = 0; k < dims; ++k)
+		for (int i = 0; i < cols; ++i)
+		for (int j = 0; j < rows; ++j)
+			result.set(i, j, k, at(j, i, k));
+		return result;
+	}
+	std::string to_string()
+	{
+		std::stringstream ss;
+		for (int i = 0; i < rows; ++i)
+		{
+			for (int j = 0; j < cols; ++j)
+				ss << at(i, j, 0) << " ";
+			ss << "\n";
+		}
+		return ss.str();
 	}
 	std::vector<T> at_row(unsigned int i, unsigned int k)
 	{
@@ -108,13 +145,21 @@ public:
 		cols = arr[0].size();
 		return *this;
 	}
+	matrix<T> operator*(T scalar)
+	{
+		for (int k = 0; k < this->dims; ++k)
+		for (int i = 0; i < this->rows; ++i)
+		for (int j = 0; j < this->cols; ++j)
+			this->set(i, j, k, this->at(i, j, k) * scalar);
+		return *this;
+	}
 	bool operator==(matrix<T> other)
 	{
 		for (int k = 0; k < this->dims; ++k)
-			for (int i = 0; i < this->rows; ++i)
-				for (int j = 0; j < this->cols; ++j)
-					if (this->at(i, j, k) != other.at(i, j, k))
-						return false;
+		for (int i = 0; i < this->rows; ++i)
+		for (int j = 0; j < this->cols; ++j)
+		if (this->at(i, j, k) != other.at(i, j, k))
+			return false;
 		return true;
 	}
 private:
