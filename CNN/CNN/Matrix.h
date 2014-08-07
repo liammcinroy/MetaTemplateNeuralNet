@@ -63,6 +63,19 @@ public:
 		rows = arr.size();
 		cols = arr[0].size();
 	}
+	matrix<T>(std::vector<T> arr)
+	{
+		m_cells = std::vector<std::vector<std::vector<T>>>(1);
+		for (int i = 0; i < arr.size(); ++i)
+		{
+			std::vector<T> cell;
+			cell.push_back(arr[i]);
+			m_cells[0].push_back(cell);
+		}
+		dims = 1;
+		rows = arr.size();
+		cols = 1;
+	}
 	~matrix<T>()
 	{
 	}
@@ -143,6 +156,21 @@ public:
 		dims = 1;
 		rows = arr.size();
 		cols = arr[0].size();
+		return *this;
+	}
+	matrix<T> operator=(std::vector<T> arr)
+	{
+		m_cells = std::vector<std::vector<std::vector<T>>>(1);
+		m_cells[0].push_back(std::vector<std::vector<T>>(arr.size()));
+		for (int i = 0; i < arr.size(); ++i)
+		{
+			std::vector<T> cell;
+			cell.push_back(arr[i]);
+			m_cells[0][i].push_back(cell);
+		}
+		dims = 1;
+		rows = arr.size();
+		cols = 1;
 		return *this;
 	}
 	matrix<T> operator*(T scalar)

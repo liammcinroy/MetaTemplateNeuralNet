@@ -11,9 +11,7 @@ class layer
 public:
 	layer();
 	layer(unsigned int num_feature_maps, unsigned int feature_rows, unsigned int feature_cols, unsigned int kind, unsigned int data_amount,
-		unsigned int data_rows = 1, unsigned int data_cols = 1, unsigned int data_dims = 1);
-	layer(unsigned int num_feature_maps, unsigned int feature_rows, unsigned int feature_cols, unsigned int kind,
-		unsigned int data_amount, float data_values, unsigned int data_rows = 1, unsigned int data_cols = 1, unsigned int data_dims = 1);
+		unsigned int data_rows = 1, unsigned int data_cols = 2, unsigned int data_dims = 1);
 	layer(unsigned int num_feature_maps, unsigned int feature_rows, unsigned int feature_cols, unsigned int kind, unsigned int data_amount,
 		matrix<float> data_example, bool use_random_values = false);
 	~layer();

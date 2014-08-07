@@ -29,31 +29,6 @@ layer::layer(unsigned int num, unsigned int feature_rows, unsigned int feature_c
 	}
 }
 
-layer::layer(unsigned int num, unsigned int feature_rows, unsigned int feature_cols, unsigned int kind, unsigned int amount, float values, unsigned int rows,
-	unsigned int cols, unsigned int dims)
-{
-	for (int i = 0; i < num; ++i)
-		m_feature_maps.push_back(matrix<float>(feature_cols, feature_rows, 1));
-	feature_map_count = num;
-	type = kind;
-	data_count = amount;
-	switch (kind)
-	{
-	case CNN_CONVOLUTION:
-		for (int i = 0; i < amount; ++i)
-			m_data.push_back(matrix<float>(cols, rows, dims, values));
-		break;
-	case CNN_FEED_FORWARD:
-		for (int i = 0; i < amount; ++i)
-			m_data.push_back(matrix<float>(cols, rows, dims, values));
-		break;
-	case CNN_OUTPUT:
-		break;
-	default:
-		break;
-	}
-}
-
 layer::layer(unsigned int num, unsigned int feature_rows, unsigned int feature_cols, unsigned int kind, unsigned int amount,
 	matrix<float> example, bool use_random_values)
 {

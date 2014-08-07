@@ -329,7 +329,7 @@ matrix<float> convolutional_neural_network::feed_forward(layer input_layer, unsi
 	{
 		//Find sum of weights and run through ReL
 		float sum = 0.0f;
-		for (int j = 0; j < input_layer.at(0).cols; ++j)
+		for (int j = 0; j < input_layer.at(0).rows; ++j)
 			sum += (input_layer.neuron_at(0, j, 0, 0) * input_layer.data_value_at(i, j, 0, 0));
 		result.set(i, 0, 0, max(0, sum));
 	}
@@ -338,14 +338,14 @@ matrix<float> convolutional_neural_network::feed_forward(layer input_layer, unsi
 
 matrix<float> convolutional_neural_network::feed_backwards(layer input_layer, layer weights)
 {
-	matrix<float> result(weights.at(0).cols, 1, 1);
+	matrix<float> result(1, weights.at(0).cols, 1);
 
 	for (int i = 0; i < weights.at(0).cols; ++i)
 	{
 		//Find sum of weights and run through ReL
 		float sum = 0.0f;
-		for (int j = 0; j < input_layer.at(0).cols; ++j)
-			sum += (input_layer.neuron_at(0, j, 0, 0) * weights.data_value_at(i, j, 1, 0));
+		for (int j = 0; j < weights.data_count; ++j)
+			sum += (input_layer.neuron_at(0, j, 0, 0) * weights.data_value_at(j, i, 1, 0));
 		result.set(i, 0, 0, max(0, sum));
 	}
 	return result;
@@ -424,7 +424,7 @@ layer convolutional_neural_network::generate_to(unsigned int i, matrix<float> la
 				//TODO: Handle max pooling
 				break;
 			case CNN_FEED_FORWARD:
-				feature_maps.push_back(feed_backwards(current, m_layers[j]));
+				feature_maps.push_back(feed_backwards(current, m_layers[j - 1]));
 				current = m_layers[j - 1];
 				current.set_feature_maps(feature_maps);
 				if (use_dropout)
