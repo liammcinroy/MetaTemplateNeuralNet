@@ -48,34 +48,6 @@ public:
 		rows = height;
 		dims = depth;
 	}
-	matrix<T>(std::vector<std::vector<std::vector<T>>> arr)
-	{
-		m_cells = arr;
-		dims = arr.size();
-		rows = arr[0].size();
-		cols = arr[0][0].size();
-	}
-	matrix<T>(std::vector<std::vector<T>> arr)
-	{
-		m_cells = std::vector<std::vector<std::vector<T>>>(1);
-		m_cells[0] = arr;
-		dims = 1;
-		rows = arr.size();
-		cols = arr[0].size();
-	}
-	matrix<T>(std::vector<T> arr)
-	{
-		m_cells = std::vector<std::vector<std::vector<T>>>(1);
-		for (int i = 0; i < arr.size(); ++i)
-		{
-			std::vector<T> cell;
-			cell.push_back(arr[i]);
-			m_cells[0].push_back(cell);
-		}
-		dims = 1;
-		rows = arr.size();
-		cols = 1;
-	}
 	~matrix<T>()
 	{
 	}
@@ -101,18 +73,25 @@ public:
 		matrix<T> sample(width, height, dims);
 
 		for (int k = 0; k < dims; ++k)
-		for (int i = top; i < top + height; ++i)
-		for (int j = left; j < left + width; ++j)
-			sample.set(i - top, j - left, k, (*this).at(i, j, k));
+			for (int i = top; i < top + height; ++i)
+				for (int j = left; j < left + width; ++j)
+					sample.set(i - top, j - left, k, this->at(i, j, k));
 		return sample;
+	}
+	void set_from(unsigned int left, unsigned int top, unsigned int width, unsigned int height, matrix<T> value)
+	{
+		for (int k = 0; k < dims; ++k)
+			for (int i = top; i < top + height; ++i)
+				for (int j = left; j < left + width; ++j)
+					this->set(i - top, j - left, k, value.at(i, j, k));
 	}
 	matrix<T> transpose()
 	{
 		matrix<T> result(rows, cols, dims);
 		for (int k = 0; k < dims; ++k)
-		for (int i = 0; i < cols; ++i)
-		for (int j = 0; j < rows; ++j)
-			result.set(i, j, k, at(j, i, k));
+			for (int i = 0; i < cols; ++i)
+				for (int j = 0; j < rows; ++j)
+					result.set(i, j, k, at(j, i, k));
 		return result;
 	}
 	std::string to_string()
@@ -130,15 +109,15 @@ public:
 	{
 		return m_cells[k][i];
 	}
-	void set_row(unsigned int i, unsigned int k, std::vector<T> row_value)
+	void set_row(unsigned int i, unsigned int k, std::vector<T> value)
 	{
-		m_cells[k][i] = row_value;
+		m_cells[k][i] = value;
 	}
 	matrix<T> operator+=(matrix other)
 	{
 		for (int i = 0; i < other.cols; ++i)
-		for (int j = 0; j < other.rows; ++j)
-			(*this).set(i, j, 0, (*this).at(i, j, 0) + other.at(i, j, 0));
+			for (int j = 0; j < other.rows; ++j)
+				this->set(i, j, 0, this->at(i, j, 0) + other.at(i, j, 0));
 		return *this;
 	}
 	matrix<T> operator=(std::vector<std::vector<std::vector<T>>> arr)
@@ -161,32 +140,84 @@ public:
 	matrix<T> operator=(std::vector<T> arr)
 	{
 		m_cells = std::vector<std::vector<std::vector<T>>>(1);
-		m_cells[0].push_back(std::vector<std::vector<T>>(arr.size()));
+		m_cells[0] = std::vector<std::vector<T>>(arr.size());
 		for (int i = 0; i < arr.size(); ++i)
 		{
-			std::vector<T> cell;
-			cell.push_back(arr[i]);
-			m_cells[0][i].push_back(cell);
+			m_cells[0][i] = std::vector<T>(1);
+			m_cells[0][i][0] = arr[i];
 		}
 		dims = 1;
-		rows = arr.size();
 		cols = 1;
+		rows = arr.size();
 		return *this;
 	}
 	matrix<T> operator*(T scalar)
 	{
 		for (int k = 0; k < this->dims; ++k)
-		for (int i = 0; i < this->rows; ++i)
-		for (int j = 0; j < this->cols; ++j)
-			this->set(i, j, k, this->at(i, j, k) * scalar);
+			for (int i = 0; i < this->rows; ++i)
+				for (int j = 0; j < this->cols; ++j)
+					this->set(i, j, k, this->at(i, j, k) * scalar);
+		return *this;
+	}
+	matrix<T> operator/(T scalar)
+	{
+		for (int k = 0; k < this->dims; ++k)
+			for (int i = 0; i < this->rows; ++i)
+				for (int j = 0; j < this->cols; ++j)
+					this->set(i, j, k, this->at(i, j, k) / scalar);
+		return *this;
+	}
+	matrix<T> operator*(matrix<T> other)
+	{
+		if (other.rows != cols)
+			return matrix<T>(0, 0, 0);
+
+		matrix<T> result(rows, other.cols, 1);
+		int n = 0;
+		int m = 0;
+		for (int i = 0; i < rows; ++i)
+		{
+			for (int j = 0; j < other.cols; ++j)
+			{
+				T sum = 0.0f;
+				for (int i2 = 0; i2 < rows; ++i2)
+					sum += this->at(i, i2, 0) * other.at(i2, j, 0);
+				result.set(i, j, 0, sum);
+			}
+		}
+		return result;
+	}
+	matrix<T> operator+(matrix<T> other)
+	{
+		if (rows != other.rows && cols != other.cols)
+			return matrix<T>(0, 0, 0);
+		for (int i = 0; i < rows; ++i)
+			for (int j = 0; j < cols; ++j)
+				this->set(i, j, 0, this->at(i, j, 0) + other.at(i, j, 0));
+		return *this;
+	}
+	matrix<T> operator-(matrix<T> other)
+	{
+		if (rows != other.rows && cols != other.cols)
+			return matrix<T>(0, 0, 0);
+		for (int i = 0; i < rows; ++i)
+			for (int j = 0; j < cols; ++j)
+				this->set(i, j, 0, this->at(i, j, 0) - other.at(i, j, 0));
+		return *this;
+	}
+	matrix<T> operator>(T min)
+	{
+		for (int i = 0; i < rows; ++i)
+			for (int j = 0; j < cols; ++j)
+				this->set(i, j, 0, (this->at(i, j, 0) > min) ? this->at(i, j, 0) : 0);
 		return *this;
 	}
 	bool operator==(matrix<T> other)
 	{
 		for (int k = 0; k < this->dims; ++k)
-		for (int i = 0; i < this->rows; ++i)
-		for (int j = 0; j < this->cols; ++j)
-		if (this->at(i, j, k) != other.at(i, j, k))
+			for (int i = 0; i < this->rows; ++i)
+				for (int j = 0; j < this->cols; ++j)
+					if (this->at(i, j, k) != other.at(i, j, k))
 			return false;
 		return true;
 	}

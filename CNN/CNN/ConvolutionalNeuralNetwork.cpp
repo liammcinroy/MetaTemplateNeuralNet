@@ -29,58 +29,12 @@ layer convolutional_neural_network::generate(matrix<float> labels)
 	return generate_to(0, labels);
 }
 
-void convolutional_neural_network::learn()
-{
-	matrix<float> labels = discriminate().at(0);
-
-	std::map<int, std::vector<matrix<float>>> momentums;
-
-	while (true)
-	{
-		for (int i = 0; i < m_layers.size(); ++i)
-		{
-			std::pair<std::vector<matrix<float>>, std::vector<matrix<float>>> stochastic_descent;
-			if (momentums.find(i) != momentums.end())
-			{
-				stochastic_descent = stochastic_gradient_descent(i, momentums[i]);
-				momentums[i] = stochastic_descent.second;
-			}
-			else
-			{
-				stochastic_descent = stochastic_gradient_descent(i);
-				momentums.insert(std::pair<int, std::vector<matrix<float>>>(i, stochastic_descent.second));
-			}
-
-			m_layers[i].set_data(stochastic_descent.first);
-		}
-
-		if (about_equals(discriminate().at(0), labels, .8f))
-			break;
-	}
-}
-
 void convolutional_neural_network::learn(matrix<float> labels)
 {
-	std::map<int, std::vector<matrix<float>>> momentums;
-
 	while (true)
 	{
 		for (int i = 0; i < m_layers.size(); ++i)
-		{
-			std::pair<std::vector<matrix<float>>, std::vector<matrix<float>>> stochastic_descent;
-			if (momentums.find(i) != momentums.end())
-			{
-				stochastic_descent = stochastic_gradient_descent(i, momentums[i]);
-				momentums[i] = stochastic_descent.second;
-			}
-			else
-			{
-				stochastic_descent = stochastic_gradient_descent(i);
-				momentums.insert(std::pair<int, std::vector<matrix<float>>>(i, stochastic_descent.second));
-			}
-
-			m_layers[i].set_data(stochastic_descent.first);
-		}
+			stochastic_gradient_descent(i);
 
 		if (about_equals(discriminate().at(0), labels, .8f))
 			break;
@@ -103,8 +57,8 @@ matrix<float> convolutional_neural_network::convolve(matrix<float> input_matrix,
 			{
 				//find sum
 				float sum = 0.0f;
-				for (int m = -M; m <= M; ++m)
-				for (int n = -N; n <= N; ++n)
+				for (int m = M; m >= -M; --m)
+				for (int n = N; n >= -N; --n)
 					sum += (input_matrix.at(i + m, j + n, k) * kernel.at(M + m, N + n, 0));
 				current.set(i - M, j - N, 0, sum);
 			}
@@ -118,209 +72,6 @@ matrix<float> convolutional_neural_network::convolve(matrix<float> input_matrix,
 	return result;
 }
 
-matrix<float> convolutional_neural_network::deconvolve(matrix<float> input_matrix, matrix<float> kernel)
-{
-	int N = (kernel.cols - 1) / 2;
-	int M = (kernel.rows - 1) / 2;
-	matrix<float> result(input_matrix.cols + (2 * N), input_matrix.rows + (2 * N), 1, INFINITY);
-
-	matrix<float> top_left = deconvolve_single(input_matrix.at(0, 0, 0), kernel);
-	for (int i = 0; i < kernel.rows; ++i)
-	for (int j = 0; j< kernel.cols; ++j)
-	if (top_left.at(i, j, 0) != 0)
-		result.set(i, j, 0, top_left.at(i, j, 0));
-
-	for (int i = 0; i < input_matrix.rows; ++i)
-	{
-		for (int j = 1; j < input_matrix.cols; ++j)
-		{
-			matrix<float> current_matrix = deconvolve_single(input_matrix.at(i, j, 0), kernel);
-			matrix<float> new_kernel = kernel;
-
-			float overlap_sum = 0.0f;
-			int new_i = i + N;
-			int new_j = j + M;
-			int n = 0;
-			int m = 0;
-
-			for (int i2 = new_i - N; i2 <= new_i + N; ++i2)
-			{
-				for (int j2 = new_j - M; j2 <= new_j + M; ++j2)
-				{
-					if (result.at(i2, j2, 0) != INFINITY)
-					{
-						overlap_sum += kernel.at(n, m, 0) * result.at(i2, j2, 0);
-						new_kernel.set(n, m, 0, 0);
-					}
-					++m;
-				}
-				m = 0;
-				++n;
-			}
-
-			matrix<float> new_matrix = deconvolve_single(input_matrix.at(i, j, 0) - overlap_sum, new_kernel);
-
-			n = 0;
-			m = 0;
-			for (int i2 = new_i - N; i2 <= new_i + N; ++i2)
-			{
-				for (int j2 = new_j - M; j2 <= new_j + M; ++j2)
-				{
-					if (new_matrix.at(n, m, 0) != 0)
-						result.set(i2, j2, 0, new_matrix.at(n, m, 0));
-					++m;
-				}
-				m = 0;
-				++n;
-			}
-		}
-	}
-
-	for (int i = 0; i < result.rows; ++i)
-	for (int j = 0; j < result.cols; ++j)
-	if (result.at(i, j, 0) == INFINITY)
-		result.set(i, j, 0, 0);
-
-	return result;
-}
-
-matrix<float> convolutional_neural_network::deconvolve_single(float input_value, matrix<float> kernel)
-{
-	int N = (kernel.cols - 1) / 2;
-	int M = (kernel.rows - 1) / 2;
-	int symmetry = 0;
-
-	matrix<float> result(kernel.cols, kernel.rows, 1);
-	std::vector<float> p;
-	std::vector<float> s;
-
-	std::vector<std::pair<int, int>> matched;
-
-	for (int i = 0; i < kernel.rows; ++i)
-	{
-		for (int j = 0; j < kernel.cols; ++j)
-		{
-			std::pair<int, int> coords(i, j);
-
-			std::pair<int, int> matched_coords;
-			if (kernel.at(i, j, 0) == -kernel.at(kernel.cols - 1 - j, kernel.rows - 1 - i, 0))//bottom left to right diagonal
-			{
-				symmetry = 1;
-				matched_coords = std::pair<int, int>(kernel.cols - i - j, kernel.rows - 1 - i);
-			}
-			else if (kernel.at(i, j, 0) == -kernel.at(j, kernel.rows - 1 - i, 0))//bottom right to left diagonal
-			{
-				symmetry = 2;
-				matched_coords = std::pair<int, int>(j, kernel.rows - 1 - i);
-			}
-			else if (kernel.at(i, j, 0) == -kernel.at(i, kernel.rows - 1 - j, 0))//across
-			{
-				symmetry = 3;
-				matched_coords = std::pair<int, int>(i, kernel.rows - 1 - j);
-			}
-			else if (kernel.at(i, j, 0) == -kernel.at(kernel.cols - 1 - i, j, 0))//up and down
-			{
-				symmetry = 4;
-				matched_coords = std::pair<int, int>(kernel.cols - 1 - i, j);
-			}
-
-			bool matched_before = false;
-			for (int l = 0; l < matched.size(); ++l)
-			{
-				if (matched[l] == matched_coords || matched[l] == coords)
-				{
-					matched_before = true;
-					break;
-				}
-			}
-
-			if (symmetry != 0 && kernel.at(i, j, 0) != 0 && !matched_before &&
-				((kernel.at(i, j, 0) > 0 && input_value > 0) || (kernel.at(i, j, 0) < 0 && input_value < 0)))
-			{
-				p.push_back(kernel.at(i, j, 0));
-				matched.push_back(matched_coords);
-				matched.push_back(coords);
-			}
-
-			if ((kernel.at(i, j, 0) > 0 && input_value > 0) || (kernel.at(i, j, 0) < 0 && input_value < 0))
-				s.push_back(kernel.at(i, j, 0));
-			symmetry = 0;
-		}
-	}
-
-	float sum_P = 0.0f;
-	float sum_S = 0.0f;
-
-	for (int i = 0; i < p.size(); ++i)
-		sum_P += abs(p[i]);
-	for (int i = 0; i < s.size(); ++i)
-		sum_S += abs(s[i]);
-
-	//p
-	float P = sum_P / sum_S;
-
-	//k
-	std::vector<float> k;
-	for (int i = 0; i < kernel.rows; ++i)
-	for (int j = 0; j < kernel.cols; ++j)
-		k.push_back(kernel.at(i, j, 0));
-	//m_n
-	std::vector<float> m(k.size());
-	for (int n = 0; n < k.size(); ++n)
-	{
-		bool in_p = false;
-		bool in_s = false;
-
-		for (int i = 0; i < p.size(); ++i)
-		{
-			if (p[i] == k[n])
-			{
-				in_p = true;
-				break;
-			}
-		}
-
-		for (int i = 0; i < s.size(); ++i)
-		{
-			if (s[i] == k[n])
-			{
-				in_s = true;
-				break;
-			}
-		}
-
-		//algorithms
-		if (k[n] == 0)
-			m[n] = 0;
-		else if (in_p && in_s)
-			m[n] = abs(((P * input_value) / p.size()) / k[n]);
-		else if (!in_p && in_s)
-			m[n] = abs(((1 - P) * input_value) / k[n]);
-		else if (!in_s)
-			m[n] = abs(1 / k[n]);
-	}
-
-	float sum = 0.0f;
-	for (int i = 0; i < k.size(); ++i)
-		sum += k[i] * m[i];
-
-	float C = 0.0f;
-	if (sum != 0)
-		C = input_value / sum;
-
-	int n = 0;
-	for (int i = 0; i < result.rows; ++i)
-	{
-		for (int j = 0; j < result.cols; ++j)
-		{
-			result.set(i, j, 0, abs(m[n] * C));
-			++n;
-		}
-	}
-
-	return result;
-}
-
 matrix<float> convolutional_neural_network::feed_forward(layer input_layer, unsigned int num_output)
 {
 	matrix<float> result(1, num_output, 1);
@@ -331,7 +82,7 @@ matrix<float> convolutional_neural_network::feed_forward(layer input_layer, unsi
 		float sum = 0.0f;
 		for (int j = 0; j < input_layer.at(0).rows; ++j)
 			sum += (input_layer.neuron_at(0, j, 0, 0) * input_layer.data_value_at(i, j, 0, 0));
-		result.set(i, 0, 0, max(0, sum));
+		result.set(i, 0, 0, logistic(sum));
 	}
 	return result;
 }
@@ -342,11 +93,35 @@ matrix<float> convolutional_neural_network::feed_backwards(layer input_layer, la
 
 	for (int i = 0; i < weights.at(0).cols; ++i)
 	{
-		//Find sum of weights and run through ReL
-		float sum = 0.0f;
-		for (int j = 0; j < weights.data_count; ++j)
-			sum += (input_layer.neuron_at(0, j, 0, 0) * weights.data_value_at(j, i, 1, 0));
-		result.set(i, 0, 0, max(0, sum));
+		for (int j = 0; j < input_layer.at(0).rows; ++j)
+			result.set(i, 0, 0, result.at(i, 0, 0) + (weights.data_value_at(j, i, 0, 0) * input_layer.neuron_at(0, j, 0, 0)));
+		result.set(i, 0, 0, logistic(result.at(i, 0, 0)));
+	}
+	return result;
+}
+
+matrix<float> convolutional_neural_network::convolve_backwards(layer input_layer, matrix<float> kernel, int feature_map)
+{
+	matrix<float> result(input_layer.at(0).cols + (kernel.cols - 1), input_layer.at(0).rows + (kernel.rows - 1), 1);
+	int M = (kernel.cols - 1) / 2;
+	int N = (kernel.rows - 1) / 2;
+
+	for (int i = N; i < input_layer.at(feature_map).rows - N; ++i)
+	{
+		for (int j = M; j < input_layer.at(feature_map).cols - M; ++j)
+		{
+			for (int i2 = i - N; i2 < i + N; ++i2)
+			{
+				for (int j2 = j - M; j2 < j + M; ++j2)
+				{
+					if (i2 - N < 0 || j2 - M < 0)
+						continue;
+
+					result.set(i, j, 0, result.at(i, j, 0) + (input_layer.neuron_at(feature_map, i - N, j - M, 0) 
+						* kernel.at(i2 + N - i, j2 + M - j, 0)));
+				}
+			}
+		}
 	}
 	return result;
 }
@@ -376,7 +151,7 @@ layer convolutional_neural_network::discriminate_to(unsigned int i)
 			current = m_layers[j + 1];
 			current.set_feature_maps(feature_maps);
 			if (use_dropout)
-				current = dropout(current);
+				dropout(current);
 			if (current.use_maxpool)
 				current = current.maxpool();
 			break;
@@ -385,12 +160,12 @@ layer convolutional_neural_network::discriminate_to(unsigned int i)
 			current = m_layers[j + 1];
 			current.set_feature_maps(feature_maps);
 			if (use_dropout)
-				current = dropout(current);
+				dropout(current);
 			if (current.use_maxpool)
 				current = current.maxpool();
 			break;
 		case CNN_OUTPUT:
-			current.set_feature_maps({ logistic_regression(current.at(0)) });
+			//current.set_feature_maps({ logistic_regression(current.at(0)) });
 			return current;
 			break;
 		}
@@ -410,26 +185,20 @@ layer convolutional_neural_network::generate_to(unsigned int i, matrix<float> la
 			switch (m_layers[j - 1].type)
 			{
 			case CNN_CONVOLUTION:
-				for (int i2 = 0; i2 = current.feature_map_count; ++i2)
-				{
-					matrix<float> total = deconvolve(current.at(i2), m_layers[j].data_at(0));
-					for (int k = 1; k < current.data_count; ++k)
-						total += deconvolve(current.at(i2), m_layers[j].data_at(k));
-					feature_maps.push_back(total);
-				}
+				for (int i2 = 0; i2 < current.feature_map_count; ++i2)
+					feature_maps.push_back(convolve_backwards(current, m_layers[j - 1].data_at(i2), i2));
+
 				current = m_layers[j - 1];
 				current.set_feature_maps(feature_maps);
 				if (use_dropout)
-					current = dropout(current);
-				//TODO: Handle max pooling
+					dropout(current);
 				break;
 			case CNN_FEED_FORWARD:
 				feature_maps.push_back(feed_backwards(current, m_layers[j - 1]));
 				current = m_layers[j - 1];
 				current.set_feature_maps(feature_maps);
 				if (use_dropout)
-					current = dropout(current);
-				//TODO: Handle max pooling
+					dropout(current);
 				break;
 			}
 		}
@@ -441,151 +210,144 @@ layer convolutional_neural_network::generate_to(unsigned int i, matrix<float> la
 	return current;
 }
 
-std::pair<std::vector<matrix<float>>, std::vector<matrix<float>>>
-convolutional_neural_network::stochastic_gradient_descent(unsigned int i)
+void convolutional_neural_network::stochastic_gradient_descent(unsigned int i)
 {
 	std::vector<matrix<float>> last_momentums;
 
 	matrix<float> labels = discriminate().at(0);
-	layer discriminated = discriminate_to(i);
-	layer generated = generate_to(i, labels);
-	layer subtracted = discriminated - generated;
 
-	float sum = 0.0f;
-	int neuron_count = subtracted.feature_map_count * subtracted.at(0).dims * subtracted.at(0).rows * subtracted.at(0).cols;
+	layer discriminated = m_layers[i];
+	layer generated;
+	layer reconstructed;
 
-	for (int f = 0; f < subtracted.feature_map_count; ++f)
-	for (int k = 0; k < subtracted.at(f).dims; ++k)
-	for (int i = 0; i < subtracted.at(f).rows; ++i)
-	for (int j = 0; j < subtracted.at(f).cols; ++j)
-		sum += subtracted.neuron_at(f, i, j, k);
-
-	float average_neuron_offset = sum / neuron_count;
-
-	std::vector<matrix<float>> new_weights;
-
-	for (int d = 0; d < subtracted.data_count; ++d)
+	std::vector<matrix<float>> feature_maps;
+	switch (m_layers[i].type)
 	{
-		new_weights.push_back(matrix<float>(subtracted.data_at(d).cols, subtracted.data_at(d).rows, subtracted.data_at(d).dims));
-		last_momentums.push_back(matrix<float>(subtracted.data_at(d).cols, subtracted.data_at(d).rows, subtracted.data_at(d).dims));
-		for (int k = 0; k < subtracted.data_at(d).dims; ++k)
+	case CNN_CONVOLUTION:
+		//discriminate
+		for (int i2 = 0; i2 < discriminated.feature_map_count; ++i2)
 		{
-			for (int i = 0; i < subtracted.data_at(d).rows; ++i)
-			{
-				for (int j = 0; j < subtracted.data_at(d).cols; ++j)
-				{
-					float new_momentum = (0.9f * 1) - (0.0005f * learning_rate * subtracted.data_value_at(d, i, j, k))
-						- (learning_rate * average_neuron_offset);
-					float new_weight = subtracted.data_value_at(d, i, j, k) + new_momentum;
-					last_momentums[d].set(i, j, k, new_momentum);
-					new_weights[d].set(i, j, k, new_weight);
-				}
-			}
+			matrix<float> total = convolve(discriminated.at(i2), discriminated.data_at(0));
+			for (int k = 1; k < discriminated.data_count; ++k)
+				total += convolve(discriminated.at(i2), discriminated.data_at(k));
+			feature_maps.push_back(total);
+		}
+
+		discriminated = m_layers[i + 1];
+		discriminated.set_feature_maps(feature_maps);
+		if (use_dropout)
+			dropout(discriminated);
+		if (discriminated.use_maxpool)
+			discriminated = discriminated.maxpool();
+		break;
+	case CNN_FEED_FORWARD:
+		//discriminate
+		feature_maps.push_back(feed_forward(discriminated, m_layers[i + 1].at(0).cols));
+		discriminated = m_layers[i + 1];
+		discriminated.set_feature_maps(feature_maps);
+		if (use_dropout)
+			dropout(discriminated);
+		if (discriminated.use_maxpool)
+			discriminated = discriminated.maxpool();
+		break;
+	}
+
+	feature_maps.clear();
+	switch (m_layers[i + 1].type)
+	{
+	case CNN_CONVOLUTION:
+		//generate
+		for (int i2 = 0; i2 < discriminated.feature_map_count; ++i2)
+			feature_maps.push_back(convolve_backwards(discriminated, m_layers[i].data_at(i2), i2));
+
+		generated = m_layers[i];
+		generated.set_feature_maps(feature_maps);
+		if (use_dropout)
+			dropout(generated);
+
+		feature_maps.clear();
+
+		//reconstruct
+		for (int i2 = 0; i2 < generated.feature_map_count; ++i2)
+		{
+			matrix<float> total = convolve(generated.at(i2), generated.data_at(0));
+			for (int k = 1; k < generated.data_count; ++k)
+				total += convolve(generated.at(i2), generated.data_at(k));
+			feature_maps.push_back(total);
+		}
+
+		reconstructed = m_layers[i + 1];
+		reconstructed.set_feature_maps(feature_maps);
+		if (use_dropout)
+			dropout(reconstructed);
+		if (reconstructed.use_maxpool)
+			reconstructed = reconstructed.maxpool();
+		break;
+	case CNN_FEED_FORWARD:
+		//generate
+		feature_maps.push_back(feed_backwards(generated, m_layers[i + 1]));
+		generated = m_layers[i];
+		generated.set_feature_maps(feature_maps);
+		if (use_dropout)
+			dropout(generated);
+
+		feature_maps.clear();
+
+		//reconstruct
+		feature_maps.push_back(feed_forward(generated, m_layers[i + 1].at(0).cols));
+		reconstructed = m_layers[i + 1];
+		reconstructed.set_feature_maps(feature_maps);
+		if (use_dropout)
+			dropout(reconstructed);
+		if (reconstructed.use_maxpool)
+			reconstructed = reconstructed.maxpool();
+		break;
+	}
+
+	std::vector<matrix<float>> new_weights(m_layers[i].data_count);
+	for (int i = 0; i < new_weights.size(); ++i)
+	{
+		for (int j = 0; j < m_layers[i].at(0).rows; ++j)
+		{
+			m_layers[i].set_data_value_at(i, j, 0, 0, (m_layers[i].data_value_at(i, j, 0, 0) +
+				(learning_rate * (discriminated.neuron_at(0, i, 0, 0) - reconstructed.neuron_at(0, i, 0, 0)))));
 		}
 	}
-	return std::pair<std::vector<matrix<float>>, std::vector<matrix<float>>>(new_weights, last_momentums);
 }
 
-std::pair<std::vector<matrix<float>>, std::vector<matrix<float>>> 
-convolutional_neural_network::stochastic_gradient_descent(unsigned int i, std::vector<matrix<float>> last_momentums)
+void convolutional_neural_network::dropout(layer& input_layer)
 {
-	matrix<float> labels = discriminate().at(0);
-	layer discriminated = discriminate_to(i);
-	layer generated = generate_to(i, labels);
-	layer subtracted = discriminated - generated;
-	
-	float sum = 0.0f;
-	int neuron_count = subtracted.feature_map_count * subtracted.at(0).dims * subtracted.at(0).rows * subtracted.at(0).cols;
-
-	for (int f = 0; f < subtracted.feature_map_count; ++f)
-		for (int k = 0; k < subtracted.at(f).dims; ++k)
-			for (int i = 0; i < subtracted.at(f).rows; ++i)
-				for (int j = 0; j < subtracted.at(f).cols; ++j)
-					sum += subtracted.neuron_at(f, i, j, k);
-
-	float average_neuron_offset = sum / neuron_count;
-
-	std::vector<matrix<float>> new_weights;
-
-	for (int d = 0; d < subtracted.data_count; ++d)
-	{
-		new_weights.push_back(matrix<float>(subtracted.data_at(d).cols, subtracted.data_at(d).rows, subtracted.data_at(d).dims));
-
-		for (int k = 0; k < subtracted.data_at(d).dims; ++k)
-		{
-			for (int i = 0; i < subtracted.data_at(d).rows; ++i)
-			{
-				for (int j = 0; j < subtracted.data_at(d).cols; ++j)
-				{
-					float new_momentum = (0.9f * last_momentums[d].at(i, j, k)) - (0.0005f * learning_rate * subtracted.data_value_at(d, i, j, k))
-						- (learning_rate * average_neuron_offset);
-					float new_weight = subtracted.data_value_at(d, i, j, k) + new_momentum;
-					last_momentums[d].set(i, j, k, new_momentum);
-					new_weights[d].set(i, j, k, new_weight);
-				}
-			}
-		}
-	}
-	return std::pair<std::vector<matrix<float>>, std::vector<matrix<float>>>(new_weights, last_momentums);
-}
-
-std::pair<std::vector<matrix<float>>, std::vector<matrix<float>>>
-convolutional_neural_network::stochastic_gradient_descent(unsigned int i, std::vector<matrix<float>> last_momentums, matrix<float> labels)
-{
-	layer discriminated = discriminate_to(i);
-	layer generated = generate_to(i, labels);
-	layer subtracted = discriminated - generated;
-
-	float sum = 0.0f;
-	int neuron_count = subtracted.feature_map_count * subtracted.at(0).dims * subtracted.at(0).rows * subtracted.at(0).cols;
-
-	for (int f = 0; f < subtracted.feature_map_count; ++f)
-	for (int k = 0; k < subtracted.at(f).dims; ++k)
-	for (int i = 0; i < subtracted.at(f).rows; ++i)
-	for (int j = 0; j < subtracted.at(f).cols; ++j)
-		sum += subtracted.neuron_at(f, i, j, k);
-
-	float average_neuron_offset = sum / neuron_count;
-
-	std::vector<matrix<float>> new_weights;
-
-	for (int d = 0; d < subtracted.data_count; ++d)
-	{
-		new_weights.push_back(matrix<float>(subtracted.data_at(d).cols, subtracted.data_at(d).rows, subtracted.data_at(d).dims));
-
-		for (int k = 0; k < subtracted.data_at(d).dims; ++k)
-		{
-			for (int i = 0; i < subtracted.data_at(d).rows; ++i)
-			{
-				for (int j = 0; j < subtracted.data_at(d).cols; ++j)
-				{
-					float new_momentum = (0.9f * last_momentums[d].at(i, j, k)) - (0.0005f * learning_rate * subtracted.data_value_at(d, i, j, k))
-						- (learning_rate * average_neuron_offset);
-					float new_weight = subtracted.data_value_at(d, i, j, k) + new_momentum;
-					last_momentums[d].set(i, j, k, new_momentum);
-					new_weights[d].set(i, j, k, new_weight);
-				}
-			}
-		}
-	}
-	return std::pair<std::vector<matrix<float>>, std::vector<matrix<float>>>(new_weights, last_momentums);
-}
-
-layer convolutional_neural_network::dropout(layer input_layer)
-{
-	layer result = input_layer;
 	for (int f = 0; f < input_layer.feature_map_count; ++f)
 		for (int k = 0; k < input_layer.at(f).dims; ++k)
 			for (int i2 = 0; i2 < input_layer.at(f).rows; ++i2)
 				for (int j = 0; j < input_layer.at(f).cols; ++j)
 					if (rand() % 10 < 5)
-						result.set_neuron(f, i2, j, k, 0.0f);
-	return result;
+						input_layer.set_neuron(f, i2, j, k, 0.0f);
 }
 
 float convolutional_neural_network::max(float a, float b)
 {
 	return (a > b) ? a : b;
+}
+
+float convolutional_neural_network::energy(layer visible, layer hidden)
+{
+	float result = 0.0f;
+	for (int f = 0; f < visible.feature_map_count; ++f)
+		for (int k = 0; k < visible.at(f).dims; ++k)
+			for (int i = 0; i < visible.at(f).rows; ++i)
+				for (int j = 0; j < visible.at(f).cols; ++j)
+					result += visible.neuron_at(f, i, j, k);
+	for (int f = 0; f < hidden.feature_map_count; ++f)
+		for (int k = 0; k < hidden.at(f).dims; ++k)
+			for (int i = 0; i < hidden.at(f).rows; ++i)
+				for (int j = 0; j < hidden.at(f).cols; ++j)
+					result -= hidden.neuron_at(f, i, j, k);
+	for (int i = 0; i < hidden.at(0).rows; ++i)
+		for (int j = 0; j < visible.at(0).rows; ++j)
+			result -= (visible.neuron_at(0, j, 0, 0) * visible.data_value_at(i, j, 0, 0) * hidden.neuron_at(0, i, 0, 0));
+
+	return result;
 }
 
 matrix<float> convolutional_neural_network::logistic_regression(matrix<float> input_data)
@@ -602,7 +364,12 @@ matrix<float> convolutional_neural_network::logistic_regression(matrix<float> in
 	return result;
 }
 
-bool convolutional_neural_network::about_equals(matrix<float> first, matrix<float> second, float minimum_percent)
+float convolutional_neural_network::logistic(float x)
+{
+	return 1 / (1 + exp(-x));
+}
+
+bool convolutional_neural_network::about_equals(matrix<float> first, matrix<float> second, float minimum)
 {
 	int count_correct = 0;
 	int count_incorrect = 0;
@@ -621,5 +388,5 @@ bool convolutional_neural_network::about_equals(matrix<float> first, matrix<floa
 		}
 	}
 
-	return (count_correct / (count_correct + count_incorrect)) >= minimum_percent;
+	return (count_correct / (count_correct + count_incorrect)) >= minimum;
 }

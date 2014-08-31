@@ -23,22 +23,18 @@ public:
 private:
 	std::vector<layer> m_layers;
 	float max(float a, float b);//done
+	float logistic(float x);//done
 	matrix<float> logistic_regression(matrix<float> input_data);//done
 	matrix<float> feed_forward(layer input_layer, unsigned int num_output_neurons);//done
 	matrix<float> feed_backwards(layer input_layer, layer weights);//done
 	matrix<float> convolve(matrix<float> input_matrix, matrix<float> kernel);//done
-	matrix<float> deconvolve(matrix<float> input_matrix, matrix<float> kernel);//WIP
-	matrix<float> deconvolve_single(float input_value, matrix<float> kernel);//WIP
+	matrix<float> convolve_backwards(layer input_layer, matrix<float> kernel, int feature_map);
 	matrix<float> maxpool(matrix<float> input_matrix, unsigned int output_cols, unsigned int output_rows);//done
+	float energy(layer visible, layer hidden);//done
 	layer discriminate_to(unsigned int i);//done
 	layer generate_to(unsigned int i, matrix<float> labels);//done
-	std::pair<std::vector<matrix<float>>, std::vector<matrix<float>>>
-		stochastic_gradient_descent(unsigned int i);//done
-	std::pair<std::vector<matrix<float>>, std::vector<matrix<float>>> 
-		stochastic_gradient_descent(unsigned int i, std::vector<matrix<float>> last_momentums);//done
-	std::pair<std::vector<matrix<float>>, std::vector<matrix<float>>>
-		stochastic_gradient_descent(unsigned int i, std::vector<matrix<float>> last_momentums, matrix<float> labels);//done
-	layer dropout(layer input_layer);//done
+	void stochastic_gradient_descent(unsigned int i);//done
+	void dropout(layer &input_layer);//done
 	bool about_equals(matrix<float> first, matrix<float> second, float minimum_percent);//done
 };
 
