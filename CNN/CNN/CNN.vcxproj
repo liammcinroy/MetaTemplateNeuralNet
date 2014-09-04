@@ -64,13 +64,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="ConvolutionalNeuralNetwork.h" />
-    <ClInclude Include="Matrix.h" />
-    <ClInclude Include="Layer.h" />
+    <ClInclude Include="ilayer.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ConvolutionalNeuralNetwork.cpp" />
-    <ClCompile Include="Layer.cpp" />
+    <ClCompile Include="imatrix.h" />
+    <ClCompile Include="ineuralnet.h" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
