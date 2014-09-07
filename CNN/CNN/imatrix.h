@@ -1,31 +1,48 @@
 #pragma once
 
-template<class T> struct IMatrix
+#include <math.h>
+#include <stdlib.h>
+
+template<class T> class IMatrix
 {
 public:
-	virtual ~IMatrix<T>();
-	virtual inline T at(int i, int j);
-	virtual inline T* row(int i, int j);
-	virtual inline T* col(int i, int j);
-	virtual inline IMatrix<T> from(int i1, int j1, int i2, int j2);
-	virtual void elem_multiply(IMatrix<T> other);
-	virtual void elem_divide(IMatrix<T> other);
-	virtual IMatrix<T> operator+(IMatrix<T> other);
-	virtual IMatrix<T> operator-(IMatrix<T> other);
-	virtual IMatrix<T> operator*(T scalar);
-	virtual IMatrix<T> operator/(T scalar);
-	virtual IMatrix<T> operator+(T scalar);
-	virtual IMatrix<T> operator-(T scalar);
+	IMatrix()
+	{
+	}
+	~IMatrix<T>()
+	{
+		delete[] data;
+	}
+	virtual T& at(int i, int j)
+	{
+		return data[(cols * i) + j];
+	}
+	virtual T* row(unsigned int i)
+	{
+		T* output = new T[cols];
+		for (unsigned int j = cols * i; j < cols * i + cols; ++j)
+			output[j - cols * i] = data[j];
+		return output;
+	}
+	virtual T* col(unsigned int j)
+	{
+		T* output = new T[rows];
+		for (unsigned int i = j; i < rows * cols; i += cols)
+			output[(i - j) / cols] = data[i];
+		return output;
+	}
 	unsigned int rows;
 	unsigned int cols;
 	unsigned int dims;
-private:
 	T* data;
 };
 
 template<class T> class Matrix2D : public IMatrix<T>
 {
 public:
+	Matrix2D<T>()
+	{
+	}
 	Matrix2D<T>(unsigned int r, unsigned int c)
 	{
 		data = new T[rows * cols * sizeof(T)];
@@ -37,25 +54,25 @@ public:
 	{
 		delete[] data;
 	}
-	virtual inline T at(unsigned int i, unsigned int j)
+	virtual T& at(unsigned int i, unsigned int j)
 	{
 		return data[(cols * i) + j];
 	}
-	virtual inline T* row(unsigned int i)
+	virtual T* row(unsigned int i)
 	{
-		T[cols] output;
+		T* output = new T[cols];
 		for (unsigned int j = cols * i; j < cols * i + cols; ++j)
 			output[j - cols * i] = data[j];
 		return output;
 	}
-	virtual inline T* col(unsigned int j)
+	virtual T* col(unsigned int j)
 	{
-		T[rows] output;
+		T* output = new T[rows];
 		for (unsigned int i = j; i < rows * cols; i += cols)
 			output[(i - j) / cols] = data[i];
 		return output;
 	}
-	virtual inline Matrix2D<T> from(unsigned int i1, unsigned int j1, unsigned int i2, unsigned int j2)
+	Matrix2D<T> from(unsigned int i1, unsigned int j1, unsigned int i2, unsigned int j2)
 	{
 		Matrix2D<T> output(i2 - i1, j2 - j1);
 		int start = (cols * i1) + j1;
@@ -64,54 +81,54 @@ public:
 			output.at((i - (i % cols)) / cols, i % cols) = data[i];
 		return output;
 	}
-	virtual void elem_multiply(Matrix2D<T> other)
+	void elem_multiply(Matrix2D<T> other)
 	{
 		for (unsigned int i = 0; i < rows; ++i)
 			for (unsigned int j = 0; j < cols; ++j)
 					this->at(i, j) *= other.at(i, j);
 	}
-	virtual void elem_divide(Matrix2D<T> other)
+	void elem_divide(Matrix2D<T> other)
 	{
 		for (unsigned int i = 0; i < rows; ++i)
 			for (unsigned int j = 0; j < cols; ++j)
 					this->at(i, j) /= other.at(i, j);
 	}
-	virtual Matrix2D<T> operator+(Matrix2D<T> other)
+	Matrix2D<T> operator+(Matrix2D<T> other)
 	{
 		for (unsigned int i = 0; i < rows; ++i)
 			for (unsigned int j = 0; j < cols; ++j)
 				this->at(i, j) += other.at(i, j);
 		return *this;
 	}
-	virtual Matrix2D<T> operator-(Matrix2D<T> other)
+	Matrix2D<T> operator-(Matrix2D<T> other)
 	{
 		for (unsigned int i = 0; i < rows; ++i)
 			for (unsigned int j = 0; j < cols; ++j)
 				this->at(i, j) -= other.at(i, j);
 		return *this;
 	}
-	virtual Matrix2D<T> operator*(T scalar)
+	Matrix2D<T> operator*(T scalar)
 	{
 		for (unsigned int i = 0; i < rows; ++i)
 			for (unsigned int j = 0; j < cols; ++j)
 				this->at(i, j) *= scalar;
 		return *this;
 	}
-	virtual Matrix2D<T> operator/(T scalar)
+	Matrix2D<T> operator/(T scalar)
 	{
 		for (unsigned int i = 0; i < rows; ++i)
 			for (unsigned int j = 0; j < cols; ++j)
 				this->at(i, j) /= scalar;
 		return *this;
 	}
-	virtual Matrix2D<T> operator+(T scalar)
+	Matrix2D<T> operator+(T scalar)
 	{
 		for (unsigned int i = 0; i < rows; ++i)
 			for (unsigned int j = 0; j < cols; ++j)
 				this->at(i, j) += scalar;
 		return *this;
 	}
-	virtual Matrix2D<T> operator-(T scalar)
+	Matrix2D<T> operator-(T scalar)
 	{
 		for (unsigned int i = 0; i < rows; ++i)
 			for (unsigned int j = 0; j < cols; ++j)
@@ -138,6 +155,9 @@ public:
 template<class T> class Matrix3D : public IMatrix<T>
 {
 public:
+	Matrix3D<T>()
+	{
+	}
 	Matrix3D<T>(int r, int c, int d)
 	{
 		rows = r;
@@ -149,25 +169,25 @@ public:
 	{
 		delete[] data;
 	}
-	virtual inline T at(int i, int j, int k)
+	virtual T& at(int i, int j, int k)
 	{
 		return data[rows * cols * k + cols * i + j];
 	}
-	virtual inline T* row(int i, int k)
+	virtual T* row(int i, int k)
 	{
-		T[cols] output;
+		T* output = new T[cols];
 		for (int j = 0; j < rows; ++j)
 			output[j] = this->at(i, j, k);
 		return output;
 	}
-	virtual inline T* col(int j, int k)
+	virtual T* col(int j, int k)
 	{
-		T[rows] output;
+		T* output = new T[rows];
 		for (int i = 0; i < rows; ++i)
 			output[i] = this->at(i, j, k);
 		return output;
 	}
-	virtual inline Matrix3D<T> from(int i1, int j1, int i2, int j2)
+	Matrix3D<T> from(int i1, int j1, int i2, int j2)
 	{
 		Matrix3D<T> output(i2 - i1, j2 - j1, dims);
 		for (int k = 0; k < dims; ++k)
@@ -176,21 +196,21 @@ public:
 					output.at(i - i1, j - j1, k) = this->at(i, j, k);
 		return output;
 	}
-	virtual void elem_multiply(Matrix3D<T> other)
+	void elem_multiply(Matrix3D<T> other)
 	{
 		for (int k = 0; k < dims; ++k)
 			for (int i = 0; i < rows; ++i)
 				for (int j = 0; j < cols; ++j)
 					this->at(i, j, k) *= other.at(i, j, k);
 	}
-	virtual void elem_divide(Matrix3D<T> other)
+	void elem_divide(Matrix3D<T> other)
 	{
 		for (int k = 0; k < dims; ++k)
 			for (int i = 0; i < rows; ++i)
 				for (int j = 0; j < cols; ++j)
 					this->at(i, j, k) /= other.at(i, j, k);
 	}
-	virtual Matrix3D<T> operator+(Matrix3D<T> other)
+	Matrix3D<T> operator+(Matrix3D<T> other)
 	{
 		for (int k = 0; k < dims; ++k)
 			for (int i = 0; i < rows; ++i)
@@ -198,7 +218,7 @@ public:
 					this->at(i, j, k) += other.at(i, j, k);
 		return *this;
 	}
-	virtual Matrix3D<T> operator-(Matrix3D<T> other)
+	Matrix3D<T> operator-(Matrix3D<T> other)
 	{
 		for (int k = 0; k < dims; ++k)
 			for (int i = 0; i < rows; ++i)
@@ -206,7 +226,7 @@ public:
 					this->at(i, j, k) -= other.at(i, j, k);
 		return *this;
 	}
-	virtual Matrix3D<T> operator*(T scalar)
+	Matrix3D<T> operator*(T scalar)
 	{
 		for (int k = 0; k < dims; ++k)
 			for (int i = 0; i < rows; ++i)
@@ -214,7 +234,7 @@ public:
 					this->at(i, j, k) *= scalar;
 		return *this;
 	}
-	virtual Matrix3D<T> operator/(T scalar)
+	Matrix3D<T> operator/(T scalar)
 	{
 		for (int k = 0; k < dims; ++k)
 			for (int i = 0; i < rows; ++i)
@@ -222,7 +242,7 @@ public:
 					this->at(i, j, k) /= scalar;
 		return *this;
 	}
-	virtual Matrix3D<T> operator+(T scalar)
+	Matrix3D<T> operator+(T scalar)
 	{
 		for (int k = 0; k < dims; ++k)
 			for (int i = 0; i < rows; ++i)
@@ -230,7 +250,7 @@ public:
 					this->at(i, j, k) += scalar;
 		return *this;
 	}
-	virtual Matrix3D<T> operator-(T scalar)
+	Matrix3D<T> operator-(T scalar)
 	{
 		for (int k = 0; k < dims; ++k)
 			for (int i = 0; i < rows; ++i)

@@ -48,6 +48,10 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <ProjectReference>
+      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -67,8 +71,10 @@
     <ClInclude Include="ilayer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ilayer.cpp" />
     <ClCompile Include="imatrix.h" />
-    <ClCompile Include="ineuralnet.h" />
+    <ClCompile Include="neuralnet.cpp" />
+    <ClCompile Include="neuralnet.h" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
