@@ -1,5 +1,8 @@
 #pragma once
 
+#include <iterator>
+#include <initializer_list>
+
 #include <math.h>
 #include <stdlib.h>
 
@@ -13,18 +16,18 @@ public:
 	{
 		delete[] data;
 	}
-	virtual T& at(int i, int j)
+	virtual inline T& at(unsigned int i, unsigned int j)
 	{
 		return data[(cols * i) + j];
 	}
-	virtual T* row(unsigned int i)
+	virtual inline T* row(unsigned int i)
 	{
 		T* output = new T[cols];
 		for (unsigned int j = cols * i; j < cols * i + cols; ++j)
 			output[j - cols * i] = data[j];
 		return output;
 	}
-	virtual T* col(unsigned int j)
+	virtual inline T* col(unsigned int j)
 	{
 		T* output = new T[rows];
 		for (unsigned int i = j; i < rows * cols; i += cols)
@@ -45,27 +48,71 @@ public:
 	}
 	Matrix2D<T>(unsigned int r, unsigned int c)
 	{
-		data = new T[rows * cols * sizeof(T)];
 		rows = r;
 		cols = c;
 		dims = 1;
+		data = new T[rows * cols * sizeof(T)];
+		memset(data, 0, rows * cols * sizeof(T));
+	}
+	Matrix2D<T>(unsigned int r, unsigned int c, int min, int max)
+	{
+		rows = r;
+		cols = c;
+		dims = 1;
+		data = new T[rows * cols * sizeof(T)];
+
+		int diff = max - min;
+		for (int i = 0; i < r * c; ++i)
+			data[i] = (rand() % diff) + min;
+	}
+	Matrix2D<T>(unsigned int r, unsigned int c, std::initializer_list<std::initializer_list<T>> arr)
+	{
+		rows = r;
+		cols = c;
+		dims = 1;
+		data = new T[rows * cols * sizeof(T)];
+
+		std::initializer_list<std::initializer_list<T>>::iterator it = arr.begin();
+		for (int i = 0; i < r; ++i)
+		{
+			std::initializer_list<T>::iterator it2 = it->begin();
+			for (int j = 0; j < c; ++j)
+			{
+				data[(cols * i) + j] = *it2;
+				++it2;
+			}
+			++it;
+		}
+	}
+	Matrix2D<T>(unsigned int r, unsigned int c, std::initializer_list<T> arr)
+	{
+		rows = r;
+		cols = c;
+		dims = 1;
+		data = new T[rows * cols * sizeof(T)];
+
+		std::initializer_list<T>::iterator it = arr.begin();
+		for (int i = 0; i < r; ++i)
+		{
+			data[(cols * i)] = *it;
+			++it;
+		}
 	}
 	~Matrix2D<T>()
 	{
-		delete[] data;
 	}
-	virtual T& at(unsigned int i, unsigned int j)
+	inline T& at(unsigned int i, unsigned int j)
 	{
 		return data[(cols * i) + j];
 	}
-	virtual T* row(unsigned int i)
+	inline T* row(unsigned int i)
 	{
 		T* output = new T[cols];
 		for (unsigned int j = cols * i; j < cols * i + cols; ++j)
 			output[j - cols * i] = data[j];
 		return output;
 	}
-	virtual T* col(unsigned int j)
+	inline T* col(unsigned int j)
 	{
 		T* output = new T[rows];
 		for (unsigned int i = j; i < rows * cols; i += cols)
@@ -164,23 +211,23 @@ public:
 		cols = c;
 		dims = d;
 		data = new T[r * c * d * sizeof(T)];
+		memset(data, 0, r * c * d * sizeof(T));
 	}
 	~Matrix3D<T>()
 	{
-		delete[] data;
 	}
-	virtual T& at(int i, int j, int k)
+	inline T& at(int i, int j, int k)
 	{
 		return data[rows * cols * k + cols * i + j];
 	}
-	virtual T* row(int i, int k)
+	inline T* row(int i, int k)
 	{
 		T* output = new T[cols];
 		for (int j = 0; j < rows; ++j)
 			output[j] = this->at(i, j, k);
 		return output;
 	}
-	virtual T* col(int j, int k)
+	inline T* col(int j, int k)
 	{
 		T* output = new T[rows];
 		for (int i = 0; i < rows; ++i)

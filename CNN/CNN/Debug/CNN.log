@@ -1,19 +1,22 @@
-﻿Build started 9/6/2014 4:47:00 PM.
+﻿Build started 9/13/2014 6:40:54 PM.
      1>Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" on node 2 (Build target(s)).
-     1>Link:
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ilayer.cpp imatrix.h main.cpp neuralnet.cpp
+         imatrix.h
+         Generating Code...
+         Skipping... (no relevant changes detected)
+         neuralnet.cpp
+         main.cpp
+         ilayer.cpp
+       Link:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Debug\CNN.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Debug\CNN.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Debug\CNN.lib" /MACHINE:X86 Debug\ilayer.obj
          Debug\imatrix.obj
          Debug\neuralnet.obj
          Debug\neuralnet.obj
          Debug\main.obj
-     1>Debug\neuralnet.obj : warning LNK4042: object specified more than once; extras ignored
-     1>ilayer.obj : error LNK2001: unresolved external symbol "public: virtual class Matrix2D<int> * __thiscall ILayer::feed_forwards(void)" (?feed_forwards@ILayer@@UAEPAV?$Matrix2D@H@@XZ)
-     1>neuralnet.obj : error LNK2001: unresolved external symbol "public: virtual class Matrix2D<int> * __thiscall ILayer::feed_forwards(void)" (?feed_forwards@ILayer@@UAEPAV?$Matrix2D@H@@XZ)
-     1>ilayer.obj : error LNK2001: unresolved external symbol "public: virtual class Matrix2D<int> * __thiscall ILayer::feed_backwards(class Matrix2D<float> * &)" (?feed_backwards@ILayer@@UAEPAV?$Matrix2D@H@@AAPAV?$Matrix2D@M@@@Z)
-     1>neuralnet.obj : error LNK2001: unresolved external symbol "public: virtual class Matrix2D<int> * __thiscall ILayer::feed_backwards(class Matrix2D<float> * &)" (?feed_backwards@ILayer@@UAEPAV?$Matrix2D@H@@AAPAV?$Matrix2D@M@@@Z)
-     1>C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Debug\CNN.exe : fatal error LNK1120: 2 unresolved externals
-     1>Done Building Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" (Build target(s)) -- FAILED.
+         CNN.vcxproj -> C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Debug\CNN.exe
+     1>Done Building Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" (Build target(s)).
 
-Build FAILED.
+Build succeeded.
 
-Time Elapsed 00:00:00.26
+Time Elapsed 00:00:01.61

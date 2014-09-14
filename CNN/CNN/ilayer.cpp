@@ -19,7 +19,6 @@ void ILayer::find_probability()
 			}
 		}
 	}
-
 }
 
 void ILayer::dropout()
@@ -76,19 +75,17 @@ ConvolutionLayer::ConvolutionLayer(int features, int rows, int cols, int kernel_
 	stride = conv_stride;
 	type = CNN_CONVOLUTION;
 	Matrix2D<int> feature_sample(rows, cols);
-	feature_maps = (Matrix2D<int>*)malloc(feature_maps_count * sizeof(feature_sample));
+	feature_maps = new Matrix2D<int>[feature_maps_count * sizeof(feature_sample)];
 	for (int i = 0; i < features; ++i)
-		feature_maps[i] = feature_sample;
+		feature_maps[i] = Matrix2D<int>(feature_sample);
 	Matrix2D<float> data_sample(kernel_rows, kernel_cols);
-	data = (Matrix2D<float>*)malloc(data_count * sizeof(data_sample));
+	data = new Matrix2D<float>[data_count * sizeof(data_sample)];
 	for (int i = 0; i < data_count; ++i)
-		data[i] = data_sample;
+		data[i] = Matrix2D<float>(kernel_rows, kernel_cols, 0, 1);
 }
 
 ConvolutionLayer::~ConvolutionLayer()
 {
-	free(feature_maps);
-	free(data);
 }
 
 Matrix2D<int> ConvolutionLayer::convolve(Matrix2D<int> &input, Matrix2D<float> &kernel)
@@ -121,19 +118,18 @@ FeedForwardLayer::FeedForwardLayer(int features, int rows, int output_rows, int 
 	feature_maps_count = features;
 	type = CNN_FEED_FORWARD;
 	Matrix2D<int> feature_sample(rows, 1);
-	feature_maps = (Matrix2D<int>*)malloc(features * sizeof(feature_sample));
+	feature_maps = new Matrix2D<int>[features * sizeof(feature_sample)];
 	for (int i = 0; i < features; ++i)
-		feature_maps[i] = feature_sample;
-	Matrix2D<float> data_sample(out_rows, rows);
-	data = (Matrix2D<float>*)malloc(features * sizeof(data_sample));
-	for (int i = 0; i < out_rows; ++i)
-		data[i] = data_sample;
+		feature_maps[i] = Matrix2D<int>(rows, 1);
+	data_count = out_rows;
+	Matrix2D<float> data_sample(out_rows, rows, 0, 1);
+	data = new Matrix2D<float>[feature_maps_count * sizeof(data_sample)];
+	for (int i = 0; i < feature_maps_count; ++i)
+		data[i] = Matrix2D<float>(out_rows, rows, 0, 1);
 }
 
 FeedForwardLayer::~FeedForwardLayer()
 {
-	free(feature_maps);
-	free(data);
 }
 
 MaxpoolLayer::MaxpoolLayer(int features, int rows, int cols, int maxed_rows, int maxed_cols)
@@ -147,13 +143,12 @@ MaxpoolLayer::MaxpoolLayer(int features, int rows, int cols, int maxed_rows, int
 	in_features = 0;
 	type = CNN_MAXPOOL;
 	Matrix2D<int> feature_sample(rows, cols);
-	feature_maps = (Matrix2D<int>*)malloc(feature_maps_count * sizeof(feature_sample));
+	feature_maps = new Matrix2D<int>[feature_maps_count * sizeof(feature_sample)];
 	for (int i = 0; i < feature_maps_count; ++i)
-		feature_maps[i] = feature_sample;
+		feature_maps[i] = Matrix2D<int>(feature_sample);
 }
 
 MaxpoolLayer::~MaxpoolLayer()
 {
-	free(feature_maps);
 }
 

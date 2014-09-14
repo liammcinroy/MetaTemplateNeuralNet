@@ -10,8 +10,14 @@ class ILayer
 {
 public:
 	~ILayer();
-	virtual Matrix2D<int>* feed_forwards();
-	virtual Matrix2D<int>* feed_backwards(Matrix2D<float>* &weights);
+	virtual Matrix2D<int>* feed_forwards()
+	{
+		return 0;//Only to prevent LNK2001
+	}
+	virtual Matrix2D<int>* feed_backwards(Matrix2D<float>* &weights)
+	{
+		return 0;//Only to prevent LNK2001
+	}
 	void find_probability();
 	void dropout();
 	void wake_sleep(ILayer &above, float &learning_rate);
@@ -35,9 +41,9 @@ public:
 	ConvolutionLayer(int features, int rows, int cols, int kernel_rows, int kernel_cols, int output_features, int input_features,
 		int input_rows, int input_cols, int conv_stride = 1);
 	~ConvolutionLayer();
-	virtual Matrix2D<int>* feed_forwards()
+	Matrix2D<int>* feed_forwards()
 	{
-		Matrix2D<int>* output = (Matrix2D<int>*)malloc(data_count * sizeof(Matrix2D<int>(out_rows, out_cols)));
+		Matrix2D<int>* output = new Matrix2D<int>[data_count * sizeof(Matrix2D<int>(out_rows, out_cols))];
 		for (int i = 0; i < data_count; ++i)
 		{
 			Matrix2D<int> total = convolve(feature_maps[0], data[i]);
@@ -47,9 +53,9 @@ public:
 		}
 		return output;
 	}
-	virtual Matrix2D<int>* feed_backwards(Matrix2D<float>* &weights)
+	Matrix2D<int>* feed_backwards(Matrix2D<float>* &weights)
 	{
-		Matrix2D<int>* output = (Matrix2D<int>*)malloc(feature_maps_count * sizeof(Matrix2D<int>(in_rows, 1)));
+		Matrix2D<int>* output = new Matrix2D<int>[feature_maps_count * sizeof(Matrix2D<int>(in_rows, 1))];
 		for (int f = 0; f < feature_maps_count; ++f)
 		{
 			Matrix2D<int> current(in_rows, in_cols);
@@ -69,11 +75,12 @@ private:
 
 class FeedForwardLayer : public ILayer
 {
+public:
 	FeedForwardLayer(int features, int rows, int output_rows, int input_num);
 	~FeedForwardLayer();
-	virtual Matrix2D<int>* feed_forwards()
+	Matrix2D<int>* feed_forwards()
 	{
-		Matrix2D<int>* output = (Matrix2D<int>*)malloc(feature_maps_count * sizeof(Matrix2D<int>(out_rows, 1)));
+		Matrix2D<int>* output = new Matrix2D<int>[feature_maps_count * sizeof(Matrix2D<int>(out_rows, 1))];
 		for (int f = 0; f < feature_maps_count; ++f)
 		{
 			Matrix2D<int> current(out_rows, 1);
@@ -84,9 +91,9 @@ class FeedForwardLayer : public ILayer
 		}
 		return output;
 	}
-	virtual Matrix2D<int>* feed_backwards(Matrix2D<float>* &weights)
+	Matrix2D<int>* feed_backwards(Matrix2D<float>* &weights)
 	{
-		Matrix2D<int>* output = (Matrix2D<int>*)malloc(feature_maps_count * sizeof(Matrix2D<int>(in_rows, 1)));
+		Matrix2D<int>* output = new Matrix2D<int>[feature_maps_count * sizeof(Matrix2D<int>(in_rows, 1))];
 		for (int f = 0; f < feature_maps_count; ++f)
 		{
 			Matrix2D<int> current(in_rows, 1);
@@ -101,11 +108,12 @@ class FeedForwardLayer : public ILayer
 
 class MaxpoolLayer : public ILayer
 {
+public:
 	MaxpoolLayer(int features, int rows, int cols, int maxed_rows, int maxed_cols);
 	~MaxpoolLayer();
-	virtual Matrix2D<int>* feed_forwards()
+	Matrix2D<int>* feed_forwards()
 	{
-		Matrix2D<int>* output = (Matrix2D<int>*)malloc(feature_maps_count * sizeof(Matrix2D<int>(out_rows, out_cols)));
+		Matrix2D<int>* output = new Matrix2D<int>[feature_maps_count * sizeof(Matrix2D<int>(out_rows, out_cols))];
 		for (int f = 0; f < feature_maps_count; ++f)
 		{
 			int down = feature_maps[f].rows / out_rows;
