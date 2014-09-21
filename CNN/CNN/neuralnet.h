@@ -20,9 +20,9 @@ public:
 	//feed forwards
 	ILayer* discriminate();
 	//set input (batch will not be generated)
-	void set_input(Matrix2D<int>* input);
+	void set_input(std::vector<Matrix<int>*> input);
 	//set labels for batch
-	void set_labels(Matrix2D<int> batch_labels);
+	void set_labels(Matrix<int>* batch_labels);
 	//wake-sleep algorithm
 	void pretrain();
 	//backpropogate TODO!
@@ -33,5 +33,5 @@ public:
 	bool use_dropout;
 private:
 	std::vector<ILayer*> layers;
-	Matrix2D<int> labels;
+	Matrix<int>* labels;
 };

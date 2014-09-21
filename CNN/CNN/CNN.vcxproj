@@ -71,7 +71,6 @@
     <ClInclude Include="ilayer.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ilayer.cpp" />
     <ClCompile Include="imatrix.h" />
     <ClCompile Include="neuralnet.cpp" />
     <ClCompile Include="neuralnet.h" />
