@@ -7,6 +7,12 @@ NeuralNet::NeuralNet()
 	srand(time(NULL)); //LNK2019
 }
 
+NeuralNet::~NeuralNet()
+{
+	for (int i = 0; i < layers.size(); ++i)
+		delete layers[i];
+}
+
 void NeuralNet::save(std::string path)
 {
 }

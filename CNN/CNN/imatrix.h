@@ -27,9 +27,9 @@ public:
 	{
 	}
 
-	virtual unsigned int rows() = 0;
+	virtual const unsigned int rows() = 0;
 
-	virtual unsigned int cols() = 0;
+	virtual const unsigned int cols() = 0;
 };
 
 template<typename T, unsigned int r, unsigned int c> class Matrix2D : public Matrix<T>
@@ -37,7 +37,11 @@ template<typename T, unsigned int r, unsigned int c> class Matrix2D : public Mat
 private:
 	std::array<T, r * c> data;
 public:
-	Matrix2D<T, r, c>() = default;
+	Matrix2D<T, r, c>()
+	{
+		for (int i = 0; i < r * c; ++i)
+			data[i] = T();
+	}
 
 	Matrix2D<T, r, c>(int min, int max)
 	{
@@ -156,12 +160,12 @@ public:
 		return *this;
 	}
 
-	unsigned int rows() 
+	const unsigned int rows() 
 	{ 
 		return r;
 	}
 
-	unsigned int cols() 
+	const unsigned int cols() 
 	{
 		return c;
 	}

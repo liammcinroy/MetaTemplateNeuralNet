@@ -1,57 +1,20 @@
-﻿Build started 9/21/2014 4:19:33 PM.
+﻿Build started 10/4/2014 4:44:01 PM.
      1>Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt imatrix.h main.cpp neuralnet.cpp neuralnet.h
-         main.cpp
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(24): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(26): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(28): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(39): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(40): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(41): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(61): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(62): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(63): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(140): warning C4018: '<' : signed/unsigned mismatch
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(136) : while compiling class template member function 'FeedForwardLayer<1,5,3,0>::FeedForwardLayer(void)'
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(11) : see reference to function template instantiation 'FeedForwardLayer<1,5,3,0>::FeedForwardLayer(void)' being compiled
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(11) : see reference to class template instantiation 'FeedForwardLayer<1,5,3,0>' being compiled
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(145): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(151): warning C4018: '<' : signed/unsigned mismatch
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(150) : while compiling class template member function 'FeedForwardLayer<1,5,3,0>::~FeedForwardLayer(void)'
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(153): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(164): warning C4018: '<' : signed/unsigned mismatch
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(158) : while compiling class template member function 'std::vector<Matrix<int> *,std::allocator<_Ty>> FeedForwardLayer<1,5,3,0>::feed_forwards(void)'
-                 with
-                 [
-                     _Ty=Matrix<int> *
-                 ]
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(165): warning C4244: '+=' : conversion from 'float' to 'int', possible loss of data
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(178): warning C4018: '<' : signed/unsigned mismatch
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(172) : while compiling class template member function 'std::vector<Matrix<int> *,std::allocator<_Ty>> FeedForwardLayer<1,5,3,0>::feed_backwards(std::vector<Matrix<float> *,std::allocator<Matrix<float>>> &)'
-                 with
-                 [
-                     _Ty=Matrix<int> *
-                 ]
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(179): warning C4244: '+=' : conversion from 'float' to 'int', possible loss of data
-         Generating Code...
-         Compiling...
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt neuralnet.cpp
          neuralnet.cpp
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(24): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(26): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(28): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(39): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(40): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(41): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(45): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(47): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(49): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(60): warning C4018: '<' : signed/unsigned mismatch
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(61): warning C4018: '<' : signed/unsigned mismatch
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(62): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(63): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(82): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(83): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(84): warning C4018: '<' : signed/unsigned mismatch
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\neuralnet.cpp(7): warning C4244: 'argument' : conversion from 'time_t' to 'unsigned int', possible loss of data
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\neuralnet.cpp(41): warning C4018: '<' : signed/unsigned mismatch
-         Generating Code...
-         Skipping... (no relevant changes detected)
-         imatrix.h
-         neuralnet.h
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\neuralnet.cpp(12): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\neuralnet.cpp(47): warning C4018: '<' : signed/unsigned mismatch
        Link:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Debug\CNN.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Debug\CNN.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Debug\CNN.lib" /MACHINE:X86 Debug\imatrix.obj
          Debug\neuralnet.obj
@@ -63,4 +26,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:01.58
+Time Elapsed 00:00:00.92

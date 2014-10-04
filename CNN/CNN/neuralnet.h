@@ -13,6 +13,7 @@ class NeuralNet
 {
 public:
 	NeuralNet();
+	~NeuralNet();
 	//save learned net
 	void save(std::string path);
 	//load previously learned net

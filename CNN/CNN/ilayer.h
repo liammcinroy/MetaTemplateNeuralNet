@@ -8,6 +8,27 @@
 #define CNN_FEED_FORWARD 2
 #define CNN_MAXPOOL 3
 
+template<unsigned int rows, unsigned int cols, unsigned int kernel_size> Matrix<int>*
+convolve(Matrix<int>* &input, Matrix<float>* &kernel, int &stride)
+{
+	int N = (kernel_size - 1) / 2;
+	Matrix2D<int, rows - (kernel_size - 1), cols - (kernel_size - 1)>* output =
+		new Matrix2D<int, rows - (kernel_size - 1), cols - (kernel_size - 1)>();
+
+	for (int i = N; i < rows - N; i += stride)
+	{
+		for (int j = N; j < cols - N; j += stride)
+		{
+			int sum = 0;
+			for (int n = N; n >= -N; --n)
+				for (int m = N; m >= -N; --m)
+					sum += input->at(i - n, j - m) * kernel->at(N - n, N - m);
+			output->at(i - N, j - N) = sum;
+		}
+	}
+	return output;
+}
+
 class  ILayer
 {
 public:
@@ -73,24 +94,24 @@ public:
 	int type;
 };
 
-template<unsigned int features, unsigned int rows, unsigned int cols, unsigned int data_rows, unsigned data_cols, unsigned int out_features,
+template<unsigned int features, unsigned int rows, unsigned int cols, unsigned int data_size, unsigned int out_features,
 unsigned int in_features, unsigned int in_rows, unsigned int in_cols> class ConvolutionLayer : public ILayer
 {
 public:
-	ConvolutionLayer<features, rows, cols, data_rows, data_cols, out_features, in_features, in_rows, in_cols>()
+	ConvolutionLayer<features, rows, cols, data_size, out_features, in_features, in_rows, in_cols>()
 	{
 		type = CNN_CONVOLUTION;
 		data = std::vector<Matrix<float>*>(out_features);
 		for (int k = 0; k < data.size(); ++k)
 		{
-			data[k] = new Matrix2D<float, data_rows, data_cols>();
-			for (int i = 0; i < data_rows; ++i)
-				for (int j = 0; j < data_cols; ++j)
+			data[k] = new Matrix2D<float, data_size, data_size>();
+			for (int i = 0; i < data_size; ++i)
+				for (int j = 0; j < data_size; ++j)
 					data[k]->at(i, j) = rand();
 		}
 	}
 
-	~ConvolutionLayer<features, rows, cols, data_rows, data_cols, out_features, in_features, in_rows, in_cols>()
+	~ConvolutionLayer<features, rows, cols, data_size, out_features, in_features, in_rows, in_cols>()
 	{
 		for (int i = 0; i < feature_maps.size(); ++i)
 			delete feature_maps[i];
@@ -100,14 +121,9 @@ public:
 
 	std::vector<Matrix<int>*> feed_forwards()
 	{
-		std::vector<Matrix<int>> output(out_features);
+		std::vector<Matrix<int>*> output(out_features);
 		for (int i = 0; i < out_features; ++i)
-		{
-			Matrix2D<int, rows - (data_rows - 1), cols - (data_cols - 1)>* total = new convolve(feature_maps[0], data[i]);
-			for (int f = 1; f < features; ++f)
-				*total = (*total) + convolve(feature_maps[f], data[i]);
-			output[i] = total;
-		}
+			output[i] = convolve<rows, cols, data_size>(feature_maps[0], data[i], stride);
 		return output;
 	}
 
@@ -201,29 +217,47 @@ public:
 
 	std::vector<Matrix<int>*> feed_forwards()
 	{
-		std::vector<Matrix<int>> output(features);
+		std::vector<Matrix<int>*> output(features);
 		for (int f = 0; f < features; ++f)
 		{
-			int down = feature_maps[f].rows / out_rows;
-			int across = feature_maps[f].cols / out_cols;
-			Matrix2D<Matrix2D<int, down, across>, out_rows, out_cols> samples;
+			const int down = rows / out_rows;
+			const int across = cols / out_cols;
+			Matrix2D<Matrix2D<int, rows / out_rows, cols / out_cols>, out_rows, out_cols> samples;
 			
 
 			//get samples
 			for (int i = 0; i < out_rows; ++i)
+			{
 				for (int j = 0; j < out_cols; ++j)
-					samples.at(i, j) = feature_maps[f].from(i * down, j * across, (i + 1) * down, (j + 1) * across);
+				{
+					//get the current sample
+					int maxI = (i + 1) * down;
+					int maxJ = (j + 1) * across;
+					for (int i2 = i * down; i2 < maxI; ++i2)
+					{
+						for (int j2 = j * across; j2 < maxJ; ++j2)
+						{
+							samples.at(i, j).at(maxI - i2, maxJ - j2) = feature_maps[f]->at(i2, j2);
+						}
+					}
+				}
+			}
 
 			//find maxes
-			Matrix2D<int, out_rows, out_cols> maxes;
+			Matrix2D<int, out_rows, out_cols>* maxes = new Matrix2D<int, out_rows, out_cols>();
 			for (int i = 0; i < out_rows; ++i)
 				for (int j = 0; j < out_cols; ++j)
-					for (int n = 0; n < samples.at(i, j).rows; ++n)
-						for (int m = 0; m < samples.at(i, j).cols; ++m)
-							if (samples.at(i, j).at(n, m) > maxes.at(i, j))
-								maxes.at(i, j) = samples.at(i, j).at(i, j);
+					for (int n = 0; n < samples.at(i, j).rows(); ++n)
+						for (int m = 0; m < samples.at(i, j).cols(); ++m)
+							if (samples.at(i, j).at(n, m) > maxes->at(i, j))
+								maxes->at(i, j) = samples.at(i, j).at(i, j);
 			output[f] = maxes;
 		}
 		return output;
+	}
+
+	std::vector<Matrix<int>*> feed_backwards(std::vector<Matrix<float>*> &weights)
+	{
+		return std::vector<Matrix<int>*>();
 	}
 };
