@@ -14,6 +14,10 @@ int main(int argc, char** argv)
 	net.add_layer(new FeedForwardLayer<1, 22, 2000, 0>());
 	net.add_layer(new FeedForwardLayer<1, 2000, 10, 22>());
 
+	int t = clock();
+	net.load_data("C:\\net.cnn");
+	std::cout << "Elapsed time: " << clock() - t << std::endl;
+
 	std::cout << "Type anything and press enter to exit" << std::endl;
 	char c;
 	std::cin >> c;

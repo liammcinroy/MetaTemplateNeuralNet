@@ -15,9 +15,9 @@ public:
 	NeuralNet();
 	~NeuralNet();
 	//save learned net
-	void save(std::string path);
+	void save_data(std::string path);
 	//load previously learned net
-	void load(std::string path);
+	void load_data(std::string path);
 	//feed forwards
 	ILayer* discriminate();
 	//set input (batch will not be generated)

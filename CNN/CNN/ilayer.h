@@ -101,6 +101,9 @@ public:
 	ConvolutionLayer<features, rows, cols, data_size, out_features, in_features, in_rows, in_cols>()
 	{
 		type = CNN_CONVOLUTION;
+		feature_maps = std::vector<Matrix<int>*>(features);
+		for (int i = 0; i < features; ++i)
+			feature_maps[i] = new Matrix2D<int, rows, cols>();
 		data = std::vector<Matrix<float>*>(out_features);
 		for (int k = 0; k < data.size(); ++k)
 		{
@@ -152,6 +155,9 @@ public:
 	FeedForwardLayer<features, rows, out_rows, in_rows>()
 	{
 		type = CNN_FEED_FORWARD;
+		feature_maps = std::vector<Matrix<int>*>(features);
+		for (int i = 0; i < features; ++i)
+			feature_maps[i] = new Matrix2D<int, rows, 1>();
 		data = std::vector<Matrix<float>*>(features);
 		for (int k = 0; k < data.size(); ++k)
 		{
@@ -205,6 +211,11 @@ public:
 	MaxpoolLayer<features, rows, cols, out_rows, out_cols>()
 	{
 		type = CNN_MAXPOOL;
+		feature_maps = std::vector<Matrix<int>*>(features);
+		for (int i = 0; i < features; ++i)
+			feature_maps[i] = new Matrix2D<int, rows, cols>();
+		data = std::vector<Matrix<float>*>(1);
+		data[0] = new Matrix2D<float, 0, 0>();
 	}
 
 	~MaxpoolLayer<features, rows, cols, out_rows, out_cols>()
