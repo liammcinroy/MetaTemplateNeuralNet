@@ -34,8 +34,6 @@ public:
 
 template<typename T, unsigned int r, unsigned int c> class Matrix2D : public Matrix<T>
 {
-private:
-	std::array<T, r * c> data;
 public:
 	Matrix2D<T, r, c>()
 	{
@@ -169,6 +167,8 @@ public:
 	{
 		return c;
 	}
+
+	std::array<T, r * c> data;
 };
 
 template<typename T, int rows1, int cols1, int rows2, int cols2> Matrix2D<T, rows1, cols2>
@@ -187,14 +187,3 @@ template<typename T, int rows1, int cols1, int rows2, int cols2> Matrix2D<T, row
 	}
 	return result;
 }
-
-template<typename T, unsigned int length> class Vector : public Matrix2D<T, length, 1>
-{
-public:
-	T operator*(Vector<T, length> &other)
-	{
-		T sum();
-		for (int i = 0; i < length; ++i)
-			sum += (this->at(i, 0) * other.at(i, 0));
-	}
-};
