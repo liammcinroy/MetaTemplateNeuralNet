@@ -46,7 +46,7 @@ convolve_prob(Matrix<float>* &input, Matrix<float>* &kernel, int &stride)
 					sum += input->at(i - n, j - m) * kernel->at(N - n, N - m);
 
 			float prob = 1 / (1 + exp((float)-sum));
-			output->at(i - N, j - N) = (rand() <= prob) ? 1 : 0;
+			output->at(i - N, j - N) = ((1.0f * rand()) / RAND_MAX <= prob) ? 1 : 0;
 		}
 	}
 	return output;
@@ -72,11 +72,11 @@ public:
 		for (int f = 0; f < feature_maps.size(); ++f)
 			for (int i = 0; i < feature_maps[f]->rows(); ++i)
 				for (int j = 0; j < feature_maps[f]->cols(); ++j)
-					if (rand() >= .5f)
+					if ((1.0f * rand()) / RAND_MAX >= .5f)
 						feature_maps[f]->at(i, j) = 0;
 	}
 
-	void wake_sleep(ILayer* &above, float &learning_rate)
+	void wake_sleep(float &learning_rate)
 	{
 		//find difference via gibbs sampling
 		std::vector<Matrix<float>*> discriminated;
@@ -98,8 +98,6 @@ public:
 
 		for (int i = 0; i < reconstructed.size(); ++i)
 			delete reconstructed[i];
-		for (int i = 0; i < generated.size(); ++i)
-			delete generated[i];
 		for (int i = 0; i < discriminated.size(); ++i)
 			delete discriminated[i];
 	}
@@ -129,7 +127,7 @@ public:
 			data[k] = new Matrix2D<float, data_size, data_size>();
 			for (int i = 0; i < data_size; ++i)
 				for (int j = 0; j < data_size; ++j)
-					data[k]->at(i, j) = rand();
+					data[k]->at(i, j) = (1.0f * rand()) / RAND_MAX;
 		}
 	}
 
@@ -187,7 +185,7 @@ public:
 				for (int j = 0; j < feature_maps[f]->cols(); ++j)
 				{
 					float prob = 1 / (1 + exp(-feature_maps[f]->at(i, j)));
-					feature_maps[f]->at(i, j) = (rand() <= prob) ? 1 : 0;
+					feature_maps[f]->at(i, j) = ((1.0f * rand()) / RAND_MAX <= prob) ? 1 : 0;
 				}
 			}
 		}
@@ -213,7 +211,7 @@ public:
 			data[k] = new Matrix2D<float, out_rows, rows>();
 			for (int i = 0; i < out_rows; ++i)
 				for (int j = 0; j < rows; ++j)
-					data[k]->at(i, j) = rand();
+					data[k]->at(i, j) = (1.0f * rand()) / RAND_MAX;
 		}
 	}
 
@@ -263,7 +261,7 @@ public:
 				for (int j = 0; j < feature_maps[f]->rows(); ++j)
 					sum += (feature_maps[f]->at(j, 0) * data[f]->at(i, j));
 				float prob = 1 / (1 + exp((float)-sum));
-				current->at(i, 0) = (rand() <= prob) ? 1 : 0;
+				current->at(i, 0) = ((1.0f * rand()) / RAND_MAX <= prob) ? 1 : 0;
 			}
 			output[f] = current;
 		}
@@ -280,7 +278,7 @@ public:
 				for (int j = 0; j < input[f]->rows(); ++j)
 					sum += data[f]->at(j, i) * input[f]->at(j, 0);
 				float prob = 1 / (1 + exp((float)-sum));
-				feature_maps[f]->at(i, 0) = (rand() <= prob) ? 1 : 0;
+				feature_maps[f]->at(i, 0) = ((1.0f * rand()) / RAND_MAX <= prob) ? 1 : 0;
 			}
 		}
 		return feature_maps;

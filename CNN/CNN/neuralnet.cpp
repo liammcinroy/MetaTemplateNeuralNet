@@ -36,7 +36,7 @@ std::vector<std::string> split(std::string &input, const std::string &delim)
 
 NeuralNet::NeuralNet()
 {
-	srand(time(NULL)); //LNK2019
+	srand(time(NULL));
 }
 
 NeuralNet::~NeuralNet()
@@ -54,7 +54,7 @@ void NeuralNet::save_data(std::string path)
 		for (int f = 0; f < layers[l]->data.size(); ++f)
 			for (int i = 0; i < layers[l]->data[f]->rows(); ++i)
 				for (int j = 0; j < layers[l]->data[f]->cols(); ++j)
-					file << layers[l]->data[f]->at(i, j) << ',';//data values
+					file << std::to_string(layers[l]->data[f]->at(i, j)) << ',';//data values
 		file << ']';//end data values
 	}
 	file.flush();
@@ -114,7 +114,7 @@ void NeuralNet::pretrain()
 	for (int i = 0; i < layers.size() - 2; ++i)
 	{
 		if (layers[i]->type != CNN_MAXPOOL && layers[i + 1]->type != CNN_MAXPOOL)
-			layers[i]->wake_sleep(layers[i + 1], learning_rate);
+			layers[i]->wake_sleep(learning_rate);
 	}
 }
 
@@ -144,6 +144,32 @@ void NeuralNet::train()
 					{
 						float y = layers[l - 1]->feature_maps[f]->at(i, j);
 						layers[l - 1]->feature_maps[f]->at(i, j) = y * (1 - y) * temp[f]->at(i, j);
+						float delta_weight = -learning_rate * y;
+
+						//Update the weights
+						if (layers[l - 1]->type == CNN_FEED_FORWARD)
+						{
+							for (int j2 = 0; j2 < layers[l]->feature_maps[f]->rows(); ++j2)
+								layers[l - 1]->data[f]->at(j2, i) += delta_weight * layers[l]->feature_maps[f]->at(j2, 0);
+						}
+
+						else if (layers[l - 1]->type == CNN_CONVOLUTION)
+						{
+							int max_i = layers[l - 1]->feature_maps[f]->rows();
+							int max_j = layers[l - 1]->feature_maps[f]->cols();
+
+							for (int n = 0; n < layers[l - 1]->data[f]->rows(); ++n)
+							{
+								for (int m = 0; m < layers[l - 1]->data[f]->cols(); ++m)
+								{
+									int up_i = i + n;
+									int up_j = j + m;
+
+									if (up_i > 0 && up_i < max_i && up_j > 0 && up_j < max_j)
+										layers[l - 1]->data[f]->at(n, m) += delta_weight * layers[l]->feature_maps[f]->at(up_i, up_j);
+								}
+							}
+						}
 					}
 				}
 			}
