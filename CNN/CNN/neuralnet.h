@@ -14,7 +14,7 @@
 class NeuralNet
 {
 public:
-	NeuralNet();
+	NeuralNet() = default;
 	~NeuralNet();
 	//save learned net
 	void save_data(std::string path);
@@ -29,13 +29,13 @@ public:
 	//wake-sleep algorithm
 	void pretrain();
 	//backpropogate TODO!
-	void train();
+	void train(int epochs);
 	//add a layer to the end of the network
 	void add_layer(ILayer* layer);
 	float learning_rate;
 	bool use_dropout;
+	bool binary_net;
 private:
-	float sigmoid(float &x);
 	float global_error();
 	float output_error_signal(int &i, int &j, int &k);
 	float error_signal(int &i, int &j, int &k, float &weights_sum);

@@ -27,9 +27,9 @@ public:
 	{
 	}
 
-	virtual inline unsigned int rows() = 0;
+	virtual unsigned int rows() const = 0;
 
-	virtual inline unsigned int cols() = 0;
+	virtual unsigned int cols() const = 0;
 };
 
 template<typename T, unsigned int r, unsigned int c> class Matrix2D : public Matrix<T>
@@ -158,12 +158,12 @@ public:
 		return *this;
 	}
 
-	inline unsigned int rows() 
+	unsigned int rows() const
 	{ 
 		return r;
 	}
 
-	inline unsigned int cols() 
+	unsigned int cols() const
 	{
 		return c;
 	}

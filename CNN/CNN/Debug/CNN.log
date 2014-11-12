@@ -1,4 +1,4 @@
-﻿Build started 10/30/2014 8:03:42 PM.
+﻿Build started 11/11/2014 8:06:49 PM.
      1>Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt main.cpp
@@ -6,59 +6,90 @@
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(72): warning C4018: '<' : signed/unsigned mismatch
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(73): warning C4018: '<' : signed/unsigned mismatch
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(74): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(94): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(95): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(96): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(99): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(101): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(129): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(130): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(131): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(209): warning C4018: '<' : signed/unsigned mismatch
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(202) : while compiling class template member function 'FeedForwardLayer<1,2,5>::FeedForwardLayer(void)'
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(15) : see reference to function template instantiation 'FeedForwardLayer<1,2,5>::FeedForwardLayer(void)' being compiled
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(15) : see reference to class template instantiation 'FeedForwardLayer<1,2,5>' being compiled
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(220): warning C4018: '<' : signed/unsigned mismatch
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(219) : while compiling class template member function 'FeedForwardLayer<1,2,5>::~FeedForwardLayer(void)'
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(222): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(233): warning C4018: '<' : signed/unsigned mismatch
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(227) : while compiling class template member function 'std::vector<Matrix<float> *,std::allocator<_Ty>> FeedForwardLayer<1,2,5>::feed_forwards(void)'
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(106): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(107): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(108): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(111): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(113): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(26): warning C4244: 'argument' : conversion from 'time_t' to 'unsigned int', possible loss of data
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(362): warning C4018: '<' : signed/unsigned mismatch
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(361) : while compiling class template member function 'MaxpoolLayer<1,3,3,3,3>::~MaxpoolLayer(void)'
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(164) : see reference to class template instantiation 'MaxpoolLayer<1,3,3,3,3>' being compiled
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(364): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(402): warning C4018: '<' : signed/unsigned mismatch
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(369) : while compiling class template member function 'std::vector<Matrix<float> *,std::allocator<_Ty>> MaxpoolLayer<1,3,3,3,3>::feed_forwards(void)'
                  with
                  [
                      _Ty=Matrix<float> *
                  ]
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(245): warning C4018: '<' : signed/unsigned mismatch
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(241) : while compiling class template member function 'std::vector<Matrix<float> *,std::allocator<_Ty>> FeedForwardLayer<1,2,5>::feed_backwards(std::vector<_Ty,std::allocator<_Ty>> &)'
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(404): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(458): warning C4018: '<' : signed/unsigned mismatch
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(425) : while compiling class template member function 'std::vector<Matrix<float> *,std::allocator<_Ty>> MaxpoolLayer<1,3,3,3,3>::feed_forwards_prob(void)'
                  with
                  [
                      _Ty=Matrix<float> *
                  ]
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(261): warning C4018: '<' : signed/unsigned mismatch
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(252) : while compiling class template member function 'std::vector<Matrix<float> *,std::allocator<_Ty>> FeedForwardLayer<1,2,5>::feed_forwards_prob(void)'
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(460): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(137): warning C4018: '<' : signed/unsigned mismatch
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(130) : while compiling class template member function 'ConvolutionLayer<1,3,3,3,1>::ConvolutionLayer(void)'
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(165) : see reference to function template instantiation 'ConvolutionLayer<1,3,3,3,1>::ConvolutionLayer(void)' being compiled
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(165) : see reference to class template instantiation 'ConvolutionLayer<1,3,3,3,1>' being compiled
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(148): warning C4018: '<' : signed/unsigned mismatch
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(147) : while compiling class template member function 'ConvolutionLayer<1,3,3,3,1>::~ConvolutionLayer(void)'
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(150): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(167): warning C4018: '<' : signed/unsigned mismatch
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(163) : while compiling class template member function 'std::vector<Matrix<float> *,std::allocator<_Ty>> ConvolutionLayer<1,3,3,3,1>::feed_backwards(std::vector<_Ty,std::allocator<_Ty>> &)'
                  with
                  [
                      _Ty=Matrix<float> *
                  ]
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(264): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(278): warning C4018: '<' : signed/unsigned mismatch
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(272) : while compiling class template member function 'std::vector<Matrix<float> *,std::allocator<_Ty>> FeedForwardLayer<1,2,5>::feed_backwards_prob(std::vector<_Ty,std::allocator<_Ty>> &)'
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(169): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(179): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(214): warning C4018: '<' : signed/unsigned mismatch
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(210) : while compiling class template member function 'std::vector<Matrix<float> *,std::allocator<_Ty>> ConvolutionLayer<1,3,3,3,1>::feed_backwards_prob(std::vector<_Ty,std::allocator<_Ty>> &)'
                  with
                  [
                      _Ty=Matrix<float> *
                  ]
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(281): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(439): warning C4018: '<' : signed/unsigned mismatch
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(438) : while compiling class template member function 'OutputLayer<1,3,1>::~OutputLayer(void)'
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(18) : see reference to class template instantiation 'OutputLayer<1,3,1>' being compiled
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(216): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(226): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(242): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(497): warning C4018: '<' : signed/unsigned mismatch
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(496) : while compiling class template member function 'OutputLayer<1,1,1>::~OutputLayer(void)'
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(166) : see reference to class template instantiation 'OutputLayer<1,1,1>' being compiled
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\imatrix.h(47): warning C4018: '<' : signed/unsigned mismatch
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\imatrix.h(44) : while compiling class template member function 'Matrix2D<float,3,3>::Matrix2D(int,int)'
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(178) : see reference to function template instantiation 'Matrix2D<float,3,3>::Matrix2D(int,int)' being compiled
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(178) : see reference to class template instantiation 'Matrix2D<float,3,3>' being compiled
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\imatrix.h(48): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(18): warning C4018: '<' : signed/unsigned mismatch
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(158) : see reference to function template instantiation 'Matrix<float> *convolve<3,3,3>(Matrix<float> *&,Matrix<float> *&,int &)' being compiled
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(155) : while compiling class template member function 'std::vector<Matrix<float> *,std::allocator<_Ty>> ConvolutionLayer<1,3,3,3,1>::feed_forwards(void)'
+                 with
+                 [
+                     _Ty=Matrix<float> *
+                 ]
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(20): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(25): warning C4244: '+=' : conversion from 'float' to 'int', possible loss of data
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(26): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(39): warning C4018: '<' : signed/unsigned mismatch
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(205) : see reference to function template instantiation 'Matrix<float> *convolve_prob<3,3,3>(Matrix<float> *&,Matrix<float> *&,int &)' being compiled
+                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(202) : while compiling class template member function 'std::vector<Matrix<float> *,std::allocator<_Ty>> ConvolutionLayer<1,3,3,3,1>::feed_forwards_prob(void)'
+                 with
+                 [
+                     _Ty=Matrix<float> *
+                 ]
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(41): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(49): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\imatrix.h(95): warning C4723: potential divide by 0
        Link:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Debug\CNN.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Debug\CNN.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Debug\CNN.lib" /MACHINE:X86 Debug\imatrix.obj
          Debug\neuralnet.obj
          Debug\neuralnet.obj
          Debug\main.obj
-     1>Debug\neuralnet.obj : warning LNK4042: object specified more than once; extras ignored
          CNN.vcxproj -> C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Debug\CNN.exe
      1>Done Building Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" (Build target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:01.15
+Time Elapsed 00:00:01.48

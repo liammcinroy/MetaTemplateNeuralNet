@@ -76,25 +76,45 @@ public:
 						feature_maps[f]->at(i, j) = 0;
 	}
 
-	void wake_sleep(float &learning_rate)
+	void wake_sleep(float &learning_rate, bool &binary_net)
 	{
 		//find difference via gibbs sampling
 		std::vector<Matrix<float>*> discriminated;
-		discriminated = this->feed_forwards_prob();
+		if (binary_net)
+			discriminated = this->feed_forwards_prob();
+		else
+			discriminated = this->feed_forwards();
+
 		std::vector<Matrix<float>*> generated;
-		generated = this->feed_backwards_prob(discriminated);
+		if (binary_net)
+			generated = this->feed_backwards_prob(discriminated);
+		else
+			generated = this->feed_backwards(discriminated);
+
 		std::vector<Matrix<float>*> temp_feature;
 		temp_feature = feature_maps;
 		feature_maps = generated;
+
 		std::vector<Matrix<float>*> reconstructed;
-		reconstructed = this->feed_forwards_prob();
+		if (binary_net)
+			reconstructed = this->feed_forwards_prob();
+		else
+			reconstructed = this->feed_forwards();
 		feature_maps = temp_feature;
 
 		//adjust weights
-		for (int f = 0; f < feature_maps.size(); ++f)
-			for (int i = 0; i < data.size(); ++i)
-				for (int j = 0; j < feature_maps[f]->rows(); ++j)
-					data[f]->at(i, j) += learning_rate * (discriminated[f]->at(i, 0) - reconstructed[f]->at(i, 0));
+		if (type == CNN_FEED_FORWARD)
+			for (int f = 0; f < feature_maps.size(); ++f)
+				for (int i = 0; i < data.size(); ++i)
+					for (int j = 0; j < feature_maps[f]->rows(); ++j)
+						data[f]->at(i, j) += -learning_rate * (discriminated[f]->at(i, 0) - reconstructed[f]->at(i, 0));
+		else
+		{
+			for (int f = 0; f < feature_maps.size(); ++f)
+			{
+
+			}
+		}
 
 		for (int i = 0; i < reconstructed.size(); ++i)
 			delete reconstructed[i];
@@ -151,12 +171,37 @@ public:
 	{
 		for (int f = 0; f < features; ++f)
 		{
-			for (int d = 0; d < data.size(); ++d)
-				for (int i = 0; i < feature_maps[f]->rows(); ++i)
-					for (int j = 0; j < feature_maps[f]->cols(); ++j)
-						for (int n = 0; n < data[d]->rows(); ++n)
-							for (int m = 0; m < data[d]->cols(); ++m)
-								feature_maps[f]->at(i + n, j + m) += input[f]->at(i, j) * data[d]->at(n, m);
+			int r = (data[f]->rows() - 1) / 2;
+			for (int i = 0; i < feature_maps[f]->rows(); ++i)
+			{
+				for (int j = 0; j < feature_maps[f]->cols(); ++j)
+				{
+					float sum = 0.0f;
+					for (int i2 = r; i2 >= -r; --i2)
+					{
+						for (int j2 = r; j2 >= -r; --j2)
+						{
+							int adj_i = i - i2;
+							int adj_j = j - j2;
+
+							if (0 <= adj_i - r && 0 <= adj_j - r && adj_i + r < feature_maps[f]->rows() && adj_j + r < feature_maps[f]->cols())
+							{
+								for (int n = r; n >= -r; --n)
+								{
+									for (int m = r; m >= -r; --m)
+									{
+										if (adj_i - n == i && adj_j - m == j)
+										{
+											sum += input[f]->at(r - adj_i, r - adj_j) * data[f]->at(r - n, r - m);
+										}
+									}
+								}
+							}
+						}
+					}
+					feature_maps[f]->at(i, j) = sum;
+				}
+			}
 		}
 		return feature_maps;
 	}
@@ -173,19 +218,36 @@ public:
 	{
 		for (int f = 0; f < features; ++f)
 		{
-			for (int d = 0; d < data.size(); ++d)
-				for (int i = 0; i < feature_maps[f]->rows(); ++i)
-					for (int j = 0; j < feature_maps[f]->cols(); ++j)
-						for (int n = 0; n < data[d]->rows(); ++n)
-							for (int m = 0; m < data[d]->cols(); ++m)
-								feature_maps[f]->at(i + n, j + m) += input[f]->at(i, j) * data[d]->at(n, m);
-
+			int r = (data[f]->rows() - 1) / 2;
 			for (int i = 0; i < feature_maps[f]->rows(); ++i)
 			{
 				for (int j = 0; j < feature_maps[f]->cols(); ++j)
 				{
-					float prob = 1 / (1 + exp(-feature_maps[f]->at(i, j)));
-					feature_maps[f]->at(i, j) = ((1.0f * rand()) / RAND_MAX <= prob) ? 1 : 0;
+					float sum = 0.0f;
+					for (int i2 = r; i2 > -r; --i2)
+					{
+						for (int j2 = r; j2 > -r; --j2)
+						{
+							int adj_i = i - i2;
+							int adj_j = j - j2;
+
+							if (0 <= adj_i - r && 0 <= adj_j - r && adj_i + r < feature_maps[f]->rows() && adj_j + r < feature_maps[f]->cols())
+							{
+								for (int n = r; r > -r; --n)
+								{
+									for (int m = r; r > -r; --m)
+									{
+										if (adj_i - n == i && adj_j - m == j)
+										{
+											sum += input[f]->at(adj_i, adj_j) * data[f]->at(r - n, r - m);
+										}
+									}
+								}
+							}
+						}
+					}
+					float prob = 1 / (1 + exp(-sum));
+					feature_maps[f]->at(i, j) = (rand() / RAND_MAX >= prob) ? 1 : 0;
 				}
 			}
 		}
@@ -293,8 +355,12 @@ public:
 	{
 		type = CNN_MAXPOOL;
 		feature_maps = std::vector<Matrix<float>*>(features);
+		coords_of_max = std::vector<Matrix<std::pair<int, int>>*>(features);
 		for (int i = 0; i < features; ++i)
+		{
 			feature_maps[i] = new Matrix2D<float, rows, cols>();
+			coords_of_max[i] = new Matrix2D<std::pair<int, int>, out_rows, out_cols>();
+		}
 		data = std::vector<Matrix<float>*>(1);
 		data[0] = new Matrix2D<float, 0, 0>();
 	}
@@ -312,9 +378,10 @@ public:
 		std::vector<Matrix<float>*> output(features);
 		for (int f = 0; f < features; ++f)
 		{
+			output[f] = new Matrix2D<float, out_rows, out_cols>();
 			const int down = rows / out_rows;
 			const int across = cols / out_cols;
-			Matrix2D<Matrix2D<float, rows / out_rows, cols / out_cols>, out_rows, out_cols> samples;
+			Matrix2D<Matrix2D<float, down, across>, out_rows, out_cols> samples;
 
 
 			//get samples
@@ -329,7 +396,7 @@ public:
 					{
 						for (int j2 = j * across; j2 < maxJ; ++j2)
 						{
-							samples.at(i, j).at(maxI - i2, maxJ - j2) = feature_maps[f]->at(i2, j2);
+							samples.at(i, j).at(maxI - i2 - 1, maxJ - j2 - 1) = feature_maps[f]->at(i2, j2);
 						}
 					}
 				}
@@ -346,9 +413,8 @@ public:
 						{
 							if (samples.at(i, j).at(n, m) > output[f]->at(i, j))
 							{
-								output[f]->at(i, j) = samples.at(i, j).at(n, m); //must be 1
+								output[f]->at(i, j) = samples.at(i, j).at(n, m);
 								coords_of_max[f]->at(i, j) = std::make_pair<int, int>(samples.at(i, j).rows() * i + n, samples.at(i, j).cols() * j + m);
-								break;
 							}
 						}
 					}
