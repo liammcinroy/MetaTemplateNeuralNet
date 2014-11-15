@@ -1,4 +1,4 @@
-//#pragma once
+#pragma once
 
 #include "neuralnet.h"
 
@@ -45,12 +45,22 @@ void NeuralNet::save_data(std::string path)
 	std::ofstream file(path);
 	for (int l = 0; l < layers.size(); ++l)
 	{
-		file << '[';//begin data values
-		for (int f = 0; f < layers[l]->data.size(); ++f)
-			for (int i = 0; i < layers[l]->data[f]->rows(); ++i)
-				for (int j = 0; j < layers[l]->data[f]->cols(); ++j)
-					file << std::to_string(layers[l]->data[f]->at(i, j)) << ',';//data values
-		file << ']';//end data values
+		file << '[';//begin recognition_data values
+		for (int f = 0; f < layers[l]->recognition_data.size(); ++f)
+			for (int i = 0; i < layers[l]->recognition_data[f]->rows(); ++i)
+				for (int j = 0; j < layers[l]->recognition_data[f]->cols(); ++j)
+					file << std::to_string(layers[l]->recognition_data[f]->at(i, j)) << ',';//recognition_data values
+		file << ']';//end recognition_data values
+	}
+
+	for (int l = 0; l < layers.size(); ++l)
+	{
+		file << '[';//begin generative_data values
+		for (int f = 0; f < layers[l]->generative_data.size(); ++f)
+			for (int i = 0; i < layers[l]->generative_data[f]->rows(); ++i)
+				for (int j = 0; j < layers[l]->generative_data[f]->cols(); ++j)
+						file << std::to_string(layers[l]->generative_data[f]->at(i, j)) << ',';//recognition_data values
+		file << ']';//end generative_data values
 	}
 	file.flush();
 }
@@ -60,30 +70,64 @@ void NeuralNet::load_data(std::string path)
 	std::ifstream file(path);
 	std::string layer;
 	int l = 0;
+	bool greater = false;
 	while (std::getline(file, layer, '['))
 	{
 		if (layer == "")
 			continue;
-		std::vector<std::string> data_s = split(inbetween(layer, "[", "]"), ",");
-		int c = 0;
-		int i = 0;
-		int j = 0;
-		for (int k = 0; k < data_s.size(); ++k, ++j)
+		if (!greater)
 		{
-			if (j >= layers[l]->data[c]->cols())
+			std::vector<std::string> recognition_data_s = split(inbetween(layer, "[", "]"), ",");
+			int c = 0;
+			int i = 0;
+			int j = 0;
+			for (int k = 0; k < recognition_data_s.size(); ++k, ++j)
 			{
-				j = 0;
-				++i;
-			}
-			if (i >= layers[l]->data[c]->rows())
-			{
-				i = 0;
-				++c;
-			}
+				if (j >= layers[l]->recognition_data[c]->cols())
+				{
+					j = 0;
+					++i;
+				}
+				if (i >= layers[l]->recognition_data[c]->rows())
+				{
+					i = 0;
+					++c;
+				}
 
-			layers[l]->data[c]->at(i, j) = std::stof(data_s[k]);
+				layers[l]->recognition_data[c]->at(i, j) = std::stof(recognition_data_s[k]);
+			}
+			++l;
 		}
-		++l;
+
+		else
+		{
+			std::vector<std::string> generative_data_s = split(inbetween(layer, "[", "]"), ",");
+			int c = 0;
+			int i = 0;
+			int j = 0;
+			for (int k = 0; k < generative_data_s.size(); ++k, ++j)
+			{
+				if (j >= layers[l]->generative_data[c]->cols())
+				{
+					j = 0;
+					++i;
+				}
+				if (i >= layers[l]->generative_data[c]->rows())
+				{
+					i = 0;
+					++c;
+				}
+
+				layers[l]->generative_data[c]->at(i, j) = std::stof(generative_data_s[k]);
+			}
+			++l;
+		}
+
+		if (l > layers.size())
+		{
+			greater = true;
+			l = 0;
+		}
 	}
 }
 
@@ -139,12 +183,12 @@ void NeuralNet::train(int epochs)
 					layers[top]->feature_maps[k]->at(i, j) = output_error_signal(i, j, k);
 
 		//feeding all the layers backwards and multiplying by derivative of the sigmoid (or of y=x)
-		//after setting the output layer's data to its error signal will give all of the error signals
+		//after setting the output layer's recognition_data to its error signal will give all of the error signals
 		for (int l = top; l > 1; --l)
 		{
 			if (layers[l - 1]->type != CNN_MAXPOOL)
 			{
-				std::vector<Matrix<float>*> temp = layers[l - 1]->feed_backwards(layers[l]->feature_maps);
+				std::vector<Matrix<float>*> temp = layers[l - 1]->feed_backwards(layers[l]->feature_maps, false);
 				for (int f = 0; f < layers[l - 1]->feature_maps.size(); ++f)
 				{
 					for (int i = 0; i < layers[l - 1]->feature_maps[f]->rows(); ++i)
@@ -167,7 +211,7 @@ void NeuralNet::train(int epochs)
 							if (layers[l - 1]->type == CNN_FEED_FORWARD)
 							{
 								for (int j2 = 0; j2 < layers[l]->feature_maps[f]->rows(); ++j2)
-									layers[l - 1]->data[f]->at(j2, i) += delta_weight * layers[l]->feature_maps[f]->at(j2, 0);
+									layers[l - 1]->recognition_data[f]->at(j2, i) += delta_weight * layers[l]->feature_maps[f]->at(j2, 0);
 							}
 
 							else if (layers[l - 1]->type == CNN_CONVOLUTION)
@@ -175,7 +219,7 @@ void NeuralNet::train(int epochs)
 								int max_i = layers[l]->feature_maps[f]->rows();
 								int max_j = layers[l]->feature_maps[f]->cols();
 
-								int r = (layers[l - 1]->data[f]->rows() - 1) / 2;
+								int r = (layers[l - 1]->recognition_data[f]->rows() - 1) / 2;
 
 								for (int n = r; n >= -r; --n)
 								{
@@ -184,8 +228,8 @@ void NeuralNet::train(int epochs)
 										int up_i = i - n;
 										int up_j = j - m;
 
-										if (up_i > 0 && up_i < max_i && up_j > 0 && up_j < max_j)
-											layers[l - 1]->data[f]->at(r - n, r - m) += delta_weight * layers[l]->feature_maps[f]->at(up_i, up_j);
+										if (up_i >= 0 && up_i < max_i && up_j >= 0 && up_j < max_j)
+											layers[l - 1]->recognition_data[f]->at(r - n, r - m) += delta_weight * layers[l]->feature_maps[f]->at(up_i, up_j);
 									}
 								}
 							}

@@ -160,20 +160,22 @@ int main(int argc, char** argv)
 
 
 	//Test network for finding average value of a matrix
+	/*
 	NeuralNet net = NeuralNet();
 	net.add_layer(new MaxpoolLayer<1, 3, 3, 3, 3>());
 	net.add_layer(new ConvolutionLayer<1, 3, 3, 3, 1>());
 	net.add_layer(new OutputLayer<1, 1, 1>());
 
-	//net.load_data("C://avg_data.cnn");
+	net.load_data("C://avg_data.cnn");
 	net.binary_net = false;
 	net.learning_rate = 0.005f;
 	net.use_dropout = false;
+	*/
 
 	//pretraining
-	// /*
+	 /*
 	std::cout << "Pretraining network..." << std::endl;
-	for (int k = 0; k < 1000; ++k)
+	for (int k = 0; k < 10000; ++k)
 	{
 		std::vector<Matrix<float>*> input = { new Matrix2D<float, 3, 3>(0, 25) };
 		net.set_input(input);
@@ -190,13 +192,13 @@ int main(int argc, char** argv)
 		if (k % 50 == 0)
 			net.save_data("C://avg_data.cnn");
 	}
-	std::cout << "\n\tNetwork pretrained" << std::endl;
-	// */
+	std::cout << "\n\tNetwork pretrained\n" << std::endl;
+	 */
 
 	//backproping
-	// /*
+	 /*
 	std::cout << "Training network..." << std::endl;
-	for (int k = 0; k < 1000; ++k)
+	for (int k = 0; k < 10000; ++k)
 	{
 		std::vector<Matrix<float>*> input = { new Matrix2D<float, 3, 3>(0, 25) };
 		net.set_input(input);
@@ -213,14 +215,14 @@ int main(int argc, char** argv)
 		if (k % 50 == 0)
 			net.save_data("C://avg_data.cnn");
 	}
-	std::cout << "\n\tNetwork trained" << std::endl;
-	// */
+	std::cout << "\n\tNetwork trained\n" << std::endl;
+	 */
 
 	//testing
-	// /*
+	 /*
 	std::cout << "Testing network..." << std::endl;
 	int correct = 0;
-	for (int k = 0; k < 1000; ++k)
+	for (int k = 0; k < 10000; ++k)
 	{
 		std::vector<Matrix<float>*> input = { new Matrix2D<float, 3, 3>(0, 25) };
 		net.set_input(input);
@@ -232,11 +234,29 @@ int main(int argc, char** argv)
 		
 		float output = net.discriminate()->feature_maps[0]->at(0, 0);
 
-		if (abs(output - average) < 10.0f)
+		if (abs(output - average) < 1.0f)
 			++correct;
 	}
-	std::cout << "\n\tTesting finished. " << (100.0f * correct) / 1000 << "% were correct out of " << 1000 << " trials." << std::endl;
-	// */
+	std::cout << "\n\tTesting finished. " << (100.0f * correct) / 10000 << "% were correct out of " << 10000 << " trials." << std::endl;
+	 */
+
+	NeuralNet net = NeuralNet();
+	net.add_layer(new MaxpoolLayer<1, 1, 1, 1, 1>());
+	net.add_layer(new ConvolutionLayer<1, 1, 1, 1, 1>());
+	net.add_layer(new OutputLayer<1, 1, 1>());
+
+	net.learning_rate = 0.05f;
+	net.use_dropout = false;
+	net.binary_net = false;
+
+	std::vector<Matrix<float>*> input = { new Matrix2D<float, 1, 1>({ 1 }) };
+	std::vector<Matrix<float>*> labels = { new Matrix2D<float, 1, 1>({ 3 }) };
+
+	net.set_input(input);
+	net.set_labels(labels);
+
+	for (int i = 0; i < 100; ++i)
+		net.train(3);
 
 	std::cout << "\n\nPress enter to exit" << std::endl;
 	std::cin.get();
