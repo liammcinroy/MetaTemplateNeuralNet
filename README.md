@@ -48,7 +48,7 @@ This class is merely a contain for `Matrix2D<T, int, int>` so that matrix sizes 
 This class is a simple matrix implementation, with some extra methods that can be used in situations outside of this neural network.
 
 | Member  | Type | Details |
-|---------|----------------|
+|---------|------|---------|
 | `data` | `std::array<T, rows * cols>` | holds the matrice's data in column major format |
 | `at(int i, int j)` | `T` | returns the value of the matrix at i, j |
 | `row(int i)` | `T[]` | returns the ith row |
