@@ -19,120 +19,144 @@ In these feature maps, the output for each neuron is dependent on the neurons in
 This helps segment the data into so called feature points. Many feature maps make up a layer, which all make up networks.
 
 When the network learns, or adjusts the weights based off of labeled data, it uses a process of both discriminating and generating data.
-The input layer is set, and the network will fire all the synapses up until the final output layer. This is when the network discriminates data.
- That output will then be used to go in the reverse direction, which will generate an "input". This is called the generative process.
-The combination of these two processes help teach the network the proper weights needed to generate the same input as was initially given.
-This is done on a layer by layer scale, and compares the data, and subtracts the differences to find the amount to increment the discriminative
-weight by, while the generative weight will be decremented by the same amount. This teaches the network much faster than previous methods, such as
-back-propagation. Sometimes back-propagation will be used to fine tune the weights, but is not always needed.
+In each layer, the network first discriminates, then generates, then discriminates again, forming what is known as a Markov Chain. Then, alternating 
+Gibbs sampling is used to then find the difference between the first discriminated layer and the layer that was discriminated after "reconstruction." 
+These values are then multiplied by a small value, or the learning rate of the network. This is done for each layer going up through the network, creating
+a recursion learning based off of the adjusted weights in the previous layer. This entire process is often called "pretraining" as it is less accurate than
+traditional methods (such as backpropagation) but helps learn the correct neighborhood to then fine-tune the network in.
+
+The next process in learning, backpropagation, is found using the error of the entire network. The derivative of this function is found with respect to the 
+weights, so that each weight can find the role it had in the error of the network. These derivatives are then used to find the minimum of the error function. 
+An issue with this algorithm is that the network can become stuck in a local minimum instead of finding the global minimum of the network.
 
 ==============================
 
 ##How this API is implemented
 
 This API has a neural network premade, with code to discriminate, generate, and teach. Note that a new input must be set for each iteration of
-discriminating, generating, or teaching. There is also a custom file format created especially for CNNs, and is described in the "File Format Documentation"
-in the source code's folder. There is also a constructor that will create new networks reliably. The following covers the methods exposed in all of the classes.
+discriminating, generating, or teaching. There is also a custom file format created especially for CNNs, consisting only of the data for each layer's 
+weights.
 
 ===============================
 
-###Synapse
+###`Matrix`
 
-Synapse is a class containing two SimpleNeurons, a parent and a child. The parent is the SimpleNeuron that the Synapse originates from, and the child is 
-the destination SimpleNeuron. There are two weights, both a discriminative and a generative.
+This class is merely a contain for `Matrix2D<T, int, int>` so that matrix sizes unknown at compile time can be computed at runtime.
 
-####`Synapse`
-===========================
+###`Matrix2D<T, int, int>`
 
-| Method Name | Parameters | Function | 
-| ------------|------------|-----------| 
-| `Synapse` | `int parentLayer, int parentIndex, int startChildIndex, int endChildIndex` | Constructor for Synapse | 
-| `GetParentLayer` | _none_ | Gets the parent layer | 
-| `GetParentIndex` | _none_ | Gets the parent index | 
-| `GetStartChildIndex` | _none_ | Gets the child start index | 
-| `GetEndChildIndex` | _none_ | Gets the child end index | 
-| `GetChildrenIndexes` | _none_ | Gets all the children indexes |
-| `GetWeightDiscriminate` | _none_ | Gets the discriminative weight | 
-| `SetWeightDiscriminate` | `float newValue` | Sets the new discriminative weight | 
-| `GetWeightGenerative` | _none_ | Gets the generative weight | 
-| `SetWeightGenerative` | `float newValue` | Sets the new generative weight | 
-------------------------------------------------------------------------------------------
+This class is a simple matrix implementation, with some extra methods that can be used in situations outside of this neural network.
 
-###Neuron
+| Member  | Type | Details |
+|---------|----------------|
+| `data` | `std::array<T, rows * cols>` | holds the matrice's data in column major format |
+| `at(int i, int j)` | `T` | returns the value of the matrix at i, j |
+| `row(int i)` | `T[]` | returns the ith row |
+| `col(int j)` | `T[]` | returns the jth col |
+| `rows()` | `int` | returns the amount of rows |
+| `cols()` | `int` | returns the amount of cols |
 
-Neuron is a class that inherits from SimpleNeuron, and contains the synapse the it is the parent of. It also has the 
-code that makes the CNN work. The entire network is made of Neurons. This class also enables the network to fire synapses.
+<small>This table contains methods used only in the source code of the network</small>
 
-####`Neuron`
-===========================
+###`ILayer`
 
-| Method Name | Parameters | Function | 
-| ------------|------------|-----------| 
-| `Neuron` | `Synapse parentOf` | Constructor for Neuron | 
-| `GetValue` | _none_ | Gets the current value | 
-| `SetValue` | `float newValue` | Sets the current value | 
-| `FireSynapse` | `float sum` | Returns the value of the next neuron when discriminating | 
-| `FireInverseSynapse` | `float sum` | Returns the value of the next neuron when generating | 
--------------------------------------------------------------------------------------------------
+This is the interface for all of the various layer types used in the network.
 
-###Layer
+| Member | Type | Details |
+|--------|------|----------|
+| `feature_maps` | `std::vector<Matrix<float>*>` | Holds the data of the network |
+| `recognition_weights` | `std::vector<Matrix<float>*>` | The feed forwards weights |
+| `generation_weights` | `std::vector<Matrix<float>*>` | The feed backwards weights |
+| `feed_forwards()` | `virtual std::vector<Matrix<float>*>` | Feeds the layer forward |
+| `feed_forwards_prob()` | `virtual std::vector<Matrix<float>*>` | Feed the layer forward using logistic activation function |
+| `feed_backwards(std::vector<Matrix<float>*> input, bool use_g_weights)` | `virtual std::vector<Matrix<float>*>` | Feeds the layer backwards using generative or recognition weights |
+| `feed_backwards_prob(std::vector<Matrix<float>*> input, bool use_g_weights)` | `virtual std::vector<Matrix<float>*>` | Feeds the layer backwards using generative or recognition weights and the logistic activation function |
+| `dropout()` | `void` | Sets half of the neurons to 0 to prevent overfitting |
+| `wake_sleep(bool binary_net)` | `void` | Performs the wake-sleep algorithm with or without the logistic activation function |
 
-A layer has many neurons, and many methods to interact with those neurons
 
-####`Layer`
-===========================
+###`FeedForwardLayer<int features, int rows, int out_rows>`
 
-| Method Name | Parameters | Function | 
-| ------------|------------|-----------| 
-| `Layer` | `std::vector<Neuron> neurons` | Constructor for Layer | 
-| `GetNeurons` | _none_ | Gets the vector of Neurons | 
-| `GetNeuronAt` | `int index` | Gets the Neuron at index | 
-| `AddNeuron` | `Neuron neuron` | Adds a neuron to the end of the Layer | 
-| `FireNeuronAt` | `int index, float sum` | Fires the neuron for discriminating at index | 
-| `FireInverseNeuronAt` | `int index, float sum` | Fires the neuron for generating at index | 
-| `IncrementParentWeightAt` | `int index` | Increments the parent weight at index |
-----------------------------------------------------------------------------------------
+Basic feed forward layer.
 
-###ConvolutionalNeuralNetwork
+Overloaded functions
 
-This class is the result of the earlier hierarchy. It contains methods for teaching, discriminating, generating, saving, loading, and creating a network.
+| Function | Difference |
+|----------|-------------|
+| `feed_forwards` | Uses standard sums for feeding forwards |
+| `feed_backwards` | Uses standard sums for feeding backwards |
 
-####`ConvolutionalNeuralNetwork`
-===========================
+###`ConvolutionLayer<int features, int rows, int cols, int recognition_data_size, int out_features>`
 
-| Method Name | Parameters | Function | 
-| ------------|------------|----------- | 
-| `ConvolutionalNeuralNetwork` | `std::string path` | Constructor for network, reads data from path | 
-| `ConvolutionalNeuralNetwork` | `std::vector<int> neuronCountPerLayer, std::vector<int> featureMapsPerLayer, std::vector<int> featureMapDimensions,
-		std::vector<std::vector<int>> featureMapConnections, std::vector<std::vector<int>> featureMapStartIndex` | Constructor for network, creates new network with specified attributes | 
-| `GetLayers` | _none_ | Gets the vector of Layers | 
-| `GetLayerAt` | `int index` | Gets the Layer at index | 
-| `AddLayer` | `Layer newLayer` | Adds a new Layer at the end of the network | 
-| `GetInput` | _none_ | Gets the current input | 
-| `SetInput` | `std::vector<std::vector<float>> input` | Sets the current input | 
-| `GetOutput` | _none_ | Gets the current output | 
-| `GetLearningRate` | _none_ | Gets the learning rate | 
-| `SetLearningRate` | `float newRate` | Sets the learning rate | 
-| `DiscriminateUntil` | `int index` | Discriminates until layer at index |
-| `GenerateUntil` | `int index` | Generates until layer at index |
-| `Discriminate` | _none_ | Discriminates using current input | 
-| `Generate` | `Layer input` | Generates using the given input from a resulting output | 
-| `LearnCurrentUnlabeledInput` | _none_ | Learns the current unlabeled input | 
-| `LearnCurrentLabeledInput` | `Layer labels` | Learns the current labeled input |
-| `ReadFromFile` | `std::string path` | Clears network and sets to data from path | 
-| `SaveToFile` | `std::string path` | Saves the network to the path | 
- ------------------------------------------------------------------------------------------------------------------------
+Basic convolutional layer.
 
- 
- ##Performance
- =================================
- 
- This was code is unoptimized and _very_ slow. To create a new network takes 30 seconds. 
- To read a network with 3000 neurons from a file took 1530 seconds (~25 minutes).
- To discriminate took over 2 days, and I didn't have the patience for the generation
- This code will be optimized once it is know to be working.
- 
- #####Update
- 
- The code created a network in 18 milliseconds, saved in about 3 seconds, Discriminated in about 5 minutes,
- and generated in only 2 seconds. This is about 2000+x faster.
+Overloaded functions
+
+| Function | Difference |
+|----------|-------------|
+| `feed_forwards` | Uses convolution for feeding forwards |
+| `feed_backwards` | Uses convolution for feeding backwards |
+
+###`MaxpoolLayer<int features, int rows, int cols, int out_rows, int out_cols>`
+Basic maxpooling layer.
+
+Overloaded functions
+
+| Function | Difference |
+|----------|-------------|
+| `feed_forwards` | Uses maxpooling for feeding forwards |
+| `feed_backwards` | N/A |
+
+###`OutputLayer<int features, int rows, int cols>`
+Basic output layer.
+
+Overloaded functions
+
+| Function | Difference |
+|----------|-------------|
+| `feed_forwards` | N/A |
+| `feed_backwards` | N/A |
+
+###NeuralNetwork
+
+This is the class that encapsulates all of the rest. Has all required methods.
+
+| Member | Type | Details |
+|--------|------|----------|
+| `layers` | `std::vector<ILayer*>` | All of the network's layers |
+| `use_dropout` | `bool` | Whether to train the network with dropout |
+| `binary_net` | `bool` | Whether to use the logistic activation function |
+| `add_layer(ILayer* layer)` | `void` | Adds another layer to the network |
+| `save_data(std::string path)` | `void` | Saves the data |
+| `load_data(std::string path)` | `void` | Loads the data (<b>Must have initialized network and filled layers first!!!</b>) |
+| `set_input(std::vector<Matrix<float>*> input)` | `void` | Sets the current input |
+| `set_labels(std::vector<Matrix<float>*> labels)` | `void` | Sets the current labels |
+| `discriminate()` | `ILayer*` | Feeds the network forward |
+| `pretrain()` | `void` | Pretrains the network using the wake-sleep algorithm |
+| `train(int epochs)` | `void` | Trains the network using backpropogation |
+
+#Usage
+Below is an example of a basic network that would learn the relationship `y=3x`
+```c++
+NeuralNet net = NeuralNet();
+net.add_layer(new MaxpoolLayer<1, 1, 1, 1, 1>());
+net.add_layer(new FeedForwardLayer<1, 1, 1>())
+net.add_layer(new OutputLayer<1, 1, 1>());
+
+net.learning_rate = 0.05f;
+net.use_dropout = false;
+net.binary_net = false;
+
+net.load_data("C://example.cnn");
+
+std::vector<Matrix<float>*> input = { new Matrix2D<float, 1, 1>({ 1 }) };
+std::vector<Matrix<float>*> labels = { new Matrix2D<float, 1, 1>({ 3 }) };
+
+net.set_input(input);
+net.set_labels(labels);
+
+for (int i = 0; i < 100; ++i)
+	net.train(3);
+	
+net.save_data("C://example.cnn");
+```
