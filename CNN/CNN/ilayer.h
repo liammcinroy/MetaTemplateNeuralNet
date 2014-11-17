@@ -9,7 +9,7 @@
 #define CNN_MAXPOOL 3
 
 template<unsigned int rows, unsigned int cols, unsigned int kernel_size> Matrix<float>*
-convolve(Matrix<float>* &input, Matrix<float>* &kernel, int &stride)
+convolve(Matrix<float>* &input, Matrix<float>* &biases, Matrix<float>* &kernel, int &stride)
 {
 	int N = (kernel_size - 1) / 2;
 	Matrix2D<float, rows - (kernel_size - 1), cols - (kernel_size - 1)>* output =
@@ -23,14 +23,14 @@ convolve(Matrix<float>* &input, Matrix<float>* &kernel, int &stride)
 			for (int n = N; n >= -N; --n)
 				for (int m = N; m >= -N; --m)
 					sum += input->at(i - n, j - m) * kernel->at(N - n, N - m);
-			output->at(i - N, j - N) = sum;
+			output->at(i - N, j - N) = sum + biases->at(i - N, j - N);
 		}
 	}
 	return output;
 }
 
 template<unsigned int rows, unsigned int cols, unsigned int kernel_size> Matrix<float>*
-convolve_prob(Matrix<float>* &input, Matrix<float>* &kernel, int &stride)
+convolve_prob(Matrix<float>* &input, Matrix<float>* &biases, Matrix<float>* &kernel, int &stride)
 {
 	int N = (kernel_size - 1) / 2;
 	Matrix2D<float, rows - (kernel_size - 1), cols - (kernel_size - 1)>* output =
@@ -45,7 +45,7 @@ convolve_prob(Matrix<float>* &input, Matrix<float>* &kernel, int &stride)
 				for (int m = N; m >= -N; --m)
 					sum += input->at(i - n, j - m) * kernel->at(N - n, N - m);
 
-			float prob = 1 / (1 + exp((float)-sum));
+			float prob = 1 / (1 + exp((float)-sum + biases->at(i - N, j - N)));
 			output->at(i - N, j - N) = ((1.0f * rand()) / RAND_MAX <= prob) ? 1 : 0;
 		}
 	}
@@ -165,6 +165,8 @@ public:
 	}
 
 	std::vector<Matrix<float>*> feature_maps;
+	
+	std::vector<Matrix<float>*> biases;
 
 	std::vector<Matrix<float>*> recognition_data;
 
@@ -183,13 +185,18 @@ public:
 	{
 		type = CNN_CONVOLUTION;
 		feature_maps = std::vector<Matrix<float>*>(features);
-		for (int i = 0; i < features; ++i)
-			feature_maps[i] = new Matrix2D<float, rows, cols>();
+		for (int k = 0; k < features; ++k)
+		{
+			feature_maps[k] = new Matrix2D<float, rows, cols>();
+		}
 
+		biases = std::vector<Matrix<float>*>(out_features);
 		recognition_data = std::vector<Matrix<float>*>(out_features);
 		generative_data = std::vector<Matrix<float>*>(out_features);
 		for (int k = 0; k < recognition_data.size(); ++k)
 		{
+			biases[k] = new Matrix2D<float, rows - (recognition_data_size - 1), cols - (recognition_data_size - 1)>();
+
 			recognition_data[k] = new Matrix2D<float, recognition_data_size, recognition_data_size>();
 			generative_data[k] = new Matrix2D<float, recognition_data_size, recognition_data_size>();
 			for (int i = 0; i < recognition_data_size; ++i)
@@ -206,7 +213,10 @@ public:
 	~ConvolutionLayer<features, rows, cols, recognition_data_size, out_features>()
 	{
 		for (int i = 0; i < feature_maps.size(); ++i)
+		{
 			delete feature_maps[i];
+			delete biases[i];
+		}
 		for (int i = 0; i < recognition_data.size(); ++i)
 		{
 			delete recognition_data[i];
@@ -218,7 +228,7 @@ public:
 	{
 		std::vector<Matrix<float>*> output(out_features);
 		for (int i = 0; i < out_features; ++i)
-			output[i] = convolve<rows, cols, recognition_data_size>(feature_maps[0], recognition_data[i], stride);
+			output[i] = convolve<rows, cols, recognition_data_size>(feature_maps[i], biases[i], recognition_data[i], stride);
 		return output;
 	}
 
@@ -268,7 +278,7 @@ public:
 	{
 		std::vector<Matrix<float>*> output(out_features);
 		for (int i = 0; i < out_features; ++i)
-			output[i] = convolve_prob<rows, cols, recognition_data_size>(feature_maps[0], recognition_data[i], stride);
+			output[i] = convolve_prob<rows, cols, recognition_data_size>(feature_maps[i], biases[i], recognition_data[i], stride);
 		return output;
 	}
 
@@ -326,12 +336,15 @@ public:
 	{
 		type = CNN_FEED_FORWARD;
 		feature_maps = std::vector<Matrix<float>*>(features);
-		for (int i = 0; i < features; ++i)
-			feature_maps[i] = new Matrix2D<float, rows, 1>();
+		biases = std::vector<Matrix<float>*>(features);
 		recognition_data = std::vector<Matrix<float>*>(features);
 		generative_data = std::vector<Matrix<float>*>(features);
-		for (int k = 0; k < recognition_data.size(); ++k)
+
+		for (int k = 0; k < features; ++k)
 		{
+			feature_maps[k] = new Matrix2D<float, rows, 1>();
+			biases[k] = new Matrix2D<float, out_rows, 1>();
+
 			recognition_data[k] = new Matrix2D<float, out_rows, rows>();
 			generative_data[k] = new Matrix2D<float, out_rows, rows>();
 			for (int i = 0; i < out_rows; ++i)
@@ -348,9 +361,9 @@ public:
 	~FeedForwardLayer<features, rows, out_rows>()
 	{
 		for (int i = 0; i < feature_maps.size(); ++i)
-			delete feature_maps[i];
-		for (int i = 0; i < recognition_data.size(); ++i)
 		{
+			delete feature_maps[i];
+			delete biases[i];
 			delete recognition_data[i];
 			delete generative_data[i];
 		}
@@ -368,7 +381,7 @@ public:
 				float sum = 0.0f;
 				for (int j = 0; j < feature_maps[f]->rows(); ++j)
 					sum += (feature_maps[f]->at(j, 0) * recognition_data[f]->at(i, j));
-				current->at(i, 0) = sum;
+				current->at(i, 0) = sum += biases[f]->at(i, 0);
 			}
 			output[f] = current;
 		}
@@ -407,7 +420,7 @@ public:
 				float sum = 0.0f;
 				for (int j = 0; j < feature_maps[f]->rows(); ++j)
 					sum += (feature_maps[f]->at(j, 0) * recognition_data[f]->at(i, j));
-				float prob = 1 / (1 + exp((float)-sum));
+				float prob = 1 / (1 + exp((float)-sum + biases[f]->at(i, 0)));
 				current->at(i, 0) = ((1.0f * rand()) / RAND_MAX <= prob) ? 1 : 0;
 			}
 			output[f] = current;

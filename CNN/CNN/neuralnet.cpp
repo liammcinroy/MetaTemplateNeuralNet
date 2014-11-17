@@ -184,7 +184,7 @@ void NeuralNet::train(int epochs)
 
 		//feeding all the layers backwards and multiplying by derivative of the sigmoid (or of y=x)
 		//after setting the output layer's recognition_data to its error signal will give all of the error signals
-		for (int l = top; l > 1; --l)
+		for (int l = top; l > 0; --l)
 		{
 			if (layers[l - 1]->type != CNN_MAXPOOL)
 			{
@@ -196,22 +196,26 @@ void NeuralNet::train(int epochs)
 						for (int j = 0; j < layers[l - 1]->feature_maps[f]->cols(); ++j)
 						{
 							float y = layers[l - 1]->feature_maps[f]->at(i, j);
-							float delta_k = y;
+							float delta_k = 0.0f;
 
 							if (binary_net)
-								delta_k *= y * (1 - y) * temp[f]->at(i, j);
+								delta_k = y * (1 - y) * temp[f]->at(i, j);
 							else
-								delta_k *= temp[f]->at(i, j);
+								delta_k = temp[f]->at(i, j);
 
-							layers[l - 1]->feature_maps[f]->at(i, j) = y * (1 - y) * temp[f]->at(i, j);
+							layers[l - 1]->feature_maps[f]->at(i, j) = delta_k;
 
-							float delta_weight = -learning_rate * delta_k;
+							float delta_weight = -learning_rate * delta_k * y;
+							float delta_bias = -learning_rate * delta_k;
 
 							//Update the weights
 							if (layers[l - 1]->type == CNN_FEED_FORWARD)
 							{
 								for (int j2 = 0; j2 < layers[l]->feature_maps[f]->rows(); ++j2)
+								{
 									layers[l - 1]->recognition_data[f]->at(j2, i) += delta_weight * layers[l]->feature_maps[f]->at(j2, 0);
+									layers[l - 1]->biases[f]->at(j2, 0) += delta_bias;
+								}
 							}
 
 							else if (layers[l - 1]->type == CNN_CONVOLUTION)
@@ -229,7 +233,10 @@ void NeuralNet::train(int epochs)
 										int up_j = j - m;
 
 										if (up_i >= 0 && up_i < max_i && up_j >= 0 && up_j < max_j)
+										{
 											layers[l - 1]->recognition_data[f]->at(r - n, r - m) += delta_weight * layers[l]->feature_maps[f]->at(up_i, up_j);
+											layers[l - 1]->biases[f]->at(up_i, up_j) += delta_bias;
+										}
 									}
 								}
 							}
@@ -245,8 +252,8 @@ void NeuralNet::train(int epochs)
 					int currentSampleI = 0;
 					int currentSampleJ = 0;
 
-					int down = layers[l - 1]->feature_maps[f]->rows() / layers[l + 1]->feature_maps[f]->rows();
-					int across = layers[l - 1]->feature_maps[f]->cols() / layers[l + 1]->feature_maps[f]->cols();
+					int down = layers[l - 1]->feature_maps[f]->rows() / layers[l]->feature_maps[f]->rows();
+					int across = layers[l - 1]->feature_maps[f]->cols() / layers[l]->feature_maps[f]->cols();
 
 					for (int i = 0; i < layers[l - 1]->feature_maps[f]->rows(); ++i)
 					{
@@ -258,9 +265,9 @@ void NeuralNet::train(int epochs)
 								float y = layers[l - 1]->feature_maps[f]->at(i, j);
 
 								if (binary_net)
-									layers[l - 1]->feature_maps[f]->at(i, j) = y * (1 - y) * layers[l]->feature_maps[f]->at(currentSampleI, currentSampleJ);
+									layers[l - 1]->feature_maps[f]->at(i, j) = y * (1 - y) * layers[l]->feature_maps[f]->at(i, j);
 								else
-									layers[l - 1]->feature_maps[f]->at(i, j) = layers[l]->feature_maps[f]->at(currentSampleI, currentSampleJ);
+									layers[l - 1]->feature_maps[f]->at(i, j) = layers[l]->feature_maps[f]->at(i, j);
 							}
 
 							else
