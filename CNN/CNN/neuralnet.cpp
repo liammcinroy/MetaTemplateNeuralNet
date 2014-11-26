@@ -203,9 +203,6 @@ void NeuralNet::train(int epochs)
 							else
 								delta_k = temp[f]->at(i, j);
 
-							if (l > 1)
-								layers[l - 1]->feature_maps[f]->at(i, j) = delta_k;
-
 							float delta_weight = -learning_rate * delta_k * y;
 							float delta_bias = -learning_rate * delta_k;
 
@@ -241,6 +238,9 @@ void NeuralNet::train(int epochs)
 									}
 								}
 							}
+
+							if (l > 1)
+								layers[l - 1]->feature_maps[f]->at(i, j) = delta_k;
 						}
 					}
 				}
