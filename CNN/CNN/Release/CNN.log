@@ -1,0 +1,13 @@
+﻿Build started 11/30/2014 4:12:46 PM.
+     1>Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" on node 2 (Build target(s)).
+     1>Lib:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\Lib.exe /OUT:"C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Release\CNN.lib" /NOLOGO /LTCG Release\imatrix.obj
+         Release\neuralnet.obj
+         Release\neuralnet.obj
+     1>Release\neuralnet.obj : warning LNK4042: object specified more than once; extras ignored
+         CNN.vcxproj -> C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Release\CNN.lib
+     1>Done Building Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:00.20
