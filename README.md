@@ -5,6 +5,13 @@ An API for a convolutional neural network implemented in C++
 
 ==========================
 
+##Static Library
+
+The build and .h files for referencing as an external static library can be found in the Release folder.
+
+==========================
+
+
 ##What a Convolutional Neural Network is
 
 A convolutional neural network is made up of many layers of neurons, or nodes, that hold a value. 
