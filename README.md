@@ -3,16 +3,14 @@
 
 An API for a convolutional neural network implemented in C++
 
-==========================
-
 ##Static Library
+==========================
 
 The build and .h files for referencing as an external static library can be found in the Release folder.
 
-==========================
-
 
 ##What a Convolutional Neural Network is
+==========================
 
 A convolutional neural network is made up of many layers of neurons, or nodes, that hold a value. 
 There are also many synapses connecting each neuron, like a link between the nodes. This model is based
@@ -36,17 +34,15 @@ The next process in learning, backpropagation, is found using the error of the e
 weights, so that each weight can find the role it had in the error of the network. These derivatives are then used to find the minimum of the error function. 
 An issue with this algorithm is that the network can become stuck in a local minimum instead of finding the global minimum of the network.
 
-==============================
-
 ##How this API is implemented
+=================================
 
 This API has a neural network premade, with code to discriminate, generate, and teach. Note that a new input must be set for each iteration of
 discriminating, generating, or teaching. There is also a custom file format created especially for CNNs, consisting only of the data for each layer's 
 weights.
 
-===============================
-
 ###`Matrix`
+===============================
 
 This class is merely a contain for `Matrix2D<T, int, int>` so that matrix sizes unknown at compile time can be computed at runtime.
 
@@ -66,6 +62,7 @@ This class is a simple matrix implementation, with some extra methods that can b
 <small>This table contains methods used only in the source code of the network</small>
 
 ###`ILayer`
+===============================
 
 This is the interface for all of the various layer types used in the network.
 
@@ -83,6 +80,7 @@ This is the interface for all of the various layer types used in the network.
 
 
 ###`FeedForwardLayer<int features, int rows, int out_rows>`
+===============================
 
 Basic feed forward layer.
 
@@ -94,6 +92,7 @@ Overloaded functions
 | `feed_backwards` | Uses standard sums for feeding backwards |
 
 ###`ConvolutionLayer<int features, int rows, int cols, int recognition_data_size, int out_features>`
+===============================
 
 Basic convolutional layer.
 
@@ -106,6 +105,7 @@ Overloaded functions
 
 ###`MaxpoolLayer<int features, int rows, int cols, int out_rows, int out_cols>`
 Basic maxpooling layer.
+===============================
 
 Overloaded functions
 
@@ -124,7 +124,8 @@ Overloaded functions
 | `feed_forwards` | N/A |
 | `feed_backwards` | N/A |
 
-###NeuralNetwork
+###`NeuralNetwork`
+===============================
 
 This is the class that encapsulates all of the rest. Has all required methods.
 
@@ -143,6 +144,8 @@ This is the class that encapsulates all of the rest. Has all required methods.
 | `train(int epochs)` | `void` | Trains the network using backpropogation |
 
 #Usage
+===============================
+
 Below is an example of a basic network that would learn the relationship `y=3x`
 ```c++
 NeuralNet net = NeuralNet();
