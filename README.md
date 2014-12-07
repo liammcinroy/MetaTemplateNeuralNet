@@ -1,7 +1,7 @@
 #ConvolutionalNeuralNetwork
 ==========================
 
-An API for a convolutional neural network implemented in C++
+An API for a convolutional neural network implemented in C++ with the intent to increase and assist research on architectures of neural nets through
 
 ##Static Library
 ==========================
