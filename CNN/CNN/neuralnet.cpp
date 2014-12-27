@@ -1,5 +1,3 @@
-#pragma once
-
 #include "neuralnet.h"
 
 std::string inbetween(std::string &input, const std::string &start, const std::string &end)
@@ -62,6 +60,16 @@ void NeuralNet::save_data(std::string path)
 						file << std::to_string(layers[l]->generative_data[f]->at(i, j)) << ',';//recognition_data values
 		file << ']';//end generative_data values
 	}
+
+	for (int l = 0; l < layers.size(); ++l)
+	{
+		file << '[';//begin generative_data values
+		for (int f = 0; f < layers[l]->biases.size(); ++f)
+			for (int i = 0; i < layers[l]->biases[f]->rows(); ++i)
+				for (int j = 0; j < layers[l]->biases[f]->cols(); ++j)
+					file << std::to_string(layers[l]->biases[f]->at(i, j)) << ',';//recognition_data values
+		file << ']';//end generative_data values
+	}
 	file.flush();
 }
 
@@ -71,10 +79,14 @@ void NeuralNet::load_data(std::string path)
 	std::string layer;
 	int l = 0;
 	bool greater = false;
+	bool biases = false;
 	while (std::getline(file, layer, '['))
 	{
 		if (layer == "")
+		{
+			++l;
 			continue;
+		}
 		if (!greater)
 		{
 			std::vector<std::string> recognition_data_s = split(inbetween(layer, "[", "]"), ",");
@@ -99,7 +111,7 @@ void NeuralNet::load_data(std::string path)
 			++l;
 		}
 
-		else
+		else if (!biases)
 		{
 			std::vector<std::string> generative_data_s = split(inbetween(layer, "[", "]"), ",");
 			int c = 0;
@@ -123,9 +135,36 @@ void NeuralNet::load_data(std::string path)
 			++l;
 		}
 
+		else
+		{
+			std::vector<std::string> biases_s = split(inbetween(layer, "[", "]"), ",");
+			int c = 0;
+			int i = 0;
+			int j = 0;
+			for (int k = 0; k < biases_s.size(); ++k, ++j)
+			{
+				if (j >= layers[l]->biases[c]->cols())
+				{
+					j = 0;
+					++i;
+				}
+				if (i >= layers[l]->biases[c]->rows())
+				{
+					i = 0;
+					++c;
+				}
+
+				layers[l]->generative_data[c]->at(i, j) = std::stof(biases_s[k]);
+			}
+			++l;
+		}
+
 		if (l > layers.size())
 		{
-			greater = true;
+			if (!greater)
+				greater = true;
+			else
+				biases = true;
 			l = 0;
 		}
 	}
@@ -153,18 +192,21 @@ void NeuralNet::set_labels(std::vector<Matrix<float>*> batch_labels)
 	labels = batch_labels;
 }
 
-void NeuralNet::pretrain()
+void NeuralNet::pretrain(int epochs)
 {
-	for (int i = 0; i < layers.size() - 1; ++i)
+	for (int e = 0; e < epochs; ++e)
 	{
-		if (layers[i]->type != CNN_MAXPOOL)
-			layers[i]->wake_sleep(learning_rate, binary_net);
-		else
+		for (int i = 0; i < layers.size() - 1; ++i)
 		{
-			if (binary_net)
-				layers[i + 1]->feature_maps = layers[i]->feed_forwards_prob();
+			if (layers[i]->type != CNN_MAXPOOL)
+				layers[i]->wake_sleep(learning_rate, binary_net);
 			else
-				layers[i + 1]->feature_maps = layers[i]->feed_forwards();
+			{
+				if (binary_net)
+					layers[i + 1]->feature_maps = layers[i]->feed_forwards_prob();
+				else
+					layers[i + 1]->feature_maps = layers[i]->feed_forwards();
+			}
 		}
 	}
 }
@@ -209,38 +251,47 @@ void NeuralNet::train(int epochs)
 							//Update the weights
 							if (layers[l - 1]->type == CNN_FEED_FORWARD)
 							{
-								for (int j2 = 0; j2 < layers[l]->feature_maps[f]->rows(); ++j2)
+								for (int f_o = 0; f_o < layers[l]->feature_maps.size(); ++f_o)
 								{
-									layers[l - 1]->recognition_data[f]->at(j2, i) += delta_weight * layers[l]->feature_maps[f]->at(j2, 0);
-									layers[l - 1]->biases[f]->at(j2, 0) += delta_bias;
+									for (int j2 = 0; j2 < layers[l]->feature_maps[f]->rows(); ++j2)
+									{
+										layers[l - 1]->recognition_data[0]->at(j2 + f_o * layers[l]->feature_maps[f_o]->rows(),
+											i + f * layers[l - 1]->feature_maps[f]->rows()) +=
+											delta_weight * layers[l]->feature_maps[f]->at(j2, 0);
+										layers[l - 1]->biases[f_o]->at(j2, 0) += delta_bias;
+									}
 								}
 							}
 
 							else if (layers[l - 1]->type == CNN_CONVOLUTION)
 							{
-								int max_i = layers[l]->feature_maps[f]->rows();
-								int max_j = layers[l]->feature_maps[f]->cols();
-
-								int r = (layers[l - 1]->recognition_data[f]->rows() - 1) / 2;
-
-								for (int n = r; n >= -r; --n)
+								for (int f_o = 0; f_o < layers[l]->feature_maps.size(); ++f_o)
 								{
-									for (int m = r; m >= -r; --m)
-									{
-										int up_i = i - n;
-										int up_j = j - m;
+									int max_i = layers[l]->feature_maps[f_o]->rows();
+									int max_j = layers[l]->feature_maps[f_o]->cols();
 
-										if (up_i >= 0 && up_i < max_i && up_j >= 0 && up_j < max_j)
+									int r = (layers[l - 1]->recognition_data[f_o]->rows() - 1) / 2;
+
+									for (int n = r; n >= -r; --n)
+									{
+										for (int m = r; m >= -r; --m)
 										{
-											layers[l - 1]->recognition_data[f]->at(r - n, r - m) += delta_weight * layers[l]->feature_maps[f]->at(up_i, up_j);
-											layers[l - 1]->biases[f]->at(up_i, up_j) += delta_bias;
+											int up_i = i - n;
+											int up_j = j - m;
+
+											if (up_i >= 0 && up_i < max_i && up_j >= 0 && up_j < max_j)
+											{
+												layers[l - 1]->recognition_data[f_o]->at(r - n, r - m) += 
+													delta_weight * layers[l]->feature_maps[f_o]->at(up_i, up_j);
+												layers[l - 1]->biases[f_o]->at(up_i, up_j) += delta_bias;
+											}
 										}
 									}
 								}
-							}
 
-							if (l > 1)
-								layers[l - 1]->feature_maps[f]->at(i, j) = delta_k;
+								if (l > 1)
+									layers[l - 1]->feature_maps[f]->at(i, j) = delta_k;
+							}
 						}
 					}
 				}

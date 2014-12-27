@@ -15,10 +15,6 @@ public:
 
 	virtual inline T& at(unsigned int i, unsigned int j) = 0;
 
-	virtual inline T* row(unsigned int i) = 0;
-
-	virtual inline T* col(unsigned int j) = 0;
-
 	virtual void elem_multiply(Matrix<T>* &other)
 	{
 	}
@@ -78,22 +74,6 @@ public:
 	inline T& at(unsigned int i, unsigned int j) 
 	{
 		return data[(c * i) + j];
-	}
-
-	inline T* row(unsigned int i) 
-	{
-		T* output = new T[c];
-		for (unsigned int j = c * i; j < c * i + c; ++j)
-			output[j - c * i] = data[j];
-		return output;
-	}
-
-	inline T* col(unsigned int j) 
-	{
-		T* output = new T[r];
-		for (unsigned int i = j; i < r * c; i += c)
-			output[(i - j) / c] = data[i];
-		return output;
 	}
 
 	void elem_multiply(Matrix2D<T, r, c>* &other)
@@ -185,5 +165,14 @@ template<typename T, int rows1, int cols1, int rows2, int cols2> Matrix2D<T, row
 			result.at(i, j) = sum;
 		}
 	}
+	return result;
+}
+
+template<typename T, int rows, int cols> Matrix<T>* add(Matrix<T>* first, Matrix<T>* second)
+{
+	Matrix<T>* result = new Matrix2D<T, rows, cols>();
+	for (int i = 0; i < rows; ++i)
+		for (int j = 0; j < cols; ++j)
+			result->at(i, j) = first->at(i, j) + second->at(i, j);
 	return result;
 }

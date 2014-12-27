@@ -9,8 +9,6 @@
 #include "imatrix.h"
 #include "ilayer.h"
 
-#include <map>
-
 class NeuralNet
 {
 public:
@@ -27,8 +25,8 @@ public:
 	//set labels for batch
 	void set_labels(std::vector<Matrix<float>*> batch_labels);
 	//wake-sleep algorithm
-	void pretrain();
-	//backpropogate TODO!
+	void pretrain(int epochs);
+	//backpropogate
 	void train(int epochs);
 	//add a layer to the end of the network
 	void add_layer(ILayer* layer);

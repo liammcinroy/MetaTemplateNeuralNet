@@ -21,32 +21,9 @@ convolve(Matrix<float>* &input, Matrix<float>* &biases, Matrix<float>* &kernel, 
 		{
 			float sum = 0;
 			for (int n = N; n >= -N; --n)
-				for (int m = N; m >= -N; --m)
-					sum += input->at(i - n, j - m) * kernel->at(N - n, N - m);
+			for (int m = N; m >= -N; --m)
+				sum += input->at(i - n, j - m) * kernel->at(N - n, N - m);
 			output->at(i - N, j - N) = sum + biases->at(i - N, j - N);
-		}
-	}
-	return output;
-}
-
-template<unsigned int rows, unsigned int cols, unsigned int kernel_size> Matrix<float>*
-convolve_prob(Matrix<float>* &input, Matrix<float>* &biases, Matrix<float>* &kernel, int &stride)
-{
-	int N = (kernel_size - 1) / 2;
-	Matrix2D<float, rows - (kernel_size - 1), cols - (kernel_size - 1)>* output =
-		new Matrix2D<float, rows - (kernel_size - 1), cols - (kernel_size - 1)>();
-
-	for (int i = N; i < rows - N; i += stride)
-	{
-		for (int j = N; j < cols - N; j += stride)
-		{
-			float sum = 0;
-			for (int n = N; n >= -N; --n)
-				for (int m = N; m >= -N; --m)
-					sum += input->at(i - n, j - m) * kernel->at(N - n, N - m);
-
-			float prob = 1 / (1 + exp((float)-sum + biases->at(i - N, j - N)));
-			output->at(i - N, j - N) = ((1.0f * rand()) / RAND_MAX <= prob) ? 1 : 0;
 		}
 	}
 	return output;
@@ -70,10 +47,10 @@ public:
 	void dropout()
 	{
 		for (int f = 0; f < feature_maps.size(); ++f)
-			for (int i = 0; i < feature_maps[f]->rows(); ++i)
-				for (int j = 0; j < feature_maps[f]->cols(); ++j)
-					if ((1.0f * rand()) / RAND_MAX >= .5f)
-						feature_maps[f]->at(i, j) = 0;
+		for (int i = 0; i < feature_maps[f]->rows(); ++i)
+		for (int j = 0; j < feature_maps[f]->cols(); ++j)
+		if ((1.0f * rand()) / RAND_MAX >= .5f)
+			feature_maps[f]->at(i, j) = 0;
 	}
 
 	void wake_sleep(float &learning_rate, bool &binary_net)
@@ -105,15 +82,18 @@ public:
 		//adjust weights
 		if (type == CNN_FEED_FORWARD)
 		{
-			for (int f = 0; f < feature_maps.size(); ++f)
+			for (int f_o = 0; f_o < reconstructed.size(); ++f_o)
 			{
-				for (int i = 0; i < recognition_data[f]->rows(); ++i)
+				for (int i = 0; i < reconstructed[f_o]->rows(); ++i)
 				{
-					for (int j = 0; j < feature_maps[f]->rows(); ++j)
+					float delta_weight = learning_rate * (discriminated[f_o]->at(i, 0) - reconstructed[f_o]->at(i, 0));
+					for (int f = 0; f < generated.size(); ++f)
 					{
-						float delta_w = learning_rate * (discriminated[f]->at(i, 0) - reconstructed[f]->at(i, 0));
-						recognition_data[f]->at(i, j) -= delta_w;
-						generative_data[f]->at(i, j) += delta_w;
+						for (int j = 0; j < generated[f]->rows(); ++j)
+						{
+							recognition_data[0]->at(i + f_o * reconstructed[f_o]->rows(), j + f * generated[f]->rows()) -= delta_weight;
+							generative_data[0]->at(i + f_o * reconstructed[f_o]->rows(), j + f * generated[f]->rows()) += delta_weight;
+						}
 					}
 				}
 			}
@@ -121,32 +101,36 @@ public:
 
 		else
 		{
-			for (int f = 0; f < feature_maps.size(); ++f)
+			for (int f_o = 0; f_o < reconstructed.size(); ++f_o)
 			{
-				int r = (generative_data[f]->rows() - 1) / 2;
-				for (int i = 0; i < reconstructed[f]->rows(); ++i)
+				for (int f = 0; f < feature_maps.size(); ++f)
 				{
-					for (int j = 0; j < reconstructed[f]->cols(); ++j)
+					int r = (generative_data[f_o]->rows() - 1) / 2;
+					for (int i = 0; i < reconstructed[f_o]->rows(); ++i)
 					{
-						for (int i2 = r; i2 >= -r; --i2)
+						for (int j = 0; j < reconstructed[f_o]->cols(); ++j)
 						{
-							for (int j2 = r; j2 >= -r; --j2)
+							for (int i2 = r; i2 >= -r; --i2)
 							{
-								int adj_i = i - i2;
-								int adj_j = j - j2;
-
-								if (0 <= adj_i - r && 0 <= adj_j - r && adj_i + r < reconstructed[f]->rows() && adj_j + r < reconstructed[f]->cols())
+								for (int j2 = r; j2 >= -r; --j2)
 								{
-									for (int n = r; n >= -r; --n)
+									int adj_i = i - i2;
+									int adj_j = j - j2;
+
+									if (0 <= adj_i - r && 0 <= adj_j - r && adj_i + r < reconstructed[f_o]->rows() &&
+										adj_j + r < reconstructed[f_o]->cols())
 									{
-										for (int m = r; m >= -r; --m)
+										for (int n = r; n >= -r; --n)
 										{
-											if (adj_i - n == i && adj_j - m == j)
+											for (int m = r; m >= -r; --m)
 											{
-												float delta_w = learning_rate *
-													(discriminated[f]->at(i, j) - reconstructed[f]->at(i, j));
-												recognition_data[f]->at(r - n, r - m) -= delta_w;
-												generative_data[f]->at(r - n, r - m) += delta_w;
+												if (adj_i - n == i && adj_j - m == j)
+												{
+													float delta_w = learning_rate *
+														(discriminated[f_o]->at(i, j) - reconstructed[f_o]->at(i, j));
+													recognition_data[f_o]->at(r - n, r - m) -= delta_w;
+													generative_data[f_o]->at(r - n, r - m) += delta_w;
+												}
 											}
 										}
 									}
@@ -165,7 +149,7 @@ public:
 	}
 
 	std::vector<Matrix<float>*> feature_maps;
-	
+
 	std::vector<Matrix<float>*> biases;
 
 	std::vector<Matrix<float>*> recognition_data;
@@ -177,7 +161,7 @@ public:
 	int type;
 };
 
-template<unsigned int features, unsigned int rows, unsigned int cols, unsigned int recognition_data_size, unsigned int out_features> 
+template<unsigned int features, unsigned int rows, unsigned int cols, unsigned int recognition_data_size, unsigned int out_features>
 class ConvolutionLayer : public ILayer
 {
 public:
@@ -228,18 +212,24 @@ public:
 	{
 		std::vector<Matrix<float>*> output(out_features);
 		for (int i = 0; i < out_features; ++i)
-			output[i] = convolve<rows, cols, recognition_data_size>(feature_maps[i], biases[i], recognition_data[i], stride);
+		{
+			output[i] = new Matrix2D<float, rows + 1 - recognition_data_size, cols + 1 - recognition_data_size>();
+			for (int j = 0; j < features; ++j)
+				output[i] = add<float, rows + 1 - recognition_data_size, cols + 1 - recognition_data_size>(output[i], 
+				convolve<rows, cols, recognition_data_size>(feature_maps[j], biases[i], recognition_data[i], stride));
+		}
 		return output;
 	}
 
 	std::vector<Matrix<float>*> feed_backwards(std::vector<Matrix<float>*> &input, const bool &use_g_weights)
 	{
-		for (int f = 0; f < features; ++f)
+		//Do the first only
+		for (int f_o = 0; f_o < out_features; ++f_o)
 		{
-			int r = (recognition_data[f]->rows() - 1) / 2;
-			for (int i = 0; i < feature_maps[f]->rows(); ++i)
+			int r = (recognition_data[f_o]->rows() - 1) / 2;
+			for (int i = 0; i < feature_maps[0]->rows(); ++i)
 			{
-				for (int j = 0; j < feature_maps[f]->cols(); ++j)
+				for (int j = 0; j < feature_maps[0]->cols(); ++j)
 				{
 					float sum = 0.0f;
 					for (int i2 = r; i2 >= -r; --i2)
@@ -249,7 +239,7 @@ public:
 							int adj_i = i - i2;
 							int adj_j = j - j2;
 
-							if (0 <= adj_i - r && 0 <= adj_j - r && adj_i + r < feature_maps[f]->rows() && adj_j + r < feature_maps[f]->cols())
+							if (0 <= adj_i - r && 0 <= adj_j - r && adj_i + r < feature_maps[0]->rows() && adj_j + r < feature_maps[0]->cols())
 							{
 								for (int n = r; n >= -r; --n)
 								{
@@ -258,16 +248,180 @@ public:
 										if (adj_i - n == i && adj_j - m == j)
 										{
 											if (use_g_weights)
-												sum += input[f]->at(r - adj_i, r - adj_j) * generative_data[f]->at(r - n, r - m);
+												sum += input[f_o]->at(adj_i - r, adj_j - r) * generative_data[f_o]->at(r - n, r - m);
 											else
-												sum += input[f]->at(r - adj_i, r - adj_j) * recognition_data[f]->at(r - n, r - m);
+												sum += input[f_o]->at(adj_i - r, adj_j - r) * recognition_data[f_o]->at(r - n, r - m);
 										}
 									}
 								}
 							}
 						}
 					}
-					feature_maps[f]->at(i, j) = sum;
+					feature_maps[0]->at(i, j) = sum;
+				}
+			}
+		}
+
+		//copy as they are congruent
+#pragma warning(suppress: 6294)
+		for (int f = 1; f < features; ++f)
+			for (int i = 0; i < feature_maps[f]->rows(); ++i)
+				for (int j = 0; j < feature_maps[f]->cols(); ++j)
+					feature_maps[f]->at(i, j) = feature_maps[0]->at(i, j);
+
+		return feature_maps;
+	}
+
+	std::vector<Matrix<float>*> feed_forwards_prob()
+	{
+		std::vector<Matrix<float>*> output(out_features);
+		for (int f = 0; f < out_features; ++f)
+		{
+			output[f] = new Matrix2D<float, rows + 1 - recognition_data_size, cols + 1 - recognition_data_size>();
+			for (int j = 0; j < features; ++j)
+				output[f] = add<float, rows + 1 - recognition_data_size, cols + 1 - recognition_data_size>(output[f],
+				convolve<rows, cols, recognition_data_size>(feature_maps[j], biases[f], recognition_data[f], stride));
+			for (int i = 0; i < rows + 1 - recognition_data_size; ++i)
+				for (int j = 0; j < cols + 1 - recognition_data_size; ++j)
+					output[f]->at(i, j) = 1 / (1 + exp((float)-output[f]->at(i, j)));
+		}
+		return output;
+	}
+
+	std::vector<Matrix<float>*> feed_backwards_prob(std::vector<Matrix<float>*> &input, const bool &use_g_weights)
+	{
+		//Do the first only
+		for (int f_o = 0; f_o < out_features; ++f_o)
+		{
+			int r = (recognition_data[f_o]->rows() - 1) / 2;
+			for (int i = 0; i < feature_maps[0]->rows(); ++i)
+			{
+				for (int j = 0; j < feature_maps[0]->cols(); ++j)
+				{
+					float sum = 0.0f;
+					for (int i2 = r; i2 >= -r; --i2)
+					{
+						for (int j2 = r; j2 >= -r; --j2)
+						{
+							int adj_i = i - i2;
+							int adj_j = j - j2;
+
+							if (0 <= adj_i - r && 0 <= adj_j - r && adj_i + r < feature_maps[0]->rows() && adj_j + r < feature_maps[0]->cols())
+							{
+								for (int n = r; n >= -r; --n)
+								{
+									for (int m = r; m >= -r; --m)
+									{
+										if (adj_i - n == i && adj_j - m == j)
+										{
+											if (use_g_weights)
+												sum += input[f_o]->at(adj_i - r, adj_j - r) * generative_data[f_o]->at(r - n, r - m);
+											else
+												sum += input[f_o]->at(adj_i - r, adj_j - r) * recognition_data[f_o]->at(r - n, r - m);
+										}
+									}
+								}
+							}
+						}
+					}
+					feature_maps[0]->at(i, j) = 1 / (1 + exp(-sum));
+				}
+			}
+		}
+
+		//copy as they are congruent
+#pragma warning(suppress: 6294)
+		for (int f = 1; f < features; ++f)
+			for (int i = 0; i < feature_maps[f]->rows(); ++i)
+				for (int j = 0; j < feature_maps[f]->cols(); ++j)
+					feature_maps[f]->at(i, j) = feature_maps[0]->at(i, j);
+
+		return feature_maps;
+	}
+	int stride = 1;
+};
+
+template<unsigned int features, unsigned int rows, unsigned int out_rows, unsigned int out_features>
+class FeedForwardLayer : public ILayer
+{
+public:
+	FeedForwardLayer<features, rows, out_rows, out_features>()
+	{
+		type = CNN_FEED_FORWARD;
+		feature_maps = std::vector<Matrix<float>*>(features);
+		biases = std::vector<Matrix<float>*>(out_features);
+		recognition_data = std::vector<Matrix<float>*>(1);
+		generative_data = std::vector<Matrix<float>*>(1);
+
+		for (int k = 0; k < features; ++k)
+			feature_maps[k] = new Matrix2D<float, rows, 1>();
+
+		for (int k = 0; k < out_features; ++k)
+			biases[k] = new Matrix2D<float, out_rows, 1>();
+
+		recognition_data[0] = new Matrix2D<float, out_rows * out_features, rows * features>();
+		generative_data[0] = new Matrix2D<float, out_rows * out_features, rows * features>();
+		for (int i = 0; i < out_rows * out_features; ++i)
+		{
+			for (int j = 0; j < rows * features; ++j)
+			{
+				recognition_data[0]->at(i, j) = (1.0f * rand()) / RAND_MAX;
+				generative_data[0]->at(i, j) = recognition_data[0]->at(i, j);
+			}
+		}
+	}
+
+	~FeedForwardLayer<features, rows, out_rows, out_features>()
+	{
+		delete recognition_data[0];
+		delete generative_data[0];
+		for (int i = 0; i < feature_maps.size(); ++i)
+		{
+			delete feature_maps[i];
+			delete biases[i];
+		}
+	}
+
+	std::vector<Matrix<float>*> feed_forwards()
+	{
+		std::vector<Matrix<float>*> output(out_features);
+		for (int f_o = 0; f_o < out_features; ++f_o)
+		{
+			for (int f = 0; f < features; ++f)
+			{
+				for (int i = 0; i < out_rows; ++i)
+				{
+					float sum = 0.0f;
+					int row = f_o * out_rows;
+					int col = f * rows;
+					for (int j = 0; j < rows; ++j)
+						sum += (feature_maps[f]->at(j, 0) * recognition_data[0]->at(i + row, j + col));
+					output[f_o]->at(i, 0) = sum + biases[f_o]->at(i, 0);
+				}
+			}
+		}
+		return output;
+	}
+
+	std::vector<Matrix<float>*> feed_backwards(std::vector<Matrix<float>*> &input, const bool &use_g_weights)
+	{
+		for (int f_o = 0; f_o < out_features; ++f_o)
+		{
+			for (int f = 0; f < features; ++f)
+			{
+				for (int i = 0; i < rows; ++i)
+				{
+					float sum = 0.0f;
+					for (int j = 0; j < input[f_o]->rows(); ++j)
+					{
+						int row = f_o * out_rows;
+						int col = f * rows;
+						if (use_g_weights)
+							sum += generative_data[0]->at(j + row, i + col) * input[f_o]->at(j, 0);
+						else
+							sum += recognition_data[0]->at(j + row, i + col) * input[f_o]->at(j, 0);
+					}
+					feature_maps[f]->at(i, 0) = sum;
 				}
 			}
 		}
@@ -277,173 +431,44 @@ public:
 	std::vector<Matrix<float>*> feed_forwards_prob()
 	{
 		std::vector<Matrix<float>*> output(out_features);
-		for (int i = 0; i < out_features; ++i)
-			output[i] = convolve_prob<rows, cols, recognition_data_size>(feature_maps[i], biases[i], recognition_data[i], stride);
-		return output;
-	}
-
-	std::vector<Matrix<float>*> feed_backwards_prob(std::vector<Matrix<float>*> &input, const bool &use_g_weights)
-	{
-		for (int f = 0; f < features; ++f)
+		for (int f_o = 0; f_o < out_features; ++f_o)
 		{
-			int r = (recognition_data[f]->rows() - 1) / 2;
-			for (int i = 0; i < feature_maps[f]->rows(); ++i)
+			for (int f = 0; f < features; ++f)
 			{
-				for (int j = 0; j < feature_maps[f]->cols(); ++j)
+				for (int i = 0; i < out_rows; ++i)
 				{
 					float sum = 0.0f;
-					for (int i2 = r; i2 > -r; --i2)
-					{
-						for (int j2 = r; j2 > -r; --j2)
-						{
-							int adj_i = i - i2;
-							int adj_j = j - j2;
-
-							if (0 <= adj_i - r && 0 <= adj_j - r && adj_i + r < feature_maps[f]->rows() && adj_j + r < feature_maps[f]->cols())
-							{
-								for (int n = r; r > -r; --n)
-								{
-									for (int m = r; r > -r; --m)
-									{
-										if (adj_i - n == i && adj_j - m == j)
-										{
-											if (use_g_weights)
-												sum += input[f]->at(r - adj_i, r - adj_j) * generative_data[f]->at(r - n, r - m);
-											else
-												sum += input[f]->at(adj_i, adj_j) * recognition_data[f]->at(r - n, r - m);
-										}
-									}
-								}
-							}
-						}
-					}
-					float prob = 1 / (1 + exp(-sum));
-					feature_maps[f]->at(i, j) = (rand() / RAND_MAX >= prob) ? 1 : 0;
+					int row = f_o * out_rows;
+					int col = f * rows;
+					for (int j = 0; j < rows; ++j)
+						sum += (feature_maps[f]->at(j, 0) * recognition_data[0]->at(i + row, j + col));
+					output[f_o]->at(i, 0) = 1 / (1 + exp(-(float)(sum + biases[f_o]->at(i, 0))));
 				}
 			}
-		}
-		return feature_maps;
-	}
-
-	int stride = 1;
-};
-
-template<unsigned int features, unsigned int rows, unsigned int out_rows> 
-class FeedForwardLayer : public ILayer
-{
-public:
-	FeedForwardLayer<features, rows, out_rows>()
-	{
-		type = CNN_FEED_FORWARD;
-		feature_maps = std::vector<Matrix<float>*>(features);
-		biases = std::vector<Matrix<float>*>(features);
-		recognition_data = std::vector<Matrix<float>*>(features);
-		generative_data = std::vector<Matrix<float>*>(features);
-
-		for (int k = 0; k < features; ++k)
-		{
-			feature_maps[k] = new Matrix2D<float, rows, 1>();
-			biases[k] = new Matrix2D<float, out_rows, 1>();
-
-			recognition_data[k] = new Matrix2D<float, out_rows, rows>();
-			generative_data[k] = new Matrix2D<float, out_rows, rows>();
-			for (int i = 0; i < out_rows; ++i)
-			{
-				for (int j = 0; j < rows; ++j)
-				{
-					recognition_data[k]->at(i, j) = (1.0f * rand()) / RAND_MAX;
-					generative_data[k]->at(i, j) = recognition_data[k]->at(i, j);
-				}
-			}
-		}
-	}
-
-	~FeedForwardLayer<features, rows, out_rows>()
-	{
-		for (int i = 0; i < feature_maps.size(); ++i)
-		{
-			delete feature_maps[i];
-			delete biases[i];
-			delete recognition_data[i];
-			delete generative_data[i];
-		}
-	}
-
-	std::vector<Matrix<float>*> feed_forwards()
-	{
-		std::vector<Matrix<float>*> output(features);
-		for (int f = 0; f < features; ++f)
-		{
-			Matrix2D<float, out_rows, 1>* current = new Matrix2D<float, out_rows, 1>();
-
-			for (int i = 0; i < out_rows; ++i)
-			{
-				float sum = 0.0f;
-				for (int j = 0; j < feature_maps[f]->rows(); ++j)
-					sum += (feature_maps[f]->at(j, 0) * recognition_data[f]->at(i, j));
-				current->at(i, 0) = sum += biases[f]->at(i, 0);
-			}
-			output[f] = current;
-		}
-		return output;
-	}
-
-	std::vector<Matrix<float>*> feed_backwards(std::vector<Matrix<float>*> &input, const bool &use_g_weights)
-	{
-		for (int f = 0; f < features; ++f)
-		{
-			for (int i = 0; i < rows; ++i)
-			{
-				float sum = 0.0f;
-				for (int j = 0; j < input[f]->rows(); ++j)
-				{
-					if (use_g_weights)
-						sum += generative_data[f]->at(j, i) * input[f]->at(j, 0);
-					else
-						sum += recognition_data[f]->at(j, i) * input[f]->at(j, 0);
-				}
-				feature_maps[f]->at(i, 0) = sum;
-			}
-		}
-		return feature_maps;
-	}
-
-	std::vector<Matrix<float>*> feed_forwards_prob()
-	{
-		std::vector<Matrix<float>*> output(features);
-		for (int f = 0; f < features; ++f)
-		{
-			Matrix2D<float, out_rows, 1>* current = new Matrix2D<float, out_rows, 1>();
-
-			for (int i = 0; i < out_rows; ++i)
-			{
-				float sum = 0.0f;
-				for (int j = 0; j < feature_maps[f]->rows(); ++j)
-					sum += (feature_maps[f]->at(j, 0) * recognition_data[f]->at(i, j));
-				float prob = 1 / (1 + exp((float)-sum + biases[f]->at(i, 0)));
-				current->at(i, 0) = ((1.0f * rand()) / RAND_MAX <= prob) ? 1 : 0;
-			}
-			output[f] = current;
 		}
 		return output;
 	}
 
 	std::vector<Matrix<float>*> feed_backwards_prob(std::vector<Matrix<float>*> &input, const bool &use_g_weights)
 	{
-		for (int f = 0; f < features; ++f)
+		for (int f_o = 0; f_o < out_features; ++f_o)
 		{
-			for (int i = 0; i < rows; ++i)
+			for (int f = 0; f < features; ++f)
 			{
-				float sum = 0.0f;
-				for (int j = 0; j < input[f]->rows(); ++j)
+				for (int i = 0; i < rows; ++i)
 				{
-					if (use_g_weights)
-						sum += generative_data[f]->at(j, i) * input[f]->at(j, 0);
-					else
-						sum += recognition_data[f]->at(j, i) * input[f]->at(j, 0);
+					float sum = 0.0f;
+					int row = f_o * out_rows;
+					int col = f * rows;
+					for (int j = 0; j < input[f_o]->rows(); ++j)
+					{
+						if (use_g_weights)
+							sum += generative_data[0]->at(j + row, i + col) * input[f_o]->at(j, 0);
+						else
+							sum += recognition_data[0]->at(j + row, i + col) * input[f_o]->at(j, 0);
+					}
+					feature_maps[f]->at(i, 0) = 1 / (1 + exp(-(float)sum));
 				}
-				float prob = 1 / (1 + exp((float)-sum));
-				feature_maps[f]->at(i, 0) = ((1.0f * rand()) / RAND_MAX <= prob) ? 1 : 0;
 			}
 		}
 		return feature_maps;
@@ -544,8 +569,7 @@ public:
 		{
 			const int down = rows / out_rows;
 			const int across = cols / out_cols;
-			Matrix2D<Matrix2D<float, rows / out_rows, cols / out_cols>, out_rows, out_cols> samples;
-
+			Matrix2D<Matrix2D<float, down, across>, out_rows, out_cols> samples;
 
 			//get samples
 			for (int i = 0; i < out_rows; ++i)
@@ -559,7 +583,7 @@ public:
 					{
 						for (int j2 = j * across; j2 < maxJ; ++j2)
 						{
-							samples.at(i, j).at(maxI - i2, maxJ - j2) = feature_maps[f]->at(i2, j2);
+							samples.at(i, j).at(maxI - i2 - 1, maxJ - j2 - 1) = feature_maps[f]->at(i2, j2);
 						}
 					}
 				}
@@ -596,7 +620,7 @@ public:
 	}
 };
 
-template<unsigned int features, unsigned int rows, unsigned int cols> 
+template<unsigned int features, unsigned int rows, unsigned int cols>
 class OutputLayer : public ILayer
 {
 public:
