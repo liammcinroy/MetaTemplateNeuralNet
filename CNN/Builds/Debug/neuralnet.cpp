@@ -223,9 +223,9 @@ void NeuralNet::train(int epochs)
 		//find output's error signals and set the output layer to them for backprop
 		int top = layers.size() - 1;
 		for (int k = 0; k < layers[top]->feature_maps.size(); ++k)
-		for (int i = 0; i < layers[top]->feature_maps[k]->rows(); ++i)
-		for (int j = 0; j < layers[top]->feature_maps[k]->cols(); ++j)
-			layers[top]->feature_maps[k]->at(i, j) = output_error_signal(i, j, k);
+			for (int i = 0; i < layers[top]->feature_maps[k]->rows(); ++i)
+				for (int j = 0; j < layers[top]->feature_maps[k]->cols(); ++j)
+					layers[top]->feature_maps[k]->at(i, j) = output_error_signal(i, j, k);
 
 		//feeding all the layers backwards and multiplying by derivative of the sigmoid (or of y=x)
 		//after setting the output layer's recognition_data to its error signal will give all of the error signals
@@ -319,23 +319,19 @@ void NeuralNet::train(int epochs)
 							{
 								float y = layers[l - 1]->feature_maps[f]->at(i, j);
 
-
-								if (l > 1)
-								{
-									if (binary_net)
-										layers[l - 1]->feature_maps[f]->at(i, j) = y * (1 - y) * layers[l]->feature_maps[f]->at(i, j);
-									else
-										layers[l - 1]->feature_maps[f]->at(i, j) = layers[l]->feature_maps[f]->at(i, j);
-								}
+								if (binary_net)
+									layers[l - 1]->feature_maps[f]->at(i, j) = y * (1 - y) * layers[l]->feature_maps[f]->at(i, j);
+								else
+									layers[l - 1]->feature_maps[f]->at(i, j) = layers[l]->feature_maps[f]->at(i, j);
 							}
 
 							else
 								layers[l - 1]->feature_maps[f]->at(i, j) = 0;
 
-							if (currentSampleJ % across == 0)
+							if (j % across == 0 && j != 0)
 								++currentSampleJ;
 						}
-						if (currentSampleI % down == 0)
+						if (i % down == 0 && i != 0)
 							++currentSampleI;
 					}
 				}
