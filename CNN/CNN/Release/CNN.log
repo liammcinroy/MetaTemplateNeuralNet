@@ -1,65 +1,7 @@
-﻿Build started 12/27/2014 8:59:56 AM.
+﻿Build started 12/27/2014 11:35:59 AM.
      1>Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /Zi /nologo /W3 /WX- /sdl /O2 /Oi /Oy- /GL /D _WINDLL /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt imatrix.h main.cpp neuralnet.cpp neuralnet.h
-         imatrix.h
-         main.cpp
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(49): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(50): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(51): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(85): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(87): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(90): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(92): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(104): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(106): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(109): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(111): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(120): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(121): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(145): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(147): warning C4018: '<' : signed/unsigned mismatch
-     1>main.cpp(10): warning C4244: 'argument' : conversion from 'time_t' to 'unsigned int', possible loss of data
-     1>main.cpp(30): warning C4244: 'initializing' : conversion from 'int' to 'float', possible loss of data
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(180): warning C4018: '<' : signed/unsigned mismatch
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(168) : while compiling class template member function 'ConvolutionLayer<1,1,1,1,2>::ConvolutionLayer(void)'
-                 main.cpp(13) : see reference to function template instantiation 'ConvolutionLayer<1,1,1,1,2>::ConvolutionLayer(void)' being compiled
-                 main.cpp(13) : see reference to class template instantiation 'ConvolutionLayer<1,1,1,1,2>' being compiled
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(199): warning C4018: '<' : signed/unsigned mismatch
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(198) : while compiling class template member function 'ConvolutionLayer<1,1,1,1,2>::~ConvolutionLayer(void)'
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(204): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(230): warning C4018: '<' : signed/unsigned mismatch
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(225) : while compiling class template member function 'std::vector<Matrix<float> *,std::allocator<_Ty>> ConvolutionLayer<1,1,1,1,2>::feed_backwards(std::vector<_Ty,std::allocator<_Ty>> &,const bool &)'
-                 with
-                 [
-                     _Ty=Matrix<float> *
-                 ]
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(232): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(242): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(268): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(269): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(297): warning C4018: '<' : signed/unsigned mismatch
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(292) : while compiling class template member function 'std::vector<Matrix<float> *,std::allocator<_Ty>> ConvolutionLayer<1,1,1,1,2>::feed_backwards_prob(std::vector<_Ty,std::allocator<_Ty>> &,const bool &)'
-                 with
-                 [
-                     _Ty=Matrix<float> *
-                 ]
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(299): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(309): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(335): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(336): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(641): warning C4018: '<' : signed/unsigned mismatch
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(640) : while compiling class template member function 'OutputLayer<1,1,1>::~OutputLayer(void)'
-                 main.cpp(15) : see reference to class template instantiation 'OutputLayer<1,1,1>' being compiled
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(643): warning C4018: '<' : signed/unsigned mismatch
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(18): warning C4018: '<' : signed/unsigned mismatch
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(219) : see reference to function template instantiation 'Matrix<float> *convolve<1,1,1>(Matrix<float> *&,Matrix<float> *&,Matrix<float> *&,int &)' being compiled
-                 c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(212) : while compiling class template member function 'std::vector<Matrix<float> *,std::allocator<_Ty>> ConvolutionLayer<1,1,1,1,2>::feed_forwards(void)'
-                 with
-                 [
-                     _Ty=Matrix<float> *
-                 ]
-     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(20): warning C4018: '<' : signed/unsigned mismatch
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /Zi /nologo /W3 /WX- /sdl /O2 /Oi /Oy- /GL /D _WINDLL /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt neuralnet.cpp neuralnet.h
          neuralnet.cpp
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(49): warning C4018: '<' : signed/unsigned mismatch
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(50): warning C4018: '<' : signed/unsigned mismatch
@@ -146,4 +88,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:03.13
+Time Elapsed 00:00:01.68

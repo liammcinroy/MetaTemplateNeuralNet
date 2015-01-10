@@ -391,6 +391,7 @@ public:
 			{
 				for (int i = 0; i < out_rows; ++i)
 				{
+					output[f_o] = new Matrix2D<float, out_rows, 1>();
 					float sum = 0.0f;
 					int row = f_o * out_rows;
 					int col = f * rows;
@@ -437,6 +438,7 @@ public:
 			{
 				for (int i = 0; i < out_rows; ++i)
 				{
+					output[f_o] = new Matrix2D<float, out_rows, 1>();
 					float sum = 0.0f;
 					int row = f_o * out_rows;
 					int col = f * rows;

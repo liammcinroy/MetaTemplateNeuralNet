@@ -1,15 +1,9 @@
-﻿Build started 12/27/2014 9:02:25 AM.
+﻿Build started 1/6/2015 7:50:09 PM.
      1>Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" on node 2 (Build target(s)).
-     1>Lib:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\Lib.exe /OUT:"C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Debug\CNN.lib" /NOLOGO Debug\imatrix.obj
-         Debug\main.obj
-         Debug\neuralnet.obj
-         Debug\neuralnet.obj
-     1>Debug\neuralnet.obj : warning LNK4042: object specified more than once; extras ignored
-     1>imatrix.obj : warning LNK4221: This object file does not define any previously undefined public symbols, so it will not be used by any link operation that consumes this library
-         CNN.vcxproj -> C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Debug\CNN.lib
+     1>Link:
+         CNN.vcxproj -> C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Debug\CNN.exe
      1>Done Building Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" (Build target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:00.13
+Time Elapsed 00:00:01.53

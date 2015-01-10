@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="ILayer">
+    <Position X="8.5" Y="2" Width="1.5" />
+    <Members>
+      <Method Name="~ILayer" Hidden="true" />
+      <Field Name="coords_of_max" Hidden="true" />
+      <Method Name="ILayer" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AAAAAQAIIAAAoAAAAAAIAAAAAAIBAAAAAoAACAAAAKA=</HashCode>
+      <FileName>ilayer.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Matrix&lt;T&gt;">
+    <Position X="5.25" Y="2" Width="1.5" />
+    <Members>
+      <Method Name="~Matrix" Hidden="true" />
+      <Method Name="Matrix" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AAAAAgAAAAAAAAAAwABAAAAAAACgAAAAgAAAAAAAAAA=</HashCode>
+      <FileName>imatrix.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="NeuralNet">
+    <Position X="13" Y="2" Width="1.5" />
+    <Members>
+      <Method Name="~NeuralNet" Hidden="true" />
+      <Method Name="coords" Hidden="true" />
+      <Method Name="NeuralNet" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AAAAIAgAIAAAABAAICAAAAgAwIBIBAAAIIgABAgCAAA=</HashCode>
+      <FileName>neuralnet.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Matrix2D&lt;T, r, c&gt;" Collapsed="true">
+    <Position X="4.5" Y="6" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAIAAAAAAAAAwABAAAAAAACAAAAAgAAwAAAAIAA=</HashCode>
+      <FileName>imatrix.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ConvolutionLayer&lt;features, rows, cols, recognition_data_size, out_features&gt;" Collapsed="true">
+    <Position X="6" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAIAAAIEAAAAIIAAAAAAAAAAAAAAEACAAAAAA=</HashCode>
+      <FileName>ilayer.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="FeedForwardLayer&lt;features, rows, out_rows, out_features&gt;" Collapsed="true">
+    <Position X="6.5" Y="6.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAIAAAIAAAAAAIAAAAAQAAAAAgAAAACAAAAAA=</HashCode>
+      <FileName>ilayer.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="MaxpoolLayer&lt;features, rows, cols, out_rows, out_cols&gt;" Collapsed="true">
+    <Position X="10.5" Y="6.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAIAAAIAAAAAIIAAAAAAAAAAAAAAAACAEAAAA=</HashCode>
+      <FileName>ilayer.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="OutputLayer&lt;features, rows, cols&gt;" Collapsed="true">
+    <Position X="11" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAIAAAIAAAAgAIAAAAAAACAAAAAAAACAAAAAA=</HashCode>
+      <FileName>ilayer.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

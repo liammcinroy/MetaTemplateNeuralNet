@@ -196,13 +196,11 @@ public:
 
 	~ConvolutionLayer<features, rows, cols, recognition_data_size, out_features>()
 	{
-		for (int i = 0; i < feature_maps.size(); ++i)
-		{
+		for (int i = 0; i < features; ++i)
 			delete feature_maps[i];
-			delete biases[i];
-		}
-		for (int i = 0; i < recognition_data.size(); ++i)
+		for (int i = 0; i < out_features; ++i)
 		{
+			delete biases[i];
 			delete recognition_data[i];
 			delete generative_data[i];
 		}
@@ -211,12 +209,16 @@ public:
 	std::vector<Matrix<float>*> feed_forwards()
 	{
 		std::vector<Matrix<float>*> output(out_features);
-		for (int i = 0; i < out_features; ++i)
+		for (int f = 0; f < out_features; ++f)
 		{
-			output[i] = new Matrix2D<float, rows + 1 - recognition_data_size, cols + 1 - recognition_data_size>();
+			output[f] = new Matrix2D<float, rows + 1 - recognition_data_size, cols + 1 - recognition_data_size>();
 			for (int j = 0; j < features; ++j)
-				output[i] = add<float, rows + 1 - recognition_data_size, cols + 1 - recognition_data_size>(output[i], 
-				convolve<rows, cols, recognition_data_size>(feature_maps[j], biases[i], recognition_data[i], stride));
+			{
+				Matrix<float>* temp = add<float, rows + 1 - recognition_data_size, cols + 1 - recognition_data_size>(output[f],
+					convolve<rows, cols, recognition_data_size>(feature_maps[j], biases[f], recognition_data[f], stride));
+				delete output[f];
+				output[f] = temp;
+			}
 		}
 		return output;
 	}
@@ -279,8 +281,12 @@ public:
 		{
 			output[f] = new Matrix2D<float, rows + 1 - recognition_data_size, cols + 1 - recognition_data_size>();
 			for (int j = 0; j < features; ++j)
-				output[f] = add<float, rows + 1 - recognition_data_size, cols + 1 - recognition_data_size>(output[f],
-				convolve<rows, cols, recognition_data_size>(feature_maps[j], biases[f], recognition_data[f], stride));
+			{
+				Matrix<float>* temp = add<float, rows + 1 - recognition_data_size, cols + 1 - recognition_data_size>(output[f],
+					convolve<rows, cols, recognition_data_size>(feature_maps[j], biases[f], recognition_data[f], stride));
+				delete output[f];
+				output[f] = temp;
+			}
 			for (int i = 0; i < rows + 1 - recognition_data_size; ++i)
 				for (int j = 0; j < cols + 1 - recognition_data_size; ++j)
 					output[f]->at(i, j) = 1 / (1 + exp((float)-output[f]->at(i, j)));
@@ -375,11 +381,10 @@ public:
 	{
 		delete recognition_data[0];
 		delete generative_data[0];
-		for (int i = 0; i < feature_maps.size(); ++i)
-		{
+		for (int i = 0; i < features; ++i)
 			delete feature_maps[i];
+		for (int i = 0; i < out_features; ++i)
 			delete biases[i];
-		}
 	}
 
 	std::vector<Matrix<float>*> feed_forwards()
@@ -387,6 +392,7 @@ public:
 		std::vector<Matrix<float>*> output(out_features);
 		for (int f_o = 0; f_o < out_features; ++f_o)
 		{
+			output[f_o] = new Matrix2D<float, out_rows, 1>();
 			for (int f = 0; f < features; ++f)
 			{
 				for (int i = 0; i < out_rows; ++i)
@@ -433,6 +439,7 @@ public:
 		std::vector<Matrix<float>*> output(out_features);
 		for (int f_o = 0; f_o < out_features; ++f_o)
 		{
+			output[f_o] = new Matrix2D<float, out_rows, 1>();
 			for (int f = 0; f < features; ++f)
 			{
 				for (int i = 0; i < out_rows; ++i)

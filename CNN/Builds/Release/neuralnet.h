@@ -3,7 +3,6 @@
 #include <fstream>
 #include <iterator>
 #include <string>
-#include <time.h>
 #include <vector>
 
 #include "imatrix.h"
