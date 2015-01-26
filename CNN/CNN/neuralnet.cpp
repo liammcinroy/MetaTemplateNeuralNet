@@ -183,6 +183,8 @@ ILayer* NeuralNet::discriminate()
 {
 	for (int i = 0; i < layers.size() - 1; ++i)
 	{
+		if (use_dropout)
+			dropout(layers[i]);
 		for (int j = 0; j < layers[i + 1]->feature_maps.size(); ++j)
 			delete layers[i + 1]->feature_maps[j];
 		if (binary_net)
@@ -200,7 +202,7 @@ void NeuralNet::pretrain(int epochs)
 		for (int i = 0; i < layers.size() - 1; ++i)
 		{
 			if (layers[i]->type != CNN_MAXPOOL)
-				layers[i]->wake_sleep(learning_rate, binary_net);
+				layers[i]->wake_sleep(learning_rate, binary_net, use_dropout);
 			else
 			{
 				for (int j = 0; j < layers[i + 1]->feature_maps.size(); ++j)
@@ -319,23 +321,19 @@ void NeuralNet::train(int epochs)
 							{
 								float y = layers[l - 1]->feature_maps[f]->at(i, j);
 
-
-								if (l > 1)
-								{
-									if (binary_net)
-										layers[l - 1]->feature_maps[f]->at(i, j) = y * (1 - y) * layers[l]->feature_maps[f]->at(i, j);
-									else
-										layers[l - 1]->feature_maps[f]->at(i, j) = layers[l]->feature_maps[f]->at(i, j);
-								}
+								if (binary_net)
+									layers[l - 1]->feature_maps[f]->at(i, j) = y * (1 - y) * layers[l]->feature_maps[f]->at(i, j);
+								else
+									layers[l - 1]->feature_maps[f]->at(i, j) = layers[l]->feature_maps[f]->at(i, j);
 							}
 
 							else
 								layers[l - 1]->feature_maps[f]->at(i, j) = 0;
 
-							if (currentSampleJ % across == 0)
+							if (j % across == 0 && j != 0)
 								++currentSampleJ;
 						}
-						if (currentSampleI % down == 0)
+						if (i % down == 0 && i != 0)
 							++currentSampleI;
 					}
 				}
@@ -384,4 +382,13 @@ Matrix2D<int, 4, 1>* NeuralNet::coords(int &l, int &k, int &i, int &j)
 	out->at(2, 0) = i;
 	out->at(3, 0) = j;
 	return out;
+}
+
+void NeuralNet::dropout(ILayer* layer)
+{
+	for (int f = 0; f < layer->feature_maps.size(); ++f)
+		for (int i = 0; i < layer->feature_maps[f]->rows(); ++i)
+			for (int j = 0; j < layer->feature_maps[f]->cols(); ++j)
+				if ((1.0f * rand()) / RAND_MAX >= .5f)
+					layer->feature_maps[f]->at(i, j) = 0;
 }

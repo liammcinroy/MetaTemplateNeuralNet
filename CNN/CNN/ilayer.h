@@ -21,8 +21,8 @@ convolve(Matrix<float>* &input, Matrix<float>* &biases, Matrix<float>* &kernel, 
 		{
 			float sum = 0;
 			for (int n = N; n >= -N; --n)
-			for (int m = N; m >= -N; --m)
-				sum += input->at(i - n, j - m) * kernel->at(N - n, N - m);
+				for (int m = N; m >= -N; --m)
+					sum += input->at(i - n, j - m) * kernel->at(N - n, N - m);
 			output->at(i - N, j - N) = sum + biases->at(i - N, j - N);
 		}
 	}
@@ -44,16 +44,7 @@ public:
 
 	virtual std::vector<Matrix<float>*> feed_backwards_prob(std::vector<Matrix<float>*> &input, const bool &use_g_weights) = 0;
 
-	void dropout()
-	{
-		for (int f = 0; f < feature_maps.size(); ++f)
-		for (int i = 0; i < feature_maps[f]->rows(); ++i)
-		for (int j = 0; j < feature_maps[f]->cols(); ++j)
-		if ((1.0f * rand()) / RAND_MAX >= .5f)
-			feature_maps[f]->at(i, j) = 0;
-	}
-
-	void wake_sleep(float &learning_rate, bool &binary_net)
+	void wake_sleep(float &learning_rate, bool &binary_net, bool &use_dropout)
 	{
 		//find difference via gibbs sampling
 		std::vector<Matrix<float>*> discriminated;
@@ -62,11 +53,17 @@ public:
 		else
 			discriminated = this->feed_forwards();
 
+		if (use_dropout)
+			dropout(discriminated);
+
 		std::vector<Matrix<float>*> generated;
 		if (binary_net)
 			generated = this->feed_backwards_prob(discriminated, true);
 		else
 			generated = this->feed_backwards(discriminated, true);
+
+		if (use_dropout)
+			dropout(generated);
 
 		std::vector<Matrix<float>*> temp_feature;
 		temp_feature = feature_maps;
@@ -78,6 +75,9 @@ public:
 		else
 			reconstructed = this->feed_forwards();
 		feature_maps = temp_feature;
+
+		if (use_dropout)
+			dropout(reconstructed);
 
 		//adjust weights
 		if (type == CNN_FEED_FORWARD)
@@ -159,6 +159,16 @@ public:
 	std::vector<Matrix<std::pair<int, int>>*> coords_of_max;
 
 	int type;
+
+private:
+	void dropout(std::vector<Matrix<float>*> feature_maps)
+	{
+		for (int f = 0; f < feature_maps.size(); ++f)
+			for (int i = 0; i < feature_maps[f]->rows(); ++i)
+				for (int j = 0; j < feature_maps[f]->cols(); ++j)
+					if ((1.0f * rand()) / RAND_MAX >= .5f)
+						feature_maps[f]->at(i, j) = 0;
+	}
 };
 
 template<unsigned int features, unsigned int rows, unsigned int cols, unsigned int recognition_data_size, unsigned int out_features>
@@ -287,9 +297,9 @@ public:
 				delete output[f];
 				output[f] = temp;
 			}
-			for (int i = 0; i < rows + 1 - recognition_data_size; ++i)
-				for (int j = 0; j < cols + 1 - recognition_data_size; ++j)
-					output[f]->at(i, j) = 1 / (1 + exp((float)-output[f]->at(i, j)));
+			//for (int i = 0; i < rows + 1 - recognition_data_size; ++i)
+			//	for (int j = 0; j < cols + 1 - recognition_data_size; ++j)
+			//		output[f]->at(i, j) = 1 / (1 + exp((float)-output[f]->at(i, j)));
 		}
 		return output;
 	}
@@ -574,9 +584,11 @@ public:
 		std::vector<Matrix<float>*> output(features);
 		for (int f = 0; f < features; ++f)
 		{
+			output[f] = new Matrix2D<float, out_rows, out_cols>();
 			const int down = rows / out_rows;
 			const int across = cols / out_cols;
 			Matrix2D<Matrix2D<float, down, across>, out_rows, out_cols> samples;
+
 
 			//get samples
 			for (int i = 0; i < out_rows; ++i)
@@ -597,7 +609,6 @@ public:
 			}
 
 			//find maxes
-			Matrix2D<float, out_rows, out_cols>* maxes = new Matrix2D<float, out_rows, out_cols>();
 			for (int i = 0; i < out_rows; ++i)
 			{
 				for (int j = 0; j < out_cols; ++j)
@@ -606,17 +617,15 @@ public:
 					{
 						for (int m = 0; m < samples.at(i, j).cols(); ++m)
 						{
-							if (samples.at(i, j).at(n, m) > maxes->at(i, j))
+							if (samples.at(i, j).at(n, m) > output[f]->at(i, j))
 							{
-								maxes->at(i, j) = 1;//must be one in binary
+								output[f]->at(i, j) = samples.at(i, j).at(n, m);
 								coords_of_max[f]->at(i, j) = std::make_pair<int, int>(samples.at(i, j).rows() * i + n, samples.at(i, j).cols() * j + m);
-								break;
 							}
 						}
 					}
 				}
 			}
-			output[f] = maxes;
 		}
 		return output;
 	}

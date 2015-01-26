@@ -45,9 +45,9 @@ void NeuralNet::save_data(std::string path)
 	{
 		//begin recognition_data values
 		for (int f = 0; f < layers[l]->recognition_data.size(); ++f)
-		for (int i = 0; i < layers[l]->recognition_data[f]->rows(); ++i)
-		for (int j = 0; j < layers[l]->recognition_data[f]->cols(); ++j)
-			file << std::to_string(layers[l]->recognition_data[f]->at(i, j)) << ',';//recognition_data values
+			for (int i = 0; i < layers[l]->recognition_data[f]->rows(); ++i)
+				for (int j = 0; j < layers[l]->recognition_data[f]->cols(); ++j)
+					file << std::to_string(layers[l]->recognition_data[f]->at(i, j)) << ',';//recognition_data values
 		//end recognition_data values
 	}
 
@@ -55,9 +55,9 @@ void NeuralNet::save_data(std::string path)
 	{
 		//begin generative_data values
 		for (int f = 0; f < layers[l]->generative_data.size(); ++f)
-		for (int i = 0; i < layers[l]->generative_data[f]->rows(); ++i)
-		for (int j = 0; j < layers[l]->generative_data[f]->cols(); ++j)
-			file << std::to_string(layers[l]->generative_data[f]->at(i, j)) << ',';//recognition_data values
+			for (int i = 0; i < layers[l]->generative_data[f]->rows(); ++i)
+				for (int j = 0; j < layers[l]->generative_data[f]->cols(); ++j)
+					file << std::to_string(layers[l]->generative_data[f]->at(i, j)) << ',';//recognition_data values
 		//end generative_data values
 	}
 
@@ -65,9 +65,9 @@ void NeuralNet::save_data(std::string path)
 	{
 		//begin biases values
 		for (int f = 0; f < layers[l]->biases.size(); ++f)
-		for (int i = 0; i < layers[l]->biases[f]->rows(); ++i)
-		for (int j = 0; j < layers[l]->biases[f]->cols(); ++j)
-			file << std::to_string(layers[l]->biases[f]->at(i, j)) << ',';//recognition_data values
+			for (int i = 0; i < layers[l]->biases[f]->rows(); ++i)
+				for (int j = 0; j < layers[l]->biases[f]->cols(); ++j)
+					file << std::to_string(layers[l]->biases[f]->at(i, j)) << ',';//recognition_data values
 		//end biases values
 	}
 	file.flush();
@@ -183,6 +183,8 @@ ILayer* NeuralNet::discriminate()
 {
 	for (int i = 0; i < layers.size() - 1; ++i)
 	{
+		if (use_dropout)
+			dropout(layers[i]);
 		for (int j = 0; j < layers[i + 1]->feature_maps.size(); ++j)
 			delete layers[i + 1]->feature_maps[j];
 		if (binary_net)
@@ -200,7 +202,7 @@ void NeuralNet::pretrain(int epochs)
 		for (int i = 0; i < layers.size() - 1; ++i)
 		{
 			if (layers[i]->type != CNN_MAXPOOL)
-				layers[i]->wake_sleep(learning_rate, binary_net);
+				layers[i]->wake_sleep(learning_rate, binary_net, use_dropout);
 			else
 			{
 				for (int j = 0; j < layers[i + 1]->feature_maps.size(); ++j)
@@ -349,9 +351,9 @@ float NeuralNet::global_error()
 {
 	float sum = 0.0f;
 	for (int k = 0; k < labels.size(); ++k)
-	for (int i = 0; i < labels[k]->rows(); ++i)
-	for (int j = 0; j < labels[k]->cols(); ++j)
-		sum += pow(labels[k]->at(i, j) - layers[layers.size() - 1]->feature_maps[0]->at(i, j), 2);
+		for (int i = 0; i < labels[k]->rows(); ++i)
+			for (int j = 0; j < labels[k]->cols(); ++j)
+				sum += pow(labels[k]->at(i, j) - layers[layers.size() - 1]->feature_maps[0]->at(i, j), 2);
 	return sum / 2;
 }
 
@@ -380,4 +382,13 @@ Matrix2D<int, 4, 1>* NeuralNet::coords(int &l, int &k, int &i, int &j)
 	out->at(2, 0) = i;
 	out->at(3, 0) = j;
 	return out;
+}
+
+void NeuralNet::dropout(ILayer* layer)
+{
+	for (int f = 0; f < layer->feature_maps.size(); ++f)
+		for (int i = 0; i < layer->feature_maps[f]->rows(); ++i)
+			for (int j = 0; j < layer->feature_maps[f]->cols(); ++j)
+				if ((1.0f * rand()) / RAND_MAX >= .5f)
+					layer->feature_maps[f]->at(i, j) = 0;
 }

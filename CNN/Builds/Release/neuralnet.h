@@ -39,4 +39,5 @@ private:
 	Matrix2D<int, 4, 1>* coords(int &l, int &k, int &i, int &j);
 	std::vector<ILayer*> layers;
 	std::vector<Matrix<float>*> labels;
+	void dropout(ILayer* layer);
 };
