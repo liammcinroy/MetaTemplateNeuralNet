@@ -45,9 +45,9 @@ void NeuralNet::save_data(std::string path)
 	{
 		//begin recognition_data values
 		for (int f = 0; f < layers[l]->recognition_data.size(); ++f)
-			for (int i = 0; i < layers[l]->recognition_data[f]->rows(); ++i)
-				for (int j = 0; j < layers[l]->recognition_data[f]->cols(); ++j)
-					file << std::to_string(layers[l]->recognition_data[f]->at(i, j)) << ',';//recognition_data values
+		for (int i = 0; i < layers[l]->recognition_data[f]->rows(); ++i)
+		for (int j = 0; j < layers[l]->recognition_data[f]->cols(); ++j)
+			file << std::to_string(layers[l]->recognition_data[f]->at(i, j)) << ',';//recognition_data values
 		//end recognition_data values
 	}
 
@@ -55,9 +55,9 @@ void NeuralNet::save_data(std::string path)
 	{
 		//begin generative_data values
 		for (int f = 0; f < layers[l]->generative_data.size(); ++f)
-			for (int i = 0; i < layers[l]->generative_data[f]->rows(); ++i)
-				for (int j = 0; j < layers[l]->generative_data[f]->cols(); ++j)
-					file << std::to_string(layers[l]->generative_data[f]->at(i, j)) << ',';//recognition_data values
+		for (int i = 0; i < layers[l]->generative_data[f]->rows(); ++i)
+		for (int j = 0; j < layers[l]->generative_data[f]->cols(); ++j)
+			file << std::to_string(layers[l]->generative_data[f]->at(i, j)) << ',';//recognition_data values
 		//end generative_data values
 	}
 
@@ -65,9 +65,9 @@ void NeuralNet::save_data(std::string path)
 	{
 		//begin biases values
 		for (int f = 0; f < layers[l]->biases.size(); ++f)
-			for (int i = 0; i < layers[l]->biases[f]->rows(); ++i)
-				for (int j = 0; j < layers[l]->biases[f]->cols(); ++j)
-					file << std::to_string(layers[l]->biases[f]->at(i, j)) << ',';//recognition_data values
+		for (int i = 0; i < layers[l]->biases[f]->rows(); ++i)
+		for (int j = 0; j < layers[l]->biases[f]->cols(); ++j)
+			file << std::to_string(layers[l]->biases[f]->at(i, j)) << ',';//recognition_data values
 		//end biases values
 	}
 	file.flush();
@@ -203,15 +203,13 @@ void NeuralNet::pretrain(int epochs)
 		{
 			if (layers[i]->type != CNN_MAXPOOL)
 				layers[i]->wake_sleep(learning_rate, binary_net, use_dropout);
+
+			for (int j = 0; j < layers[i + 1]->feature_maps.size(); ++j)
+				delete layers[i + 1]->feature_maps[j];
+			if (binary_net)
+				layers[i + 1]->feature_maps = layers[i]->feed_forwards_prob();
 			else
-			{
-				for (int j = 0; j < layers[i + 1]->feature_maps.size(); ++j)
-					delete layers[i + 1]->feature_maps[j];
-				if (binary_net)
-					layers[i + 1]->feature_maps = layers[i]->feed_forwards_prob();
-				else
-					layers[i + 1]->feature_maps = layers[i]->feed_forwards();
-			}
+				layers[i + 1]->feature_maps = layers[i]->feed_forwards();
 		}
 	}
 }
@@ -351,9 +349,9 @@ float NeuralNet::global_error()
 {
 	float sum = 0.0f;
 	for (int k = 0; k < labels.size(); ++k)
-		for (int i = 0; i < labels[k]->rows(); ++i)
-			for (int j = 0; j < labels[k]->cols(); ++j)
-				sum += pow(labels[k]->at(i, j) - layers[layers.size() - 1]->feature_maps[0]->at(i, j), 2);
+	for (int i = 0; i < labels[k]->rows(); ++i)
+	for (int j = 0; j < labels[k]->cols(); ++j)
+		sum += pow(labels[k]->at(i, j) - layers[layers.size() - 1]->feature_maps[0]->at(i, j), 2);
 	return sum / 2;
 }
 

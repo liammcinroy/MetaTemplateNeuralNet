@@ -203,15 +203,13 @@ void NeuralNet::pretrain(int epochs)
 		{
 			if (layers[i]->type != CNN_MAXPOOL)
 				layers[i]->wake_sleep(learning_rate, binary_net, use_dropout);
+
+			for (int j = 0; j < layers[i + 1]->feature_maps.size(); ++j)
+				delete layers[i + 1]->feature_maps[j];
+			if (binary_net)
+				layers[i + 1]->feature_maps = layers[i]->feed_forwards_prob();
 			else
-			{
-				for (int j = 0; j < layers[i + 1]->feature_maps.size(); ++j)
-					delete layers[i + 1]->feature_maps[j];
-				if (binary_net)
-					layers[i + 1]->feature_maps = layers[i]->feed_forwards_prob();
-				else
-					layers[i + 1]->feature_maps = layers[i]->feed_forwards();
-			}
+				layers[i + 1]->feature_maps = layers[i]->feed_forwards();
 		}
 	}
 }
