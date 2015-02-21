@@ -6,7 +6,7 @@ An API for a convolutional neural network implemented in C++ with the intent to 
 ##Static Library
 ==========================
 
-The build and .h files for referencing as an external static library can be found in the Release folder.
+The build and .h files for referencing as an external static library can be found in the Builds folder.
 
 
 ##What a Convolutional Neural Network is
@@ -41,12 +41,13 @@ This API has a neural network premade, with code to discriminate, generate, and 
 discriminating, generating, or teaching. There is also a custom file format created especially for CNNs, consisting only of the data for each layer's 
 weights.
 
-###`Matrix`
+###IMatrix
 ===============================
 
 This class is merely a contain for `Matrix2D<T, int, int>` so that matrix sizes unknown at compile time can be computed at runtime.
 
-###`Matrix2D<T, int, int>`
+###Matrix2D<T, int, int>
+===============================
 
 This class is a simple matrix implementation, with some extra methods that can be used in situations outside of this neural network.
 
@@ -54,35 +55,34 @@ This class is a simple matrix implementation, with some extra methods that can b
 |---------|------|---------|
 | `data` | `std::array<T, rows * cols>` | holds the matrice's data in column major format |
 | `at(int i, int j)` | `T` | returns the value of the matrix at i, j |
-| `row(int i)` | `T[]` | returns the ith row |
-| `col(int j)` | `T[]` | returns the jth col |
+| `clone()` | `Matrix2D<T, rows, cols>` | creates a deep copy of the matrix |
 | `rows()` | `int` | returns the amount of rows |
 | `cols()` | `int` | returns the amount of cols |
 
 <small>This table contains methods used only in the source code of the network</small>
 
-###`ILayer`
+###ILayer
 ===============================
 
 This is the interface for all of the various layer types used in the network.
 
 | Member | Type | Details |
 |--------|------|----------|
-| `feature_maps` | `std::vector<Matrix<float>*>` | Holds the data of the network |
-| `recognition_weights` | `std::vector<Matrix<float>*>` | The feed forwards weights |
-| `generation_weights` | `std::vector<Matrix<float>*>` | The feed backwards weights |
-| `feed_forwards()` | `virtual std::vector<Matrix<float>*>` | Feeds the layer forward |
-| `feed_forwards_prob()` | `virtual std::vector<Matrix<float>*>` | Feed the layer forward using logistic activation function |
-| `feed_backwards(std::vector<Matrix<float>*> input, bool use_g_weights)` | `virtual std::vector<Matrix<float>*>` | Feeds the layer backwards using generative or recognition weights |
-| `feed_backwards_prob(std::vector<Matrix<float>*> input, bool use_g_weights)` | `virtual std::vector<Matrix<float>*>` | Feeds the layer backwards using generative or recognition weights and the logistic activation function |
+| `feature_maps` | `std::vector<IMatrix<float>*>` | Holds the data of the network |
+| `recognition_weights` | `std::vector<IMatrix<float>*>` | The feed forwards weights |
+| `generation_weights` | `std::vector<IMatrix<float>*>` | The feed backwards weights |
+| `feed_forwards(std::vector<IMatrix<float>*> &output)` | `virtual void` | Feeds the layer forward |
+| `feed_forwards_prob(std::vector<IMatrix<float>*> &output)` | `virtual void` | Feed the layer forward using logistic activation function |
+| `feed_backwards(std::vector<IMatrix<float>*> input, bool use_g_weights)` | `virtual std::vector<IMatrix<float>*>` | Feeds the layer backwards using generative or recognition weights |
+| `feed_backwards_prob(std::vector<IMatrix<float>*> input, bool use_g_weights)` | `virtual std::vector<IMatrix<float>*>` | Feeds the layer backwards using generative or recognition weights and the logistic activation function |
 | `dropout()` | `void` | Sets half of the neurons to 0 to prevent overfitting |
 | `wake_sleep(bool binary_net)` | `void` | Performs the wake-sleep algorithm with or without the logistic activation function |
 
 
-###`FeedForwardLayer<int features, int rows, int out_rows>`
+###PerceptronLayer<int features, int rows, int cols, int out_rows, int out_cols, int out_features>
 ===============================
 
-Basic feed forward layer.
+Basic perceptron layer. Interprets architecture as a single dimension array.
 
 Overloaded functions
 
@@ -91,10 +91,10 @@ Overloaded functions
 | `feed_forwards` | Uses standard sums for feeding forwards |
 | `feed_backwards` | Uses standard sums for feeding backwards |
 
-###`ConvolutionLayer<int features, int rows, int cols, int recognition_data_size, int out_features>`
+###ConvolutionLayer<int features, int rows, int cols, int recognition_data_size, int stride, int out_features>
 ===============================
 
-Basic convolutional layer.
+Basic convolutional layer, masks or kernels must be square and odd.
 
 Overloaded functions
 
@@ -103,9 +103,10 @@ Overloaded functions
 | `feed_forwards` | Uses convolution for feeding forwards |
 | `feed_backwards` | Uses convolution for feeding backwards |
 
-###`MaxpoolLayer<int features, int rows, int cols, int out_rows, int out_cols>`
+###MaxpoolLayer<int features, int rows, int cols, int out_rows, int out_cols>
+===================================
+
 Basic maxpooling layer.
-===============================
 
 Overloaded functions
 
@@ -114,8 +115,22 @@ Overloaded functions
 | `feed_forwards` | Uses maxpooling for feeding forwards |
 | `feed_backwards` | N/A |
 
-###`OutputLayer<int features, int rows, int cols>`
-Basic output layer.
+###SoftMaxLayer<int features, int rows, int cols>
+=====================================
+
+Basic softmax layer. Note that when `PerceptronLayer`s feed into this, if the network is binary, those layers will not have binary outputs.
+
+Overloaded functions
+
+| Function | Difference |
+|----------|-------------|
+| `feed_forwards` | N/A |
+| `feed_backwards` | N/A |
+
+###OutputLayer<int features, int rows, int cols>
+=====================================
+
+Basic output layer just to signify the end of the network.
 
 Overloaded functions
 
@@ -132,13 +147,15 @@ This is the class that encapsulates all of the rest. Has all required methods.
 | Member | Type | Details |
 |--------|------|----------|
 | `layers` | `std::vector<ILayer*>` | All of the network's layers |
+| `labels` | `std::vector<IMatrix<float>*>` | The current labels |
+| `input` | `std::vector<IMatrix<float>*>` | The current input |
 | `use_dropout` | `bool` | Whether to train the network with dropout |
 | `binary_net` | `bool` | Whether to use the logistic activation function |
 | `add_layer(ILayer* layer)` | `void` | Adds another layer to the network |
 | `save_data(std::string path)` | `void` | Saves the data |
 | `load_data(std::string path)` | `void` | Loads the data (<b>Must have initialized network and filled layers first!!!</b>) |
-| `set_input(std::vector<Matrix<float>*> input)` | `void` | Sets the current input |
-| `set_labels(std::vector<Matrix<float>*> labels)` | `void` | Sets the current labels |
+| `set_input(std::vector<IMatrix<float>*> input)` | `void` | Sets the current input |
+| `set_labels(std::vector<IMatrix<float>*> labels)` | `void` | Sets the current labels |
 | `discriminate()` | `ILayer*` | Feeds the network forward |
 | `pretrain()` | `void` | Pretrains the network using the wake-sleep algorithm |
 | `train(int epochs)` | `void` | Trains the network using backpropogation |
@@ -146,27 +163,4 @@ This is the class that encapsulates all of the rest. Has all required methods.
 #Usage
 ===============================
 
-Below is an example of a basic network that would learn the relationship `y=3x`
-```c++
-NeuralNet net = NeuralNet();
-net.add_layer(new MaxpoolLayer<1, 1, 1, 1, 1>());
-net.add_layer(new FeedForwardLayer<1, 1, 1>())
-net.add_layer(new OutputLayer<1, 1, 1>());
-
-net.learning_rate = 0.05f;
-net.use_dropout = false;
-net.binary_net = false;
-
-net.load_data("C://example.cnn");
-
-std::vector<Matrix<float>*> input = { new Matrix2D<float, 1, 1>({ 1 }) };
-std::vector<Matrix<float>*> labels = { new Matrix2D<float, 1, 1>({ 3 }) };
-
-net.set_input(input);
-net.set_labels(labels);
-
-for (int i = 0; i < 100; ++i)
-	net.train(3);
-	
-net.save_data("C://example.cnn");
-```
+For an example of creating and using a network, see main.cpp.

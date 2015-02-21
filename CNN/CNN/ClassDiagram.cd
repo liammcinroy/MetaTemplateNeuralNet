@@ -1,10 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1">
   <Class Name="ILayer">
-    <Position X="8.5" Y="2" Width="1.5" />
+    <Position X="9.25" Y="2" Width="1.5" />
     <Members>
       <Method Name="~ILayer" Hidden="true" />
-      <Field Name="coords_of_max" Hidden="true" />
       <Method Name="ILayer" Hidden="true" />
     </Members>
     <TypeIdentifier>
@@ -12,61 +11,82 @@
       <FileName>ilayer.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Matrix&lt;T&gt;">
-    <Position X="5.25" Y="2" Width="1.5" />
+  <Class Name="IMatrix&lt;T&gt;">
+    <Position X="6" Y="2" Width="1.5" />
     <Members>
-      <Method Name="~Matrix" Hidden="true" />
-      <Method Name="Matrix" Hidden="true" />
+      <Method Name="~IMatrix" Hidden="true" />
+      <Method Name="elem_divide" Hidden="true" />
+      <Method Name="elem_multiply" Hidden="true" />
+      <Method Name="IMatrix" Hidden="true" />
     </Members>
     <TypeIdentifier>
-      <HashCode>AAAAAgAAAAAAAAAAwABAAAAAAACgAAAAgAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAAgAAAAAAAAAAwABAAAAAAACgAAAAgAAAEAAAAAA=</HashCode>
       <FileName>imatrix.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="NeuralNet">
-    <Position X="13" Y="2" Width="1.5" />
+    <Position X="12.5" Y="2" Width="1.5" />
     <Members>
       <Method Name="~NeuralNet" Hidden="true" />
       <Method Name="coords" Hidden="true" />
+      <Method Name="dropout" Hidden="true" />
+      <Method Name="error_signal" Hidden="true" />
+      <Method Name="global_error" Hidden="true" />
       <Method Name="NeuralNet" Hidden="true" />
+      <Method Name="output_error_signal" Hidden="true" />
     </Members>
     <TypeIdentifier>
-      <HashCode>AAAAIAgAIAAAABAAICAAAAgAwIBIBAAAIIgABAgCAAA=</HashCode>
+      <HashCode>AAAAIAgAIAAAABAAICAAAAgAwIBIBBAAIIgABAgCACA=</HashCode>
       <FileName>neuralnet.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Matrix2D&lt;T, r, c&gt;" Collapsed="true">
-    <Position X="4.5" Y="6" Width="1.5" />
+    <Position X="6" Y="4.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAIAAAAAAAAAwABAAAAAAACAAAAAgAAwAAAAIAA=</HashCode>
+      <HashCode>AAAAAAIAAAAAAAAAwABAAAAAAACAAAAAgAAwEAAAIAA=</HashCode>
       <FileName>imatrix.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="ConvolutionLayer&lt;features, rows, cols, recognition_data_size, out_features&gt;" Collapsed="true">
-    <Position X="6" Y="5" Width="1.5" />
+  <Class Name="ConvolutionLayer&lt;features, rows, cols, kernel_size, stride, out_features&gt;" Collapsed="true">
+    <Position X="5" Y="6.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAIAAAIEAAAAIIAAAAAAAAAAAAAAEACAAAAAA=</HashCode>
+      <HashCode>AAAAAAAAIAAAIEAAAAIIAAAAAAAAAAAAAgAACAAAAAA=</HashCode>
       <FileName>ilayer.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="FeedForwardLayer&lt;features, rows, out_rows, out_features&gt;" Collapsed="true">
-    <Position X="6.5" Y="6.25" Width="1.5" />
+  <Class Name="PerceptronLayer&lt;features, rows, cols, out_rows, out_cols, out_features&gt;" Collapsed="true">
+    <Position X="13.75" Y="6.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAIAAAIAAAAAAIAAAAAQAAAAAgAAAACAAAAAA=</HashCode>
+      <HashCode>AAAAAAAAIAAAIAAAAAAIAAAAAQAAAAAgAgAACAAAAAA=</HashCode>
       <FileName>ilayer.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="MaxpoolLayer&lt;features, rows, cols, out_rows, out_cols&gt;" Collapsed="true">
-    <Position X="10.5" Y="6.25" Width="1.5" />
+    <Position X="11.5" Y="6.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAIAAAIAAAAAIIAAAAAAAAAAAAAAAACAEAAAA=</HashCode>
+      <HashCode>AAAAAAAAIAAAIAAAAAIIAAAAAAAAAAAAAgAACAEAAAA=</HashCode>
       <FileName>ilayer.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="OutputLayer&lt;features, rows, cols&gt;" Collapsed="true">
-    <Position X="11" Y="5" Width="1.5" />
+    <Position X="9.25" Y="6.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAIAAAIAAAAgAIAAAAAAACAAAAAAAACAAAAAA=</HashCode>
+      <HashCode>AAAAAAAAIAAAIAAAAgAIAAAAAAACAAAAAgAACAAAAAA=</HashCode>
+      <FileName>ilayer.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SoftMaxLayer&lt;features, rows, cols&gt;" Collapsed="true">
+    <Position X="7" Y="6.5" Width="1.5" />
+    <InheritanceLine Type="ILayer" ManuallyRouted="true" FixedToPoint="true">
+      <Path>
+        <Point X="10" Y="5.478" />
+        <Point X="10" Y="6.125" />
+        <Point X="7.75" Y="6.125" />
+        <Point X="7.75" Y="6.5" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAIAAAIAAAAAAIAAAAgAAEAAAAAgAACAAAAAA=</HashCode>
       <FileName>ilayer.h</FileName>
     </TypeIdentifier>
   </Class>

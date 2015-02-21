@@ -6,29 +6,32 @@
 #include <math.h>
 #include <stdlib.h>
 
-template<typename T> class Matrix
+template<typename T> class IMatrix
 {
 public:
-	Matrix<T>() = default;
+	IMatrix<T>() = default;
 
-	virtual ~Matrix<T>() = default;
+	virtual ~IMatrix<T>() = default;
 
 	virtual inline T& at(unsigned int i, unsigned int j) = 0;
 
-	virtual void elem_multiply(Matrix<T>* &other)
+	virtual IMatrix<T>* clone() = 0;
+
+	virtual void elem_multiply(IMatrix<T>* &other)
 	{
 	}
 
-	virtual void elem_divide(Matrix<T>* &other)
+	virtual void elem_divide(IMatrix<T>* &other)
 	{
 	}
 
 	virtual unsigned int rows() const = 0;
 
 	virtual unsigned int cols() const = 0;
+
 };
 
-template<typename T, unsigned int r, unsigned int c> class Matrix2D : public Matrix<T>
+template<typename T, unsigned int r, unsigned int c> class Matrix2D : public IMatrix<T>
 {
 public:
 	Matrix2D<T, r, c>()
@@ -71,23 +74,34 @@ public:
 
 	~Matrix2D<T, r, c>() = default;
 
-	inline T& at(unsigned int i, unsigned int j) 
+	inline T& at(unsigned int i, unsigned int j)
 	{
 		return data[(c * i) + j];
+	}
+
+	IMatrix<T>* clone()
+	{
+		Matrix2D<T, r, c>* out = new Matrix2D<T, r, c>();
+
+		for (int i = 0; i < r; ++i)
+			for (int j = 0; j < c; ++j)
+				out->at(i, j) = this->at(i, j);
+
+		return out;
 	}
 
 	void elem_multiply(Matrix2D<T, r, c>* &other)
 	{
 		for (unsigned int i = 0; i < rows; ++i)
 			for (unsigned int j = 0; j < cols; ++j)
-					this->at(i, j) *= other->at(i, j);
+				this->at(i, j) *= other->at(i, j);
 	}
 
 	void elem_divide(Matrix2D<T, r, c>* &other)
 	{
 		for (unsigned int i = 0; i < rows; ++i)
 			for (unsigned int j = 0; j < cols; ++j)
-					this->at(i, j) /= other->at(i, j);
+				this->at(i, j) /= other->at(i, j);
 	}
 
 	Matrix2D<T, r, c> operator+(Matrix2D<T, r, c> &other)
@@ -139,7 +153,7 @@ public:
 	}
 
 	unsigned int rows() const
-	{ 
+	{
 		return r;
 	}
 
@@ -153,26 +167,26 @@ public:
 
 template<typename T, int rows1, int cols1, int rows2, int cols2> Matrix2D<T, rows1, cols2>
 	operator*(Matrix2D<T, rows1, cols1>& lhs, Matrix2D <T, rows2, cols2>& rhs)
-{
-	Matrix2D<T, rows1, cols2> result();
-	for (int i = 0; i < rows1; ++i)
 	{
-		for (int j = 0; j < cols2; ++j)
+		Matrix2D<T, rows1, cols2> result();
+		for (int i = 0; i < rows1; ++i)
 		{
-			T sum();
-			for (int i2 = 0; i2 < rows; ++i2)
-				sum += lhs.at(i, i2) * rhs.at(i2, j);
-			result.at(i, j) = sum;
+			for (int j = 0; j < cols2; ++j)
+			{
+				T sum();
+				for (int i2 = 0; i2 < rows; ++i2)
+					sum += lhs.at(i, i2) * rhs.at(i2, j);
+				result.at(i, j) = sum;
+			}
 		}
+		return result;
 	}
-	return result;
-}
 
-template<typename T, int rows, int cols> Matrix<T>* add(Matrix<T>* first, Matrix<T>* second)
-{
-	Matrix<T>* result = new Matrix2D<T, rows, cols>();
-	for (int i = 0; i < rows; ++i)
-		for (int j = 0; j < cols; ++j)
-			result->at(i, j) = first->at(i, j) + second->at(i, j);
-	return result;
-}
+//Adds two matricies, stores in the first, deletes the second
+template<typename T, int rows, int cols> void add(IMatrix<T>* &first, IMatrix<T>* second)
+	{
+		for (int i = 0; i < rows; ++i)
+			for (int j = 0; j < cols; ++j)
+				first->at(i, j) += second->at(i, j);
+		delete second;
+	}

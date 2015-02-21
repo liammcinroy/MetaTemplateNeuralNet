@@ -20,9 +20,9 @@ public:
 	//feed forwards
 	ILayer* discriminate();
 	//set input (batch will not be generated)
-	void set_input(std::vector<Matrix<float>*> input);
+	void set_input(std::vector<IMatrix<float>*> input);
 	//set labels for batch
-	void set_labels(std::vector<Matrix<float>*> batch_labels);
+	void set_labels(std::vector<IMatrix<float>*> batch_labels);
 	//wake-sleep algorithm
 	void pretrain(int epochs);
 	//backpropogate
@@ -32,12 +32,13 @@ public:
 	float learning_rate;
 	bool use_dropout;
 	bool binary_net;
+	std::vector<ILayer*> layers;
 private:
 	float global_error();
 	float output_error_signal(int &i, int &j, int &k);
 	float error_signal(int &i, int &j, int &k, float &weights_sum);
 	Matrix2D<int, 4, 1>* coords(int &l, int &k, int &i, int &j);
-	std::vector<ILayer*> layers;
-	std::vector<Matrix<float>*> labels;
-	void dropout(ILayer* layer);
+	std::vector<IMatrix<float>*> input;
+	std::vector<IMatrix<float>*> labels;
+	void dropout(ILayer* &layer);
 };

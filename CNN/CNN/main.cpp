@@ -8,10 +8,11 @@
 int main(int argc, char** argv)
 {
 	NeuralNet net = NeuralNet();
-	net.add_layer(new FeedForwardLayer<1, 1, 1, 1>());
-	net.add_layer(new ConvolutionLayer<1, 1, 1, 1, 2>());
+	net.add_layer(new PerceptronLayer<1, 1, 1, 1, 1, 1>());
+	net.add_layer(new ConvolutionLayer<1, 1, 1, 1, 1, 2>());
 	net.add_layer(new MaxpoolLayer<2, 1, 1, 1, 1>());
-	net.add_layer(new FeedForwardLayer<2, 1, 1, 1>());
+	net.add_layer(new PerceptronLayer<2, 1, 1, 1, 1, 1>());
+	net.add_layer(new SoftMaxLayer<1, 1, 1>());
 	net.add_layer(new OutputLayer<1, 1, 1>());
 
 	net.learning_rate = 0.05f;
@@ -20,8 +21,8 @@ int main(int argc, char** argv)
 
 	net.load_data("example.cnn");
 
-	std::vector<Matrix<float>*> input = { new Matrix2D<float, 1, 1>({ 1 }) };
-	std::vector<Matrix<float>*> labels = { new Matrix2D<float, 1, 1>({ 3 }) };
+	std::vector<IMatrix<float>*> input = { new Matrix2D<float, 1, 1>({ x }) };
+	std::vector<IMatrix<float>*> labels = { new Matrix2D<float, 1, 1>({ y }) };
 
 	net.set_input(input);
 	net.set_labels(labels);

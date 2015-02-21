@@ -36,6 +36,10 @@ NeuralNet::~NeuralNet()
 {
 	for (int i = 0; i < layers.size(); ++i)
 		delete layers[i];
+	for (int i = 0; i < input.size(); ++i)
+		delete input[i];
+	for (int i = 0; i < labels.size(); ++i)
+		delete labels[i];
 }
 
 void NeuralNet::save_data(std::string path)
@@ -169,12 +173,16 @@ void NeuralNet::load_data(std::string path)
 	}
 }
 
-void NeuralNet::set_input(std::vector<Matrix<float>*> input)
+void NeuralNet::set_input(std::vector<IMatrix<float>*> in)
 {
-	layers[0]->feature_maps = input;
+	input = in;
+	for (int f = 0; f < input.size(); ++f)
+		for (int i = 0; i < input[f]->rows(); ++i)
+			for (int j = 0; j < input[f]->cols(); ++j)
+				layers[0]->feature_maps[f]->at(i, j) = input[f]->at(i, j);
 }
 
-void NeuralNet::set_labels(std::vector<Matrix<float>*> batch_labels)
+void NeuralNet::set_labels(std::vector<IMatrix<float>*> batch_labels)
 {
 	labels = batch_labels;
 }
@@ -183,14 +191,12 @@ ILayer* NeuralNet::discriminate()
 {
 	for (int i = 0; i < layers.size() - 1; ++i)
 	{
-		if (use_dropout)
+		if (use_dropout && i != 0 && layers[i]->type != CNN_SOFTMAX)
 			dropout(layers[i]);
-		for (int j = 0; j < layers[i + 1]->feature_maps.size(); ++j)
-			delete layers[i + 1]->feature_maps[j];
-		if (binary_net)
-			layers[i + 1]->feature_maps = layers[i]->feed_forwards_prob();
+		if (binary_net && layers[i + 1]->type != CNN_SOFTMAX)
+			layers[i]->PERCEPTRONs_prob(layers[i + 1]->feature_maps);
 		else
-			layers[i + 1]->feature_maps = layers[i]->feed_forwards();
+			layers[i]->PERCEPTRONs(layers[i + 1]->feature_maps);
 	}
 	return layers[layers.size() - 1];
 }
@@ -201,15 +207,13 @@ void NeuralNet::pretrain(int epochs)
 	{
 		for (int i = 0; i < layers.size() - 1; ++i)
 		{
-			if (layers[i]->type != CNN_MAXPOOL)
-				layers[i]->wake_sleep(learning_rate, binary_net, use_dropout);
-
-			for (int j = 0; j < layers[i + 1]->feature_maps.size(); ++j)
-				delete layers[i + 1]->feature_maps[j];
 			if (binary_net)
-				layers[i + 1]->feature_maps = layers[i]->feed_forwards_prob();
+				layers[i]->PERCEPTRONs_prob(layers[i + 1]->feature_maps);
 			else
-				layers[i + 1]->feature_maps = layers[i]->feed_forwards();
+				layers[i]->PERCEPTRONs(layers[i + 1]->feature_maps);
+
+			if (layers[i]->type == CNN_CONVOLUTION)
+				layers[i]->wake_sleep(learning_rate, binary_net, use_dropout);
 		}
 	}
 }
@@ -218,6 +222,11 @@ void NeuralNet::train(int epochs)
 {
 	for (int e = 0; e < epochs; ++e)
 	{
+		for (int f = 0; f < input.size(); ++f)
+			for (int i = 0; i < input[f]->rows(); ++i)
+				for (int j = 0; j < input[f]->cols(); ++j)
+					layers[0]->feature_maps[f]->at(i, j) = input[f]->at(i, j);
+
 		discriminate();
 
 		//find output's error signals and set the output layer to them for backprop
@@ -231,76 +240,46 @@ void NeuralNet::train(int epochs)
 		//after setting the output layer's recognition_data to its error signal will give all of the error signals
 		for (int l = top; l > 0; --l)
 		{
-			if (layers[l - 1]->type != CNN_MAXPOOL)
+			if (layers[l - 1]->type == CNN_PERCEPTRON)
 			{
-				std::vector<Matrix<float>*> temp = layers[l - 1]->feed_backwards(layers[l]->feature_maps, false);
-				for (int f = 0; f < layers[l - 1]->feature_maps.size(); ++f)
+				std::vector<IMatrix<float>*> temp = std::vector<IMatrix<float>*>(layers[l]->feature_maps.size());
+				for (int i = 0; i < temp.size(); ++i)
+					temp[i] = layers[l]->feature_maps[i]->clone();
+
+				layers[l - 1]->feed_backwards(layers[l]->feature_maps, false);
+				for (int f_o = 0; f_o < layers[l]->feature_maps.size(); ++f_o)
 				{
-					for (int i = 0; i < layers[l - 1]->feature_maps[f]->rows(); ++i)
+					for (int i = 0; i < layers[l]->feature_maps[f_o]->rows(); ++i)
 					{
-						for (int j = 0; j < layers[l - 1]->feature_maps[f]->cols(); ++j)
+						for (int j = 0; j < layers[l]->feature_maps[f_o]->cols(); ++j)
 						{
-							float y = layers[l - 1]->feature_maps[f]->at(i, j);
-							float delta_k = 0.0f;
+							float y = temp[f_o]->at(i, j);
+							float delta_k = 1.0f;
 
 							if (binary_net)
-								delta_k = y * (1 - y) * temp[f]->at(i, j);
-							else
-								delta_k = temp[f]->at(i, j);
+								delta_k *= y * (1 - y);
 
-							float delta_weight = -learning_rate * delta_k * y;
-							float delta_bias = -learning_rate * delta_k;
+							float delta_j = -learning_rate * delta_k * layers[l]->feature_maps[f_o]->at(i, j);
+							layers[l - 1]->biases[f_o]->at(i, j) += -learning_rate * y * (1 - y);
 
 							//Update the weights
-							if (layers[l - 1]->type == CNN_FEED_FORWARD)
-							{
-								for (int f_o = 0; f_o < layers[l]->feature_maps.size(); ++f_o)
-								{
-									for (int j2 = 0; j2 < layers[l]->feature_maps[f_o]->rows(); ++j2)
-									{
-										layers[l - 1]->recognition_data[0]->at(j2 + f_o * layers[l]->feature_maps[f_o]->rows(),
-											i + f * layers[l - 1]->feature_maps[f]->rows()) +=
-											delta_weight * layers[l]->feature_maps[f_o]->at(j2, 0);
-										layers[l - 1]->biases[f_o]->at(j2, 0) += delta_bias;
-									}
-								}
-							}
-
-							else if (layers[l - 1]->type == CNN_CONVOLUTION)
-							{
-								for (int f_o = 0; f_o < layers[l]->feature_maps.size(); ++f_o)
-								{
-									int max_i = layers[l]->feature_maps[f_o]->rows();
-									int max_j = layers[l]->feature_maps[f_o]->cols();
-
-									int r = (layers[l - 1]->recognition_data[f_o]->rows() - 1) / 2;
-
-									for (int n = r; n >= -r; --n)
-									{
-										for (int m = r; m >= -r; --m)
-										{
-											int up_i = i - n;
-											int up_j = j - m;
-
-											if (up_i >= 0 && up_i < max_i && up_j >= 0 && up_j < max_j)
-											{
-												layers[l - 1]->recognition_data[f_o]->at(r - n, r - m) +=
-													delta_weight * layers[l]->feature_maps[f_o]->at(up_i, up_j);
-												layers[l - 1]->biases[f_o]->at(up_i, up_j) += delta_bias;
-											}
-										}
-									}
-								}
-
-								if (l > 1)
-									layers[l - 1]->feature_maps[f]->at(i, j) = delta_k;
-							}
+							for (int f = 0; f < layers[l - 1]->feature_maps.size(); ++f)
+								for (int i2 = 0; i2 < layers[l - 1]->feature_maps[f]->rows(); ++i2)
+									for (int j2 = 0; j2 < layers[l - 1]->feature_maps[f]->cols(); ++j2)
+										layers[l - 1]->recognition_data[0]->at(f_o * layers[l]->feature_maps[f_o]->rows() *
+										layers[l]->feature_maps[f_o]->cols() + i * layers[l]->feature_maps[f_o]->cols() + j,
+										f * layers[l - 1]->feature_maps[f]->rows() * layers[l - 1]->feature_maps[f]->cols() +
+										i2 * layers[l - 1]->feature_maps[f]->cols() + j2)
+										+= delta_j * layers[l - 1]->feature_maps[f]->at(i2, j2);
 						}
 					}
 				}
+
+				for (int i = 0; i < temp.size(); ++i)
+					delete temp[i];
 			}
 
-			else
+			else if (layers[l - 1]->type == CNN_MAXPOOL)
 			{
 				for (int f = 0; f < layers[l - 1]->feature_maps.size(); ++f)
 				{
@@ -361,9 +340,9 @@ float NeuralNet::output_error_signal(int &i, int &j, int &k)
 	float t = labels[k]->at(i, j);
 
 	if (binary_net)
-		return O * (O - t) * O * (1 - O);//delta k
+		return (O - t) * O * (1 - O);//delta k
 	else
-		return  O * (O - t);
+		return  (O - t);
 }
 
 float NeuralNet::error_signal(int &i, int &j, int &k, float &weights_sum)
@@ -382,7 +361,7 @@ Matrix2D<int, 4, 1>* NeuralNet::coords(int &l, int &k, int &i, int &j)
 	return out;
 }
 
-void NeuralNet::dropout(ILayer* layer)
+void NeuralNet::dropout(ILayer* &layer)
 {
 	for (int f = 0; f < layer->feature_maps.size(); ++f)
 		for (int i = 0; i < layer->feature_maps[f]->rows(); ++i)
