@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1">
   <Class Name="ILayer">
-    <Position X="9.25" Y="2" Width="1.5" />
+    <Position X="9" Y="2" Width="1.75" />
     <Members>
       <Method Name="~ILayer" Hidden="true" />
       <Method Name="ILayer" Hidden="true" />
@@ -20,7 +20,7 @@
       <Method Name="IMatrix" Hidden="true" />
     </Members>
     <TypeIdentifier>
-      <HashCode>AAAAAgAAAAAAAAAAwABAAAAAAACgAAAAgAAAEAAAAAA=</HashCode>
+      <HashCode>AAAAAAQgAAAAAAAAwABAAAAAAACAAAAAgAAAEAAAAAA=</HashCode>
       <FileName>imatrix.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -57,7 +57,7 @@
   <Class Name="PerceptronLayer&lt;features, rows, cols, out_rows, out_cols, out_features&gt;" Collapsed="true">
     <Position X="13.75" Y="6.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAIAAAIAAAAAAIAAAAAQAAAAAgAgAACAAAAAA=</HashCode>
+      <HashCode>AAAAAAAIIAAAIAAAAAAIAAAAAAAAAAAAAgAACABAAAA=</HashCode>
       <FileName>ilayer.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -79,8 +79,8 @@
     <Position X="7" Y="6.5" Width="1.5" />
     <InheritanceLine Type="ILayer" ManuallyRouted="true" FixedToPoint="true">
       <Path>
-        <Point X="10" Y="5.478" />
-        <Point X="10" Y="6.125" />
+        <Point X="9.875" Y="5.478" />
+        <Point X="9.875" Y="6.125" />
         <Point X="7.75" Y="6.125" />
         <Point X="7.75" Y="6.5" />
       </Path>

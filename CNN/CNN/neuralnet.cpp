@@ -194,9 +194,9 @@ ILayer* NeuralNet::discriminate()
 		if (use_dropout && i != 0 && layers[i]->type != CNN_SOFTMAX)
 			dropout(layers[i]);
 		if (binary_net && layers[i + 1]->type != CNN_SOFTMAX)
-			layers[i]->PERCEPTRONs_prob(layers[i + 1]->feature_maps);
+			layers[i]->feed_forwards_prob(layers[i + 1]->feature_maps);
 		else
-			layers[i]->PERCEPTRONs(layers[i + 1]->feature_maps);
+			layers[i]->feed_forwards(layers[i + 1]->feature_maps);
 	}
 	return layers[layers.size() - 1];
 }
@@ -208,9 +208,9 @@ void NeuralNet::pretrain(int epochs)
 		for (int i = 0; i < layers.size() - 1; ++i)
 		{
 			if (binary_net)
-				layers[i]->PERCEPTRONs_prob(layers[i + 1]->feature_maps);
+				layers[i]->feed_forwards_prob(layers[i + 1]->feature_maps);
 			else
-				layers[i]->PERCEPTRONs(layers[i + 1]->feature_maps);
+				layers[i]->feed_forwards(layers[i + 1]->feature_maps);
 
 			if (layers[i]->type == CNN_CONVOLUTION)
 				layers[i]->wake_sleep(learning_rate, binary_net, use_dropout);

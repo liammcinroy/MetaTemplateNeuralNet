@@ -67,11 +67,11 @@ public:
 
 	virtual ~ILayer() = default;
 
-	virtual void PERCEPTRONs(std::vector<IMatrix<float>*> &output) = 0;
+	virtual void feed_forwards(std::vector<IMatrix<float>*> &output) = 0;
 
 	virtual void feed_backwards(std::vector<IMatrix<float>*> &input, const bool &use_g_weights) = 0;
 
-	virtual void PERCEPTRONs_prob(std::vector<IMatrix<float>*> &output) = 0;
+	virtual void feed_forwards_prob(std::vector<IMatrix<float>*> &output) = 0;
 
 	virtual void feed_backwards_prob(std::vector<IMatrix<float>*> &input, const bool &use_g_weights) = 0;
 
@@ -142,7 +142,7 @@ public:
 		}
 	}
 
-	void PERCEPTRONs(std::vector<IMatrix<float>*> &output)
+	void feed_forwards(std::vector<IMatrix<float>*> &output)
 	{
 		for (int f = 0; f < out_features; ++f)
 		{
@@ -175,7 +175,7 @@ public:
 					feature_maps[f]->at(i, j) = feature_maps[0]->at(i, j);
 	}
 
-	void PERCEPTRONs_prob(std::vector<IMatrix<float>*> &output)
+	void feed_forwards_prob(std::vector<IMatrix<float>*> &output)
 	{
 		for (int f = 0; f < out_features; ++f)
 		{
@@ -223,9 +223,9 @@ public:
 			discriminated[i] = new Matrix2D<float, (rows - kernel_size) / stride + 1, (cols - kernel_size) / stride + 1>();
 
 		if (binary_net)
-			this->PERCEPTRONs_prob(discriminated);
+			this->feed_forwards_prob(discriminated);
 		else
-			this->PERCEPTRONs(discriminated);
+			this->feed_forwards(discriminated);
 
 		if (binary_net)
 			this->feed_backwards_prob(discriminated, true);
@@ -237,9 +237,9 @@ public:
 			reconstructed[i] = new Matrix2D<float, (rows - kernel_size) / stride + 1, (cols - kernel_size) / stride + 1>();
 
 		if (binary_net)
-			this->PERCEPTRONs_prob(reconstructed);
+			this->feed_forwards_prob(reconstructed);
 		else
-			this->PERCEPTRONs(reconstructed);
+			this->feed_forwards(reconstructed);
 
 		//adjust weights
 		for (int f_o = 0; f_o < reconstructed.size(); ++f_o)
@@ -317,7 +317,7 @@ public:
 			delete biases[i];
 	}
 
-	void PERCEPTRONs(std::vector<IMatrix<float>*> &output)
+	void feed_forwards(std::vector<IMatrix<float>*> &output)
 	{
 		for (int f_o = 0; f_o < out_features; ++f_o)
 		{
@@ -372,7 +372,7 @@ public:
 		}
 	}
 
-	void PERCEPTRONs_prob(std::vector<IMatrix<float>*> &output)
+	void feed_forwards_prob(std::vector<IMatrix<float>*> &output)
 	{
 		for (int f_o = 0; f_o < out_features; ++f_o)
 		{
@@ -435,9 +435,9 @@ public:
 			discriminated[i] = new Matrix2D<float, out_rows, out_cols>();
 
 		if (binary_net)
-			this->PERCEPTRONs_prob(discriminated);
+			this->feed_forwards_prob(discriminated);
 		else
-			this->PERCEPTRONs(discriminated);
+			this->feed_forwards(discriminated);
 
 		std::vector<IMatrix<float>*> temp_feature(features);
 		for (int i = 0; i < features; ++i)
@@ -453,9 +453,9 @@ public:
 			reconstructed[i] = new Matrix2D<float, out_rows, out_cols>();
 
 		if (binary_net)
-			this->PERCEPTRONs_prob(reconstructed);
+			this->feed_forwards_prob(reconstructed);
 		else
-			this->PERCEPTRONs(reconstructed);
+			this->feed_forwards(reconstructed);
 
 		for (int i = 0; i < features; ++i)
 		{
@@ -524,7 +524,7 @@ public:
 		}
 	}
 
-	void PERCEPTRONs(std::vector<IMatrix<float>*> &output)
+	void feed_forwards(std::vector<IMatrix<float>*> &output)
 	{
 		for (int f = 0; f < features; ++f)
 		{
@@ -577,7 +577,7 @@ public:
 		return std::vector<IMatrix<float>*>();
 	}
 
-	void PERCEPTRONs_prob(std::vector<IMatrix<float>*> &output)
+	void feed_forwards_prob(std::vector<IMatrix<float>*> &output)
 	{
 		for (int f = 0; f < features; ++f)
 		{
@@ -662,7 +662,7 @@ public:
 		}
 	}
 
-	void PERCEPTRONs(std::vector<IMatrix<float>*> &output)
+	void feed_forwards(std::vector<IMatrix<float>*> &output)
 	{
 		for (int f = 0; f < features; ++f)
 		{
@@ -681,7 +681,7 @@ public:
 	{
 	}
 
-	void PERCEPTRONs_prob(std::vector<IMatrix<float>*> &output)
+	void feed_forwards_prob(std::vector<IMatrix<float>*> &output)
 	{
 		for (int f = 0; f < features; ++f)
 		{
@@ -732,7 +732,7 @@ public:
 		}
 	}
 
-	void PERCEPTRONs(std::vector<IMatrix<float>*> &output)
+	void feed_forwards(std::vector<IMatrix<float>*> &output)
 	{
 	}
 
@@ -740,7 +740,7 @@ public:
 	{
 	}
 
-	void PERCEPTRONs_prob(std::vector<IMatrix<float>*> &output)
+	void feed_forwards_prob(std::vector<IMatrix<float>*> &output)
 	{
 	}
 
