@@ -161,10 +161,10 @@ public:
 		{
 			if (!use_g_weights)
 				add<float, rows, cols>(feature_maps[0],
-				convolve_back<rows, cols, kernel_size, stride>(input[0], recognition_data[f_o]));
+				convolve_back<rows, cols, kernel_size, stride>(input[f_o], recognition_data[f_o]));
 			else
 				add<float, rows, cols>(feature_maps[0],
-				convolve_back<rows, cols, kernel_size, stride>(input[0], generative_data[f_o]));
+				convolve_back<rows, cols, kernel_size, stride>(input[f_o], generative_data[f_o]));
 		}
 
 		//copy as they are congruent
@@ -197,10 +197,10 @@ public:
 		{
 			if (!use_g_weights)
 				add<float, rows, cols>(feature_maps[0],
-				convolve_back<rows, cols, kernel_size, stride>(input[0], recognition_data[f_o]));
+				convolve_back<rows, cols, kernel_size, stride>(input[f_o], recognition_data[f_o]));
 			else
 				add<float, rows, cols>(feature_maps[0],
-				convolve_back<rows, cols, kernel_size, stride>(input[0], generative_data[f_o]));
+				convolve_back<rows, cols, kernel_size, stride>(input[f_o], generative_data[f_o]));
 		}
 
 		for (int i = 0; i < rows; ++i)
@@ -222,6 +222,10 @@ public:
 		for (int i = 0; i < out_features; ++i)
 			discriminated[i] = new Matrix2D<float, (rows - kernel_size) / stride + 1, (cols - kernel_size) / stride + 1>();
 
+		std::vector<IMatrix<float>*> reconstructed(out_features);
+		for (int i = 0; i < out_features; ++i)
+			reconstructed[i] = new Matrix2D<float, (rows - kernel_size) / stride + 1, (cols - kernel_size) / stride + 1>();
+
 		if (binary_net)
 			this->feed_forwards_prob(discriminated);
 		else
@@ -231,10 +235,6 @@ public:
 			this->feed_backwards_prob(discriminated, true);
 		else
 			this->feed_backwards(discriminated, true);
-
-		std::vector<IMatrix<float>*> reconstructed(out_features);
-		for (int i = 0; i < out_features; ++i)
-			reconstructed[i] = new Matrix2D<float, (rows - kernel_size) / stride + 1, (cols - kernel_size) / stride + 1>();
 
 		if (binary_net)
 			this->feed_forwards_prob(reconstructed);
@@ -270,10 +270,11 @@ public:
 			}
 		}
 
-		for (int i = 0; i < reconstructed.size(); ++i)
+		for (int i = 0; i < out_features; ++i)
+		{
 			delete reconstructed[i];
-		for (int i = 0; i < discriminated.size(); ++i)
 			delete discriminated[i];
+		}
 	}
 };
 
@@ -434,34 +435,24 @@ public:
 		for (int i = 0; i < out_features; ++i)
 			discriminated[i] = new Matrix2D<float, out_rows, out_cols>();
 
+		std::vector<IMatrix<float>*> reconstructed(out_features);
+		for (int i = 0; i < out_features; ++i)
+			reconstructed[i] = new Matrix2D<float, out_rows, out_cols>();
+
 		if (binary_net)
 			this->feed_forwards_prob(discriminated);
 		else
 			this->feed_forwards(discriminated);
-
-		std::vector<IMatrix<float>*> temp_feature(features);
-		for (int i = 0; i < features; ++i)
-			temp_feature[i] = feature_maps[i]->clone();
 
 		if (binary_net)
 			this->feed_backwards_prob(discriminated, true);
 		else
 			this->feed_backwards(discriminated, true);
 
-		std::vector<IMatrix<float>*> reconstructed(out_features);
-		for (int i = 0; i < out_features; ++i)
-			reconstructed[i] = new Matrix2D<float, out_rows, out_cols>();
-
 		if (binary_net)
 			this->feed_forwards_prob(reconstructed);
 		else
 			this->feed_forwards(reconstructed);
-
-		for (int i = 0; i < features; ++i)
-		{
-			*feature_maps[i] = *temp_feature[i];
-			delete temp_feature[i];
-		}
 
 		//adjust weights
 		for (int f_o = 0; f_o < reconstructed.size(); ++f_o)
