@@ -320,7 +320,7 @@ void NeuralNet::train(int epochs)
 			{
 				for (int f = 0; f < layers[l - 1]->feature_maps.size(); ++f)
 					for (int i = 0; i < layers[l - 1]->feature_maps[f]->rows(); ++i)
-						for (int j = 0; j < layers[l - 1]->feature_maps[f]->rows(); ++j)
+						for (int j = 0; j < layers[l - 1]->feature_maps[f]->cols(); ++j)
 							layers[l - 1]->feature_maps[f]->at(i, j) = layers[l]->feature_maps[f]->at(i, j);
 			}
 		}
