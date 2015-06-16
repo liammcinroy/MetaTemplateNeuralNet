@@ -13,7 +13,7 @@ public:
 
 	virtual ~IMatrix<T>() = default;
 
-	virtual inline T& at(unsigned int i, unsigned int j) = 0;
+	virtual inline T& at(int i, int j) = 0;
 
 	virtual IMatrix<T>* clone() = 0;
 
@@ -25,13 +25,13 @@ public:
 	{
 	}
 
-	virtual unsigned int rows() const = 0;
+	virtual int rows() const = 0;
 
-	virtual unsigned int cols() const = 0;
+	virtual int cols() const = 0;
 
 };
 
-template<typename T, unsigned int r, unsigned int c> class Matrix2D : public IMatrix<T>
+template<typename T, int r, int c> class Matrix2D : public IMatrix<T>
 {
 public:
 	Matrix2D<T, r, c>()
@@ -74,7 +74,7 @@ public:
 
 	~Matrix2D<T, r, c>() = default;
 
-	inline T& at(unsigned int i, unsigned int j)
+	inline T& at(int i, int j)
 	{
 		return data[(c * i) + j];
 	}
@@ -92,72 +92,72 @@ public:
 
 	void elem_multiply(Matrix2D<T, r, c>* &other)
 	{
-		for (unsigned int i = 0; i < rows; ++i)
-			for (unsigned int j = 0; j < cols; ++j)
+		for (int i = 0; i < rows; ++i)
+			for (int j = 0; j < cols; ++j)
 				this->at(i, j) *= other->at(i, j);
 	}
 
 	void elem_divide(Matrix2D<T, r, c>* &other)
 	{
-		for (unsigned int i = 0; i < rows; ++i)
-			for (unsigned int j = 0; j < cols; ++j)
+		for (int i = 0; i < rows; ++i)
+			for (int j = 0; j < cols; ++j)
 				this->at(i, j) /= other->at(i, j);
 	}
 
 	Matrix2D<T, r, c> operator+(Matrix2D<T, r, c> &other)
 	{
-		for (unsigned int i = 0; i < rows; ++i)
-			for (unsigned int j = 0; j < cols; ++j)
+		for (int i = 0; i < rows; ++i)
+			for (int j = 0; j < cols; ++j)
 				this->at(i, j) += other.at(i, j);
 		return *this;
 	}
 
 	Matrix2D<T, r, c> operator-(Matrix2D<T, r, c> &other)
 	{
-		for (unsigned int i = 0; i < rows; ++i)
-			for (unsigned int j = 0; j < cols; ++j)
+		for (int i = 0; i < rows; ++i)
+			for (int j = 0; j < cols; ++j)
 				this->at(i, j) -= other.at(i, j);
 		return *this;
 	}
 
 	Matrix2D<T, r, c> operator*(T &scalar)
 	{
-		for (unsigned int i = 0; i < rows; ++i)
-			for (unsigned int j = 0; j < cols; ++j)
+		for (int i = 0; i < rows; ++i)
+			for (int j = 0; j < cols; ++j)
 				this->at(i, j) *= scalar;
 		return *this;
 	}
 
 	Matrix2D<T, r, c> operator/(T &scalar)
 	{
-		for (unsigned int i = 0; i < rows; ++i)
-			for (unsigned int j = 0; j < cols; ++j)
+		for (int i = 0; i < rows; ++i)
+			for (int j = 0; j < cols; ++j)
 				this->at(i, j) /= scalar;
 		return *this;
 	}
 
 	Matrix2D<T, r, c> operator+(T &scalar)
 	{
-		for (unsigned int i = 0; i < rows; ++i)
-			for (unsigned int j = 0; j < cols; ++j)
+		for (int i = 0; i < rows; ++i)
+			for (int j = 0; j < cols; ++j)
 				this->at(i, j) += scalar;
 		return *this;
 	}
 
 	Matrix2D<T, r, c> operator-(T &scalar)
 	{
-		for (unsigned int i = 0; i < rows; ++i)
-			for (unsigned int j = 0; j < cols; ++j)
+		for (int i = 0; i < rows; ++i)
+			for (int j = 0; j < cols; ++j)
 				this->at(i, j) -= scalar;
 		return *this;
 	}
 
-	unsigned int rows() const
+	int rows() const
 	{
 		return r;
 	}
 
-	unsigned int cols() const
+	int cols() const
 	{
 		return c;
 	}

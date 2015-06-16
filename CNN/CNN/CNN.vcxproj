@@ -69,11 +69,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ilayer.h" />
+    <ClInclude Include="neuralnetanalyzer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imatrix.h" />
     <ClCompile Include="neuralnet.cpp" />
     <ClCompile Include="neuralnet.h" />
+    <ClCompile Include="neuralnetanalyzer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ClassDiagram.cd" />

@@ -18,6 +18,9 @@
     <ClInclude Include="ilayer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="neuralnetanalyzer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imatrix.h">
@@ -27,6 +30,9 @@
       <Filter>Header Files</Filter>
     </ClCompile>
     <ClCompile Include="neuralnet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="neuralnetanalyzer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
