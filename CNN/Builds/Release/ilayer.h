@@ -12,22 +12,23 @@
 #define CNN_SOFTMAX 5
 #define CNN_OUTPUT 6
 
-template<int rows, int cols, int kernel_size, int stride> IMatrix<float>*
+template<int rows, int cols, int kernel_rows, int kernel_cols, int stride> IMatrix<float>*
 convolve(IMatrix<float>* &input, IMatrix<float>* &kernel)
 {
-	int N = (kernel_size - 1) / 2;
-	Matrix2D<float, (rows - kernel_size) / stride + 1, (cols - kernel_size) / stride + 1>* output =
-		new Matrix2D<float, (rows - kernel_size) / stride + 1, (cols - kernel_size) / stride + 1>();
+	int N = (kernel_rows - 1) / 2;
+	int M = (kernel_cols - 1) / 2;
+	Matrix2D<float, (rows - kernel_rows) / stride + 1, (cols - kernel_cols) / stride + 1>* output =
+		new Matrix2D<float, (rows - kernel_rows) / stride + 1, (cols - kernel_cols) / stride + 1>();
 
 	//change focus of kernel
-	for (int i = N; i < (rows - kernel_size) + stride; i += stride)
+	for (int i = N; i < (rows - kernel_rows) + stride; i += stride)
 	{
-		for (int j = N; j < (cols - kernel_size) + stride; j += stride)
+		for (int j = N; j < (cols - kernel_cols) + stride; j += stride)
 		{
 			//iterate over kernel
 			float sum = 0;
 			for (int n = N; n >= -N; --n)
-				for (int m = N; m >= -N; --m)
+				for (int m = M; m >= -M; --m)
 					sum += input->at(i - n, j - m) * kernel->at(N - n, N - m);
 			output->at(i / stride, j / stride) = sum;
 		}
@@ -105,16 +106,6 @@ public:
 	bool use_biases = true;
 
 	bool binary = false;
-
-private:
-	void dropout(std::vector<IMatrix<float>*> feature_maps)
-	{
-		for (int f = 0; f < feature_maps.size(); ++f)
-			for (int i = 0; i < feature_maps[f]->rows(); ++i)
-				for (int j = 0; j < feature_maps[f]->cols(); ++j)
-					if ((1.0f * rand()) / RAND_MAX >= .5f)
-						feature_maps[f]->at(i, j) = 0;
-	}
 };
 
 template<int features, int rows, int cols,
@@ -127,15 +118,15 @@ public:
 		binary = binary_layer;
 		type = CNN_CONVOLUTION;
 		feature_maps = std::vector<IMatrix<float>*>(features);
-		for (int k = 0; k < features; ++k)
-		{
-			feature_maps[k] = new Matrix2D<float, rows, cols>();
-		}
+		for (int f = 0; f < features; ++f)
+			feature_maps[f] = new Matrix2D<float, rows, cols>();
 
+		biases = std::vector<IMatrix<float>*>(out_features);
 		recognition_data = std::vector<IMatrix<float>*>(out_features);
 		generative_data = std::vector<IMatrix<float>*>(out_features);
-		for (int k = 0; k < recognition_data.size(); ++k)
+		for (int k = 0; k < out_features; ++k)
 		{
+			biases[k] = new Matrix2D<float, (rows - kernel_size) / stride + 1, (cols - kernel_size) / stride + 1>();
 			recognition_data[k] = new Matrix2D<float, kernel_size, kernel_size>();
 			generative_data[k] = new Matrix2D<float, kernel_size, kernel_size>();
 			for (int i = 0; i < kernel_size; ++i)
@@ -163,14 +154,22 @@ public:
 
 	void feed_forwards(std::vector<IMatrix<float>*> &output)
 	{
-		for (int f = 0; f < out_features; ++f)
+		const int out_rows = (rows - kernel_size) / stride + 1;
+		const int out_cols = (cols - kernel_size) / stride + 1;
+
+		for (int f_0 = 0; f_0 < out_features; ++f_0)
 		{
 			//sum the kernels
-			for (int j = 0; j < features; ++j)
+			for (int f = 0; f < features; ++f)
 			{
-				add<float, (rows - kernel_size) / stride + 1, (cols - kernel_size) / stride + 1>
-					(output[f], convolve<rows, cols, kernel_size, stride>(feature_maps[j], recognition_data[f]));
+				add<float, out_rows, out_cols>
+					(output[f_0], convolve<rows, cols, kernel_size, kernel_size, stride>(feature_maps[f], recognition_data[f_0]));
 			}
+
+			if (use_biases)
+				for (int i = 0; i < out_rows; ++i)
+					for (int j = 0; j < out_cols; ++j)
+						output[f_0]->at(i, j) += biases[f_0]->at(i, j);
 		}
 	}
 
@@ -197,19 +196,29 @@ public:
 
 	void feed_forwards_prob(std::vector<IMatrix<float>*> &output)
 	{
-		for (int f = 0; f < out_features; ++f)
+		const int out_rows = (rows - kernel_size) / stride + 1;
+		const int out_cols = (cols - kernel_size) / stride + 1;
+
+		for (int f_0 = 0; f_0 < out_features; ++f_0)
 		{
 			//sum the kernels
-			for (int j = 0; j < features; ++j)
+			for (int f = 0; f < features; ++f)
 			{
-				add<float, (rows - kernel_size) / stride + 1, (cols - kernel_size) / stride + 1>
-					(output[f], convolve<rows, cols, kernel_size, stride>(feature_maps[j], recognition_data[f]));
+				add<float, out_rows, out_cols>
+					(output[f_0], convolve<rows, cols, kernel_size, kernel_size, stride>(feature_maps[f], recognition_data[f_0]));
 			}
 
 			//sigmoid
-			for (int i = 0; i < (rows - kernel_size) / stride + 1; ++i)
-				for (int j = 0; j < (cols - kernel_size) / stride + 1; ++j)
-					output[f]->at(i, j) = 1 / (1 + exp((float)-output[f]->at(i, j)));
+			for (int i = 0; i < out_rows; ++i)
+			{
+				for (int j = 0; j < out_cols; ++j)
+				{
+					if (use_biases)
+						output[f_0]->at(i, j) = 1 / (1 + exp((float)-output[f_0]->at(i, j) - biases[f_0]->at(i, j)));
+					else
+						output[f_0]->at(i, j) = 1 / (1 + exp((float)-output[f_0]->at(i, j)));
+				}
+			}
 		}
 	}
 
@@ -300,9 +309,50 @@ public:
 		}
 	}
 
-	//TODO
-	 void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient)
+	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient)
 	{
+		std::vector<IMatrix<float>*> temp = std::vector<IMatrix<float>*>(features);
+		for (int f = 0; f < features; ++f)
+		{
+			temp[f] = feature_maps[f]->clone();
+			for (int i = 0; i < rows; ++i)
+				for (int j = 0; j < cols; ++j)
+					feature_maps[f]->at(i, j) = 0;
+		}
+
+		const int out_rows = (rows - kernel_size) / stride + 1;
+		const int out_cols = (cols - kernel_size) / stride + 1;
+
+		//adjust gradients and update features
+		for (int f_0 = 0; f_0 < out_features; ++f_0)
+		{
+			for (int i_0 = 0; i_0 < out_rows; ++i_0)
+			{
+				for (int j_0 = 0; j_0 < out_cols; ++j_0)
+				{
+					float y = data[f_0]->at(i_0, j_0);
+
+					if (binary)
+						deriv[f_0]->at(i_0, j_0) *= y * (1 - y);
+
+					if (use_biases)
+						bias_gradient[f_0]->at(i_0, j_0) += deriv[f_0]->at(i_0, j_0);
+				}
+			}
+
+			for (int f = 0; f < features; ++f)
+			{
+				//adjust the gradient
+				add<float, kernel_size, kernel_size>(weight_gradient[f_0], convolve<rows, cols, out_rows, out_cols, stride>(temp[f], deriv[f_0]));
+			}
+		}
+
+		//update deltas
+		feed_backwards(deriv, false);
+
+		//clean up
+		for (int f = 0; f < features; ++f)
+			delete temp[f];
 	}
 
 	ILayer* clone()
@@ -470,7 +520,7 @@ public:
 
 						//add bias and sigmoid
 						if (use_biases)
-							output[f_0]->at(i_0, j_0) = 1 / (1 + exp(-sum + biases[f_0]->at(i_0, j_0)));
+							output[f_0]->at(i_0, j_0) = 1 / (1 + exp(-sum - biases[f_0]->at(i_0, j_0)));
 						else
 							output[f_0]->at(i_0, j_0) = 1 / (1 + exp(-sum));
 					}
@@ -566,7 +616,7 @@ public:
 			delete discriminated[i];
 	}
 
-	 void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient)
+	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient)
 	{
 		std::vector<IMatrix<float>*> temp = std::vector<IMatrix<float>*>(features);
 		for (int f = 0; f < features; ++f)
@@ -583,15 +633,13 @@ public:
 			{
 				for (int j_0 = 0; j_0 < out_cols; ++j_0)
 				{
-					float delta_k = deriv[f_0]->at(i_0, j_0);
 					float y = data[f_0]->at(i_0, j_0);
 
 					if (binary)
-						delta_k *= y * (1 - y);
+						deriv[f_0]->at(i_0, j_0) *= y * (1 - y);
 
 					if (use_biases)
-						//TODO: FIND OUT WHY NEGATE... WORKS BUT DON'T KNOW WHY
-						bias_gradient[f_0]->at(i_0, j_0) -= delta_k;
+						bias_gradient[f_0]->at(i_0, j_0) += deriv[f_0]->at(i_0, j_0);
 
 					for (int f = 0; f < features; ++f)
 					{
@@ -600,9 +648,9 @@ public:
 							for (int j = 0; j < cols; ++j)
 							{
 								feature_maps[f]->at(i, j) += 
-									delta_k * recognition_data[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
+									deriv[f_0]->at(i_0, j_0) * recognition_data[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
 								weight_gradient[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) +=
-									delta_k * temp[f]->at(i, j);
+									deriv[f_0]->at(i_0, j_0) * temp[f]->at(i, j);
 							}
 						}
 					}
@@ -650,7 +698,7 @@ public:
 };
 
 //TODO
-template<int features, int rows, int cols, int out_rows, int out_cols, int out_features, int connections, bool binary_layer>
+/*template<int features, int rows, int cols, int out_rows, int out_cols, int out_features, int connections, bool binary_layer>
 class PerceptronLocalConnectivityLayer : public ILayer
 {
 public:
@@ -1278,7 +1326,7 @@ public:
 		//TODO
 	}
 
-	 void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient)
+	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient)
 	{
 	}
 
@@ -1315,7 +1363,7 @@ public:
 
 		return copy;
 	}
-};
+};*/
 
 template<int features, int rows, int cols, int out_rows, int out_cols>
 class MaxpoolLayer : public ILayer
@@ -1470,7 +1518,7 @@ public:
 		//not applicable
 	}
 
-	 void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient)
+	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient)
 	{
 		//just move the values back to which ones were passed on
 		for (int f = 0; f < features; ++f)
@@ -1589,7 +1637,7 @@ public:
 	{
 	}
 
-	 void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient)
+	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient)
 	{
 		for (int f = 0; f < features; ++f)
 			for (int i = 0; i < rows; ++i)
@@ -1670,7 +1718,7 @@ public:
 	{
 	}
 
-	 void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient)
+	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient)
 	{
 	}
 
@@ -1738,7 +1786,7 @@ public:
 	{
 	}
 
-	 void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient)
+	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient)
 	{
 		for (int f = 0; f < features; ++f)
 			for (int i = 0; i < rows; ++i)

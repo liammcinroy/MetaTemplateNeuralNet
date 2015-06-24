@@ -50,6 +50,14 @@ NeuralNet::~NeuralNet()
 
 void NeuralNet::setup_gradient()
 {
+	//labels and input
+	input = std::vector<IMatrix<float>*>(layers[0]->feature_maps.size());
+	for (int f = 0; f < input.size(); ++f)
+		input[f] = layers[0]->feature_maps[f]->clone();
+	labels = std::vector<IMatrix<float>*>(layers[layers.size() - 1]->feature_maps.size());
+	for (int f = 0; f < labels.size(); ++f)
+		labels[f] = layers[layers.size() - 1]->feature_maps[f]->clone();
+
 	//gradients setup for weights and biases
 	weight_gradient = std::vector<std::vector<IMatrix<float>*>>(layers.size());
 	bias_gradient = std::vector<std::vector<IMatrix<float>*>>(layers.size());
@@ -241,29 +249,37 @@ void NeuralNet::load_data(std::string path)
 	}
 }
 
-void NeuralNet::set_input(std::vector<IMatrix<float>*> in)
+void NeuralNet::set_input(std::vector<IMatrix<float>*> &in)
 {
-	input.clear();
-	input = std::vector<IMatrix<float>*>(in.size());
-	for (int i = 0; i < in.size(); ++i)
-		input[i] = in[i]->clone();
 	for (int f = 0; f < input.size(); ++f)
+	{
 		for (int i = 0; i < input[f]->rows(); ++i)
+		{
 			for (int j = 0; j < input[f]->cols(); ++j)
+			{
+				input[f]->at(i, j) = in[f]->at(i, j);
 				layers[0]->feature_maps[f]->at(i, j) = input[f]->at(i, j);
+			}
+		}
+	}
 }
 
-void NeuralNet::set_labels(std::vector<IMatrix<float>*> batch_labels)
+void NeuralNet::set_labels(std::vector<IMatrix<float>*> &batch_labels)
 {
-	for (int i = 0; i < labels.size(); ++i)
-		delete labels[i];
-	labels = std::vector<IMatrix<float>*>(batch_labels.size());
-	for (int i = 0; i < batch_labels.size(); ++i)
-		labels[i] = batch_labels[i]->clone();
+	for (int f = 0; f < labels.size(); ++f)
+		for (int i = 0; i < labels[f]->rows(); ++i)
+			for (int j = 0; j < labels[f]->cols(); ++j)
+				labels[f]->at(i, j) = batch_labels[f]->at(i, j);
 }
 
-ILayer* NeuralNet::discriminate()
+void NeuralNet::discriminate()
 {
+	//reset
+	for (int l = 1; l < layers.size(); ++l)
+		for (int f = 0; f < layers[l]->feature_maps.size(); ++f)
+			for (int i = 0; i < layers[l]->feature_maps[f]->rows(); ++i)
+				for (int j = 0; j < layers[l]->feature_maps[f]->cols(); ++j)
+					layers[l]->feature_maps[f]->at(i, j) = 0;
 	for (int i = 0; i < layers.size() - 1; ++i)
 	{
 		if (use_dropout && i != 0 && layers[i]->type != CNN_SOFTMAX)
@@ -273,7 +289,6 @@ ILayer* NeuralNet::discriminate()
 		else
 			layers[i]->feed_forwards(layers[i + 1]->feature_maps);
 	}
-	return layers[layers.size() - 1];
 }
 
 void NeuralNet::pretrain(int iterations)
@@ -409,7 +424,7 @@ float NeuralNet::global_error()
 	for (int k = 0; k < labels.size(); ++k)
 		for (int i = 0; i < labels[k]->rows(); ++i)
 			for (int j = 0; j < labels[k]->cols(); ++j)
-				sum += pow(labels[k]->at(i, j) - layers[layers.size() - 1]->feature_maps[0]->at(i, j), 2);
+				sum += pow(labels[k]->at(i, j) - layers[layers.size() - 1]->feature_maps[k]->at(i, j), 2);
 	return sum / 2;
 }
 

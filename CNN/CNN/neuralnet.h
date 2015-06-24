@@ -20,11 +20,11 @@ public:
 	//load previously learned net
 	void load_data(std::string path);
 	//feed forwards
-	ILayer* discriminate();
+	void discriminate();
 	//set input (batch will not be generated)
-	void set_input(std::vector<IMatrix<float>*> input);
+	void set_input(std::vector<IMatrix<float>*> &input);
 	//set labels for batch
-	void set_labels(std::vector<IMatrix<float>*> batch_labels);
+	void set_labels(std::vector<IMatrix<float>*> &batch_labels);
 	//wake-sleep algorithm
 	void pretrain(int iterations);
 	//backpropogate with levenbourg-marquardt
