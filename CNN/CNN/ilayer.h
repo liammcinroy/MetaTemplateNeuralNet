@@ -97,8 +97,6 @@ public:
 
 	std::vector<IMatrix<float>*> second_derivatives;
 
-	std::vector<IMatrix<std::pair<int, int>>*> coords_of_max;
-
 	int type;
 
 	int connections_per_neuron;
@@ -1374,11 +1372,11 @@ public:
 		type = CNN_MAXPOOL;
 		use_biases = false;
 		feature_maps = std::vector<IMatrix<float>*>(features);
-		coords_of_max = std::vector<IMatrix<std::pair<int, int>>*>(features);
+		switches = std::vector<IMatrix<std::pair<int, int>>*>(features);
 		for (int i = 0; i < features; ++i)
 		{
 			feature_maps[i] = new Matrix2D<float, rows, cols>();
-			coords_of_max[i] = new Matrix2D<std::pair<int, int>, out_rows, out_cols>();
+			switches[i] = new Matrix2D<std::pair<int, int>, out_rows, out_cols>();
 		}
 		recognition_data = std::vector<IMatrix<float>*>(1);
 		recognition_data[0] = new Matrix2D<float, 0, 0>();
@@ -1402,14 +1400,13 @@ public:
 		for (int f_0 = 0; f_0 < features; ++f_0)
 			for (int i = 0; i < output[f_0]->rows(); ++i)
 				for (int j = 0; j < output[f_0]->cols(); ++j)
-					output[f_0]->at(i, j) = 0;
+					output[f_0]->at(i, j) = INT_MIN;
 
 		for (int f = 0; f < features; ++f)
 		{
 			const int down = rows / out_rows;
 			const int across = cols / out_cols;
 			Matrix2D<Matrix2D<float, down, across>, out_rows, out_cols> samples;
-
 
 			//get samples
 			for (int i = 0; i < out_rows; ++i)
@@ -1441,7 +1438,7 @@ public:
 							if (samples.at(i, j).at(n, m) > output[f]->at(i, j))
 							{
 								output[f]->at(i, j) = samples.at(i, j).at(n, m);
-								coords_of_max[f]->at(i, j) = std::make_pair<int, int>(samples.at(i, j).rows() * i + n, samples.at(i, j).cols() * j + m);
+								switches[f]->at(i, j) = std::make_pair(n, m);
 							}
 						}
 					}
@@ -1460,14 +1457,13 @@ public:
 		for (int f_0 = 0; f_0 < features; ++f_0)
 			for (int i = 0; i < output[f_0]->rows(); ++i)
 				for (int j = 0; j < output[f_0]->cols(); ++j)
-					output[f_0]->at(i, j) = 0;
+					output[f_0]->at(i, j) = INT_MIN;
 
 		for (int f = 0; f < features; ++f)
 		{
 			const int down = rows / out_rows;
 			const int across = cols / out_cols;
 			Matrix2D<Matrix2D<float, down, across>, out_rows, out_cols> samples;
-
 
 			//get samples
 			for (int i = 0; i < out_rows; ++i)
@@ -1499,7 +1495,7 @@ public:
 							if (samples.at(i, j).at(n, m) > output[f]->at(i, j))
 							{
 								output[f]->at(i, j) = samples.at(i, j).at(n, m);
-								coords_of_max[f]->at(i, j) = std::make_pair<int, int>(samples.at(i, j).rows() * i + n, samples.at(i, j).cols() * j + m);
+								switches[f]->at(i, j) = std::make_pair(n, m);
 							}
 						}
 					}
@@ -1523,27 +1519,26 @@ public:
 		//just move the values back to which ones were passed on
 		for (int f = 0; f < features; ++f)
 		{
-			int currentSampleI = 0;
-			int currentSampleJ = 0;
+			const int down = rows / out_rows;
+			const int across = cols / out_cols;
 
-			int down = rows / out_rows;
-			int across = cols / out_cols;
-
-			for (int i = 0; i < rows; ++i)
+			//search each sample
+			for (int i_0 = 0; i_0 < out_rows; ++i_0)
 			{
-				for (int j = 0; j < cols; ++j)
+				for (int j_0 = 0; j_0 < out_cols; ++j_0)
 				{
-					std::pair<int, int> coords = coords_of_max[f]->at(currentSampleI, currentSampleJ);
-					if (i == coords.first && j == coords.second)
-							feature_maps[f]->at(i, j) = data[f]->at(i, j) * feature_maps[f]->at(i, j);
-					else
-						feature_maps[f]->at(i, j) = 0;
-
-					if (j % across == 0 && j != 0)
-						++currentSampleJ;
+					std::pair<int, int> coords = switches[f]->at(i_0, j_0);
+					for (int i = 0; i < down; ++i)
+					{
+						for (int j = 0; j < across; ++j)
+						{
+							if (i == coords.first && j == coords.second)
+								feature_maps[f]->at(i_0 * down + i, j_0 * across + j) = deriv[f]->at(i_0, j_0);
+							else
+								feature_maps[f]->at(i * down, j * across) = 0;
+						}
+					}
 				}
-				if (i % down == 0 && i != 0)
-					++currentSampleI;
 			}
 		}
 	}
@@ -1561,6 +1556,10 @@ public:
 
 		return copy;
 	}
+
+private:
+	std::vector<IMatrix<std::pair<int, int>>*> switches;
+
 };
 
 template<int features, int rows, int cols>
