@@ -284,10 +284,7 @@ void NeuralNet::discriminate()
 	{
 		if (use_dropout && i != 0 && layers[i]->type != CNN_SOFTMAX)
 			dropout(layers[i]);
-		if (layers[i]->binary)
-			layers[i]->feed_forwards_prob(layers[i + 1]->feature_maps);
-		else
-			layers[i]->feed_forwards(layers[i + 1]->feature_maps);
+		layers[i]->feed_forwards(layers[i + 1]->feature_maps);
 	}
 }
 
@@ -297,10 +294,7 @@ void NeuralNet::pretrain(int iterations)
 	{
 		for (int i = 0; i < layers.size() - 1; ++i)
 		{
-			if (layers[i]->binary)
-				layers[i]->feed_forwards_prob(layers[i + 1]->feature_maps);
-			else
-				layers[i]->feed_forwards(layers[i + 1]->feature_maps);
+			layers[i]->feed_forwards(layers[i + 1]->feature_maps);
 
 			if (layers[i]->type == CNN_CONVOLUTION)
 				layers[i]->wake_sleep(learning_rate, use_dropout);

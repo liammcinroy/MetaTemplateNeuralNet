@@ -43,9 +43,9 @@ public:
 	std::vector<ILayer*> layers;
 	std::vector<IMatrix<float>*> input;
 	std::vector<IMatrix<float>*> labels;
-private:
 	std::vector<std::vector<IMatrix<float>*>> weight_gradient;
 	std::vector<std::vector<IMatrix<float>*>> bias_gradient;
+private:
 	std::vector<std::vector<IMatrix<float>*>> weight_momentum;
 	std::vector<std::vector<IMatrix<float>*>> bias_momentum;
 	Matrix2D<int, 4, 1>* coords(int &l, int &k, int &i, int &j);

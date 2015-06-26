@@ -12,6 +12,12 @@
 #define CNN_SOFTMAX 5
 #define CNN_OUTPUT 6
 
+#define CNN_LINEAR 0
+#define CNN_SIGMOID 1
+#define CNN_BIPOLAR_SIGMOID 2
+#define CNN_TANH 3
+#define CNN_RELU 4
+
 template<int rows, int cols, int kernel_rows, int kernel_cols, int stride> IMatrix<float>*
 convolve(IMatrix<float>* &input, IMatrix<float>* &kernel)
 {
@@ -77,10 +83,6 @@ public:
 
 	virtual void feed_backwards(std::vector<IMatrix<float>*> &input, const bool &use_g_weights) = 0;
 
-	virtual void feed_forwards_prob(std::vector<IMatrix<float>*> &output) = 0;
-
-	virtual void feed_backwards_prob(std::vector<IMatrix<float>*> &input, const bool &use_g_weights) = 0;
-
 	virtual void wake_sleep(float &learning_rate, bool &use_dropout) = 0;
 
 	virtual  void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient) = 0;
@@ -103,17 +105,45 @@ public:
 
 	bool use_biases = true;
 
-	bool binary = false;
+	int activation = 0;
+
+	float activate(float value, int activation)
+	{
+		if (activation == CNN_LINEAR)
+			return value;
+		if (activation == CNN_SIGMOID)
+			return value < 5 && value > -5 ? (1 / (1 + exp(-value))) : (value >= 5 ? 1.0f : 0.0f);
+		if (activation == CNN_BIPOLAR_SIGMOID)
+			return value < 5 && value > -5 ? ((2 / (1 + exp(-value))) - 1) : (value >= 5 ? 1.0f : -1.0f);
+		if (activation == CNN_TANH)
+			return value < 5 && value > -5 ? tanh(value) : (value >= 5 ? 1.0f : -1.0f);
+		if (activation == CNN_RELU)
+			return value > 0 ? value : 0;
+	}
+
+	float activation_derivative(float value, int activation)
+	{
+		if (activation == CNN_LINEAR)
+			return 1;
+		if (activation == CNN_SIGMOID)
+			return value * (1 - value);
+		if (activation == CNN_BIPOLAR_SIGMOID)
+			return (value + 1) * (value - 1) / -2;
+		if (activation == CNN_TANH)
+			return 1 - value * value;
+		if (activation == CNN_RELU)
+			return value > 0 ? 1 : 0;
+	}
 };
 
 template<int features, int rows, int cols,
-	int kernel_size, int stride, int out_features, bool binary_layer>
+	int kernel_size, int stride, int out_features, int activation_function>
 class ConvolutionLayer : public ILayer
 {
 public:
-	ConvolutionLayer<features, rows, cols, kernel_size, stride, out_features, binary_layer>()
+	ConvolutionLayer<features, rows, cols, kernel_size, stride, out_features, activation_function>()
 	{
-		binary = binary_layer;
+		activation = activation_function;
 		type = CNN_CONVOLUTION;
 		feature_maps = std::vector<IMatrix<float>*>(features);
 		for (int f = 0; f < features; ++f)
@@ -139,7 +169,7 @@ public:
 		}
 	}
 
-	~ConvolutionLayer<features, rows, cols, kernel_size, stride, out_features, binary_layer>()
+	~ConvolutionLayer<features, rows, cols, kernel_size, stride, out_features, activation_function>()
 	{
 		for (int i = 0; i < features; ++i)
 			delete feature_maps[i];
@@ -168,6 +198,11 @@ public:
 				for (int i = 0; i < out_rows; ++i)
 					for (int j = 0; j < out_cols; ++j)
 						output[f_0]->at(i, j) += biases[f_0]->at(i, j);
+
+			if (activation != CNN_LINEAR)
+				for (int i = 0; i < out_rows; ++i)
+					for (int j = 0; j < out_cols; ++j)
+						output[f_0]->at(i, j) = activate(output[f_0]->at(i, j), activation);
 		}
 	}
 
@@ -192,59 +227,6 @@ public:
 					feature_maps[f]->at(i, j) = feature_maps[0]->at(i, j);
 	}
 
-	void feed_forwards_prob(std::vector<IMatrix<float>*> &output)
-	{
-		const int out_rows = (rows - kernel_size) / stride + 1;
-		const int out_cols = (cols - kernel_size) / stride + 1;
-
-		for (int f_0 = 0; f_0 < out_features; ++f_0)
-		{
-			//sum the kernels
-			for (int f = 0; f < features; ++f)
-			{
-				add<float, out_rows, out_cols>
-					(output[f_0], convolve<rows, cols, kernel_size, kernel_size, stride>(feature_maps[f], recognition_data[f_0]));
-			}
-
-			//sigmoid
-			for (int i = 0; i < out_rows; ++i)
-			{
-				for (int j = 0; j < out_cols; ++j)
-				{
-					if (use_biases)
-						output[f_0]->at(i, j) = 1 / (1 + exp((float)-output[f_0]->at(i, j) - biases[f_0]->at(i, j)));
-					else
-						output[f_0]->at(i, j) = 1 / (1 + exp((float)-output[f_0]->at(i, j)));
-				}
-			}
-		}
-	}
-
-	void feed_backwards_prob(std::vector<IMatrix<float>*> &input, const bool &use_g_weights)
-	{
-		//Do the first only
-		for (int f_0 = 0; f_0 < out_features; ++f_0)
-		{
-			if (!use_g_weights)
-				add<float, rows, cols>(feature_maps[0],
-				convolve_back<rows, cols, kernel_size, stride>(input[f_0], recognition_data[f_0]));
-			else
-				add<float, rows, cols>(feature_maps[0],
-				convolve_back<rows, cols, kernel_size, stride>(input[f_0], generative_data[f_0]));
-		}
-
-		for (int i = 0; i < rows; ++i)
-			for (int j = 0; j < cols; ++j)
-				feature_maps[0]->at(i, j) = 1 / (1 + exp(-feature_maps[0]->at(i, j)));
-
-		//copy as they are congruent
-#pragma warning(suppress: 6294)
-		for (int f = 1; f < features; ++f)
-			for (int i = 0; i < feature_maps[f]->rows(); ++i)
-				for (int j = 0; j < feature_maps[f]->cols(); ++j)
-					feature_maps[f]->at(i, j) = feature_maps[0]->at(i, j);
-	}
-
 	void wake_sleep(float &learning_rate, bool &use_dropout)
 	{
 		//find difference via gibbs sampling
@@ -256,20 +238,9 @@ public:
 		for (int i = 0; i < out_features; ++i)
 			reconstructed[i] = new Matrix2D<float, (rows - kernel_size) / stride + 1, (cols - kernel_size) / stride + 1>();
 
-		if (binary)
-			this->feed_forwards_prob(discriminated);
-		else
-			this->feed_forwards(discriminated);
-
-		if (binary)
-			this->feed_backwards_prob(discriminated, true);
-		else
-			this->feed_backwards(discriminated, true);
-
-		if (binary)
-			this->feed_forwards_prob(reconstructed);
-		else
-			this->feed_forwards(reconstructed);
+		this->feed_forwards(discriminated);
+		this->feed_backwards(discriminated, true);
+		this->feed_forwards(reconstructed);
 
 		//adjust weights
 		for (int f_0 = 0; f_0 < reconstructed.size(); ++f_0)
@@ -328,10 +299,7 @@ public:
 			{
 				for (int j_0 = 0; j_0 < out_cols; ++j_0)
 				{
-					float y = data[f_0]->at(i_0, j_0);
-
-					if (binary)
-						deriv[f_0]->at(i_0, j_0) *= y * (1 - y);
+					deriv[f_0]->at(i_0, j_0) *= activation_derivative(data[f_0]->at(i_0, j_0), activation);
 
 					if (use_biases)
 						bias_gradient[f_0]->at(i_0, j_0) += deriv[f_0]->at(i_0, j_0);
@@ -356,7 +324,7 @@ public:
 	ILayer* clone()
 	{
 		//create intial copy
-		ILayer* copy = new ConvolutionLayer<features, rows, cols, kernel_size, stride, out_features, binary_layer>();
+		ILayer* copy = new ConvolutionLayer<features, rows, cols, kernel_size, stride, out_features, activation_function>();
 
 		//copy data over
 		for (int f = 0; f < feature_maps.size(); ++f)
@@ -388,13 +356,13 @@ public:
 	}
 };
 
-template<int features, int rows, int cols, int out_rows, int out_cols, int out_features, bool binary_layer>
+template<int features, int rows, int cols, int out_rows, int out_cols, int out_features, int activation_function>
 class PerceptronFullConnectivityLayer : public ILayer
 {
 public:
-	PerceptronFullConnectivityLayer<features, rows, cols, out_rows, out_cols, out_features, binary_layer>()
+	PerceptronFullConnectivityLayer<features, rows, cols, out_rows, out_cols, out_features, activation_function>()
 	{
-		binary = binary_layer;
+		activation = activation_function;
 		type = CNN_PERCEPTRON_FULL_CONNECTIVITY;
 		feature_maps = std::vector<IMatrix<float>*>(features);
 		biases = std::vector<IMatrix<float>*>(out_features);
@@ -426,7 +394,7 @@ public:
 		}
 	}
 
-	~PerceptronFullConnectivityLayer<features, rows, cols, out_rows, out_cols, out_features, binary_layer>()
+	~PerceptronFullConnectivityLayer<features, rows, cols, out_rows, out_cols, out_features, activation_function>()
 	{
 		delete recognition_data[0];
 		delete generative_data[0];
@@ -457,9 +425,9 @@ public:
 
 						//add bias
 						if (use_biases)
-							output[f_0]->at(i_0, j_0) = sum + biases[f_0]->at(i_0, j_0);
+							output[f_0]->at(i_0, j_0) = activate(sum + biases[f_0]->at(i_0, j_0), activation);
 						else
-							output[f_0]->at(i_0, j_0) = sum;
+							output[f_0]->at(i_0, j_0) = activate(sum, activation);
 					}
 				}
 			}
@@ -498,67 +466,6 @@ public:
 		}
 	}
 
-	void feed_forwards_prob(std::vector<IMatrix<float>*> &output)
-	{
-		//loop through every neuron in output
-		for (int f_0 = 0; f_0 < out_features; ++f_0)
-		{
-			for (int f = 0; f < features; ++f)
-			{
-				for (int i_0 = 0; i_0 < out_rows; ++i_0)
-				{
-					for (int j_0 = 0; j_0 < out_cols; ++j_0)
-					{
-						//loop through every neuron in input and add it to output
-						float sum = 0.0f;
-						for (int i = 0; i < rows; ++i)
-							for (int j = 0; j < cols; ++j)
-								sum += (feature_maps[f]->at(i, j) *
-								recognition_data[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j));
-
-						//add bias and sigmoid
-						if (use_biases)
-							output[f_0]->at(i_0, j_0) = 1 / (1 + exp(-sum - biases[f_0]->at(i_0, j_0)));
-						else
-							output[f_0]->at(i_0, j_0) = 1 / (1 + exp(-sum));
-					}
-				}
-			}
-		}
-	}
-
-	void feed_backwards_prob(std::vector<IMatrix<float>*> &input, const bool &use_g_weights)
-	{
-		//go through every neuron in input layer
-		for (int f_0 = 0; f_0 < out_features; ++f_0)
-		{
-			for (int f = 0; f < features; ++f)
-			{
-				for (int i = 0; i < rows; ++i)
-				{
-					for (int j = 0; j < cols; ++j)
-					{
-						//go through every neuron in output layer and add it to current neuron
-						float sum = 0.0f;
-						for (int i_0 = 0; i_0 < out_rows; ++i_0)
-						{
-							for (int j_0 = 0; j_0 < out_cols; ++j_0)
-							{
-								if (use_g_weights)
-									sum += generative_data[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j)
-									* input[f_0]->at(i_0, j_0);
-								else
-									sum += recognition_data[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j)
-									* input[f_0]->at(i_0, j_0);
-							}
-						}
-						feature_maps[f]->at(i, j) = 1 / (1 + exp(-sum));
-					}
-				}
-			}
-		}
-	}
-
 	void wake_sleep(float &learning_rate, bool &use_dropout)
 	{
 		//find difference via gibbs sampling
@@ -570,20 +477,9 @@ public:
 		for (int i = 0; i < out_features; ++i)
 			reconstructed[i] = new Matrix2D<float, out_rows, out_cols>();
 
-		if (binary)
-			this->feed_forwards_prob(discriminated);
-		else
-			this->feed_forwards(discriminated);
-
-		if (binary)
-			this->feed_backwards_prob(discriminated, true);
-		else
-			this->feed_backwards(discriminated, true);
-
-		if (binary)
-			this->feed_forwards_prob(reconstructed);
-		else
-			this->feed_forwards(reconstructed);
+		this->feed_forwards(discriminated);
+		this->feed_backwards(discriminated, true);
+		this->feed_forwards(reconstructed);
 
 		//adjust weights
 		for (int f_0 = 0; f_0 < reconstructed.size(); ++f_0)
@@ -631,10 +527,7 @@ public:
 			{
 				for (int j_0 = 0; j_0 < out_cols; ++j_0)
 				{
-					float y = data[f_0]->at(i_0, j_0);
-
-					if (binary)
-						deriv[f_0]->at(i_0, j_0) *= y * (1 - y);
+					deriv[f_0]->at(i_0, j_0) *= activation_derivative(data[f_0]->at(i_0, j_0), activation);
 
 					if (use_biases)
 						bias_gradient[f_0]->at(i_0, j_0) += deriv[f_0]->at(i_0, j_0);
@@ -663,7 +556,7 @@ public:
 	ILayer* clone()
 	{
 		//create intial copy
-		ILayer* copy = new PerceptronFullConnectivityLayer<features, rows, cols, out_rows, out_cols, out_features, binary_layer>();
+		ILayer* copy = new PerceptronFullConnectivityLayer<features, rows, cols, out_rows, out_cols, out_features, activation_function>();
 
 		//copy data over
 		for (int f = 0; f < feature_maps.size(); ++f)
@@ -696,13 +589,13 @@ public:
 };
 
 //TODO
-/*template<int features, int rows, int cols, int out_rows, int out_cols, int out_features, int connections, bool binary_layer>
+/*template<int features, int rows, int cols, int out_rows, int out_cols, int out_features, int connections, int activation_function>
 class PerceptronLocalConnectivityLayer : public ILayer
 {
 public:
-	PerceptronLocalConnectivityLayer<features, rows, cols, out_rows, out_cols, out_features, connections, binary_layer>()
+	PerceptronLocalConnectivityLayer<features, rows, cols, out_rows, out_cols, out_features, connections, activation_function>()
 	{
-		binary = binary_layer;
+		activation = activation_function;
 		type = CNN_PERCEPTRON_LOCAL_CONNECTIVITY;
 		connections_per_neuron = connections;
 		feature_maps = std::vector<IMatrix<float>*>(features);
@@ -735,7 +628,7 @@ public:
 		}
 	}
 
-	~PerceptronLocalConnectivityLayer<features, rows, cols, out_rows, out_cols, out_features, connections, binary_layer>()
+	~PerceptronLocalConnectivityLayer<features, rows, cols, out_rows, out_cols, out_features, connections, activation_function>()
 	{
 		delete recognition_data[0];
 		delete generative_data[0];
@@ -1331,7 +1224,7 @@ public:
 	ILayer* clone()
 	{
 		//create intial copy
-		ILayer* copy = new PerceptronLocalConnectivityLayer<features, rows, cols, out_rows, out_cols, out_features, connections, binary_layer>();
+		ILayer* copy = new PerceptronLocalConnectivityLayer<features, rows, cols, out_rows, out_cols, out_features, connections, activation_function>();
 
 		//copy data over
 		for (int f = 0; f < feature_maps.size(); ++f)
@@ -1452,63 +1345,6 @@ public:
 		std::vector<IMatrix<float>*>();
 	}
 
-	void feed_forwards_prob(std::vector<IMatrix<float>*> &output)
-	{
-		for (int f_0 = 0; f_0 < features; ++f_0)
-			for (int i = 0; i < output[f_0]->rows(); ++i)
-				for (int j = 0; j < output[f_0]->cols(); ++j)
-					output[f_0]->at(i, j) = INT_MIN;
-
-		for (int f = 0; f < features; ++f)
-		{
-			const int down = rows / out_rows;
-			const int across = cols / out_cols;
-			Matrix2D<Matrix2D<float, down, across>, out_rows, out_cols> samples;
-
-			//get samples
-			for (int i = 0; i < out_rows; ++i)
-			{
-				for (int j = 0; j < out_cols; ++j)
-				{
-					//get the current sample
-					int maxI = (i + 1) * down;
-					int maxJ = (j + 1) * across;
-					for (int i2 = i * down; i2 < maxI; ++i2)
-					{
-						for (int j2 = j * across; j2 < maxJ; ++j2)
-						{
-							samples.at(i, j).at(maxI - i2 - 1, maxJ - j2 - 1) = feature_maps[f]->at(i2, j2);
-						}
-					}
-				}
-			}
-
-			//find maxes
-			for (int i = 0; i < out_rows; ++i)
-			{
-				for (int j = 0; j < out_cols; ++j)
-				{
-					for (int n = 0; n < samples.at(i, j).rows(); ++n)
-					{
-						for (int m = 0; m < samples.at(i, j).cols(); ++m)
-						{
-							if (samples.at(i, j).at(n, m) > output[f]->at(i, j))
-							{
-								output[f]->at(i, j) = samples.at(i, j).at(n, m);
-								switches[f]->at(i, j) = std::make_pair(n, m);
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	void feed_backwards_prob(std::vector<IMatrix<float>*> &input, const bool &use_g_weights)
-	{
-		std::vector<IMatrix<float>*>();
-	}
-
 	void wake_sleep(float &learning_rate, bool &use_dropout)
 	{
 		//not applicable
@@ -1611,27 +1447,6 @@ public:
 	{
 	}
 
-	void feed_forwards_prob(std::vector<IMatrix<float>*> &output)
-	{
-		for (int f = 0; f < features; ++f)
-		{
-			//find total
-			float sum = 0.0f;
-			for (int i = 0; i < rows; ++i)
-				for (int j = 0; j < cols; ++j)
-					sum += exp(feature_maps[f]->at(i, j));
-
-			//get prob
-			for (int i = 0; i < rows; ++i)
-				for (int j = 0; j < cols; ++j)
-					output[f]->at(i, j) = exp(feature_maps[f]->at(i, j)) / sum;
-		}
-	}
-
-	void feed_backwards_prob(std::vector<IMatrix<float>*> &input, const bool &use_g_weights)
-	{
-	}
-
 	void wake_sleep(float &learning_rate, bool &use_dropout)
 	{
 	}
@@ -1700,19 +1515,6 @@ public:
 	{
 	}
 
-	void feed_forwards_prob(std::vector<IMatrix<float>*> &output)
-	{
-		//just output
-		for (int f = 0; f < features; ++f)
-			for (int i = 0; i < rows; ++i)
-				for (int j = 0; j < cols; ++j)
-					output[f]->at(i, j) = feature_maps[f]->at(i, j);
-	}
-
-	void feed_backwards_prob(std::vector<IMatrix<float>*> &input, const bool &use_g_weights)
-	{
-	}
-
 	void wake_sleep(float &learning_rate, bool &use_dropout)
 	{
 	}
@@ -1773,14 +1575,6 @@ public:
 	{
 	}
 
-	void feed_forwards_prob(std::vector<IMatrix<float>*> &output)
-	{
-	}
-
-	void feed_backwards_prob(std::vector<IMatrix<float>*> &input, const bool &use_g_weights)
-	{
-	}
-
 	void wake_sleep(float &learning_rate, bool &use_dropout)
 	{
 	}
@@ -1796,7 +1590,7 @@ public:
 	ILayer* clone()
 	{
 		//create intial copy
-		ILayer* copy = new SoftMaxLayer<features, rows, cols>();
+		ILayer* copy = new OutputLayer<features, rows, cols>();
 
 		//copy data over
 		for (int f = 0; f < feature_maps.size(); ++f)
