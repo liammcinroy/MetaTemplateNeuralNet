@@ -27,16 +27,16 @@ convolve(IMatrix<float>* &input, IMatrix<float>* &kernel)
 		new Matrix2D<float, (rows - kernel_rows) / stride + 1, (cols - kernel_cols) / stride + 1>();
 
 	//change focus of kernel
-	for (int i = N; i < (rows - kernel_rows) + stride; i += stride)
+	for (int i = N; i < (rows - N); i += stride)
 	{
-		for (int j = N; j < (cols - kernel_cols) + stride; j += stride)
+		for (int j = M; j < (cols - M); j += stride)
 		{
 			//iterate over kernel
 			float sum = 0;
 			for (int n = N; n >= -N; --n)
 				for (int m = M; m >= -M; --m)
-					sum += input->at(i - n, j - m) * kernel->at(N - n, N - m);
-			output->at(i / stride, j / stride) = sum;
+					sum += input->at(i - n, j - m) * kernel->at(N - n, M - m);
+			output->at((i - N) / stride, (j - M) / stride) = sum;
 		}
 	}
 	return output;
@@ -51,9 +51,9 @@ convolve_back(IMatrix<float>* &input, IMatrix<float>* &kernel)
 	int times_across = 0;
 	int times_down = 0;
 
-	for (int i = N; i < (rows - kernel_size) + stride; i += stride)
+	for (int i = N; i < (rows - N); i += stride)
 	{
-		for (int j = N; j < (cols - kernel_size) + stride; j += stride)
+		for (int j = N; j < (cols - N); j += stride)
 		{
 			//find all possible ways convolved into
 			float sum = 0;
@@ -61,7 +61,7 @@ convolve_back(IMatrix<float>* &input, IMatrix<float>* &kernel)
 			{
 				for (int m = N; m >= -N; --m)
 				{
-					output->at(i - N, j - N) += kernel->at(N - n, N - m) * input->at(times_down, times_across);
+					output->at(i - n, j - m) += kernel->at(N - n, N - m) * input->at(times_down, times_across);
 				}
 			}
 			++times_across;
@@ -107,7 +107,7 @@ public:
 
 	int activation = 0;
 
-	float activate(float value, int activation)
+	inline float activate(float value, int activation)
 	{
 		if (activation == CNN_LINEAR)
 			return value;
@@ -121,14 +121,14 @@ public:
 			return value > 0 ? value : 0;
 	}
 
-	float activation_derivative(float value, int activation)
+	inline float activation_derivative(float value, int activation)
 	{
 		if (activation == CNN_LINEAR)
 			return 1;
 		if (activation == CNN_SIGMOID)
 			return value * (1 - value);
 		if (activation == CNN_BIPOLAR_SIGMOID)
-			return (value + 1) * (value - 1) / -2;
+			return (1 + value) * (1 - value) / 2;
 		if (activation == CNN_TANH)
 			return 1 - value * value;
 		if (activation == CNN_RELU)
@@ -149,12 +149,14 @@ public:
 		for (int f = 0; f < features; ++f)
 			feature_maps[f] = new Matrix2D<float, rows, cols>();
 
-		biases = std::vector<IMatrix<float>*>(out_features);
-		recognition_data = std::vector<IMatrix<float>*>(out_features);
-		generative_data = std::vector<IMatrix<float>*>(out_features);
+		if (use_biases)
+			biases = std::vector<IMatrix<float>*>(out_features);
+		recognition_data = std::vector<IMatrix<float>*>(out_features * features);
+		generative_data = std::vector<IMatrix<float>*>(out_features * features);
 		for (int k = 0; k < out_features; ++k)
+			biases[k] = new Matrix2D<float, 1, 1>({ 0 });
+		for (int k = 0; k < out_features * features; ++k)
 		{
-			biases[k] = new Matrix2D<float, (rows - kernel_size) / stride + 1, (cols - kernel_size) / stride + 1>();
 			recognition_data[k] = new Matrix2D<float, kernel_size, kernel_size>();
 			generative_data[k] = new Matrix2D<float, kernel_size, kernel_size>();
 			for (int i = 0; i < kernel_size; ++i)
@@ -162,7 +164,7 @@ public:
 				for (int j = 0; j < kernel_size; ++j)
 				{
 					//purely random works best
-					recognition_data[k]->at(i, j) = (1.0f * rand()) / RAND_MAX;
+					recognition_data[k]->at(i, j) = (2.0f * rand()) / RAND_MAX - 1;
 					generative_data[k]->at(i, j) = recognition_data[k]->at(i, j);
 				}
 			}
@@ -191,13 +193,13 @@ public:
 			for (int f = 0; f < features; ++f)
 			{
 				add<float, out_rows, out_cols>
-					(output[f_0], convolve<rows, cols, kernel_size, kernel_size, stride>(feature_maps[f], recognition_data[f_0]));
+					(output[f_0], convolve<rows, cols, kernel_size, kernel_size, stride>(feature_maps[f], recognition_data[f_0 * features + f]));
 			}
 
 			if (use_biases)
 				for (int i = 0; i < out_rows; ++i)
 					for (int j = 0; j < out_cols; ++j)
-						output[f_0]->at(i, j) += biases[f_0]->at(i, j);
+						output[f_0]->at(i, j) += biases[f_0]->at(0, 0);
 
 			if (activation != CNN_LINEAR)
 				for (int i = 0; i < out_rows; ++i)
@@ -209,22 +211,18 @@ public:
 	void feed_backwards(std::vector<IMatrix<float>*> &input, const bool &use_g_weights)
 	{
 		//Do the first only
-		for (int f_0 = 0; f_0 < out_features; ++f_0)
+		for (int f = 0; f < features; ++f)
 		{
-			if (!use_g_weights)
-				add<float, rows, cols>(feature_maps[0],
-				convolve_back<rows, cols, kernel_size, stride>(input[f_0], recognition_data[f_0]));
-			else
-				add<float, rows, cols>(feature_maps[0],
-				convolve_back<rows, cols, kernel_size, stride>(input[f_0], generative_data[f_0]));
+			for (int f_0 = 0; f_0 < out_features; ++f_0)
+			{
+				if (!use_g_weights)
+					add<float, rows, cols>(feature_maps[f],
+					convolve_back<rows, cols, kernel_size, stride>(input[f_0], recognition_data[f_0 * features + f]));
+				else
+					add<float, rows, cols>(feature_maps[f],
+					convolve_back<rows, cols, kernel_size, stride>(input[f_0], generative_data[f_0 * features + f]));
+			}
 		}
-
-		//copy as they are congruent
-#pragma warning(suppress: 6294)
-		for (int f = 1; f < features; ++f)
-			for (int i = 0; i < feature_maps[f]->rows(); ++i)
-				for (int j = 0; j < feature_maps[f]->cols(); ++j)
-					feature_maps[f]->at(i, j) = feature_maps[0]->at(i, j);
 	}
 
 	void wake_sleep(float &learning_rate, bool &use_dropout)
@@ -302,15 +300,13 @@ public:
 					deriv[f_0]->at(i_0, j_0) *= activation_derivative(data[f_0]->at(i_0, j_0), activation);
 
 					if (use_biases)
-						bias_gradient[f_0]->at(i_0, j_0) += deriv[f_0]->at(i_0, j_0);
+						bias_gradient[f_0]->at(0, 0) += deriv[f_0]->at(i_0, j_0);
 				}
 			}
 
 			for (int f = 0; f < features; ++f)
-			{
 				//adjust the gradient
-				add<float, kernel_size, kernel_size>(weight_gradient[f_0], convolve<rows, cols, out_rows, out_cols, stride>(temp[f], deriv[f_0]));
-			}
+				add<float, kernel_size, kernel_size>(weight_gradient[f_0 * features + f], convolve<rows, cols, out_rows, out_cols, stride>(temp[f], deriv[f_0]));
 		}
 
 		//update deltas
@@ -376,7 +372,9 @@ public:
 		for (int k = 0; k < out_features; ++k)
 			biases[k] = new Matrix2D<float, out_rows, out_cols>();
 
-		const float s_d = 1.0f / (rows * cols * features);
+		//const float s_d = 1.0f / (rows * cols * features);
+		const float beta = .7 * pow(out_rows * out_cols * out_features, 1 / (rows * cols * features));
+		float n = 0.0f;
 
 		recognition_data[0] = new Matrix2D<float, out_rows * out_cols * out_features, rows * cols * features>();
 		generative_data[0] = new Matrix2D<float, out_rows * out_cols * out_features, rows * cols * features>();
@@ -385,13 +383,15 @@ public:
 		{
 			for (int j = 0; j < rows * cols * features; ++j)
 			{
-				//uniformally distributed
-				float x = (2.0f * s_d * rand()) / RAND_MAX - s_d;
+				//gaussian distributed
+				float x = sqrt(-2 * log(1.0f * rand() / RAND_MAX)) * cos(2 * 3.14152f * rand() / RAND_MAX);
 				recognition_data[0]->at(i, j) = x;
 				generative_data[0]->at(i, j) = recognition_data[0]->at(i, j);
 				second_derivatives[0]->at(i, j) = 0;
 			}
 		}
+
+		float factor = beta / sqrt(n);
 	}
 
 	~PerceptronFullConnectivityLayer<features, rows, cols, out_rows, out_cols, out_features, activation_function>()

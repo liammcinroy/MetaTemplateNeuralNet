@@ -28,11 +28,15 @@ public:
 	//wake-sleep algorithm
 	void pretrain(int iterations);
 	//backpropogate with levenbourg-marquardt
-	void train(int iterations);
+	float train(int iterations);
+	//backprop with custom gradients
+	float train(int iterations, std::vector<std::vector<IMatrix<float>*>> weights, std::vector<std::vector<IMatrix<float>*>> biases);
 	//add a layer to the end of the network
 	void add_layer(ILayer* layer);
 	//reset and apply gradient
 	void apply_gradient();
+	//apply custom gradient
+	void apply_gradient(std::vector<std::vector<IMatrix<float>*>> weights, std::vector<std::vector<IMatrix<float>*>> biases);
 	//get current error
 	float global_error();
 	float learning_rate;

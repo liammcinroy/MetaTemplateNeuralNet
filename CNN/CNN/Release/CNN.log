@@ -1,4 +1,4 @@
-﻿Build started 6/25/2015 7:40:17 PM.
+﻿Build started 6/26/2015 7:53:21 PM.
      1>Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /Zi /nologo /W3 /WX- /sdl /O2 /Oi /Oy- /GL /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt imatrix.h neuralnet.cpp neuralnet.h neuralnetanalyzer.cpp
@@ -45,29 +45,50 @@
      1>neuralnet.cpp(279): warning C4018: '<' : signed/unsigned mismatch
      1>neuralnet.cpp(283): warning C4018: '<' : signed/unsigned mismatch
      1>neuralnet.cpp(295): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(310): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(319): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(322): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(339): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(340): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(355): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(356): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(363): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(311): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(321): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(324): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(341): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(342): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(354): warning C4018: '<' : signed/unsigned mismatch
      1>neuralnet.cpp(364): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(374): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(375): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(381): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(382): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(391): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(392): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(396): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(397): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(403): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(404): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(408): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(367): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(384): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(385): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(401): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(402): warning C4018: '<' : signed/unsigned mismatch
      1>neuralnet.cpp(409): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnet.cpp(418): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(410): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(420): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(421): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(427): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(428): warning C4018: '<' : signed/unsigned mismatch
      1>neuralnet.cpp(437): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(438): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(442): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(443): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(449): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(450): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(454): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(455): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(466): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(467): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(474): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(475): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(485): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(486): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(492): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(493): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(502): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(503): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(507): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(508): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(514): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(515): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(519): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(520): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(529): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnet.cpp(548): warning C4018: '<' : signed/unsigned mismatch
          neuralnet.h
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(135): warning C4244: 'return' : conversion from 'int' to 'float', possible loss of data
          neuralnetanalyzer.cpp
@@ -80,7 +101,15 @@
      1>neuralnetanalyzer.cpp(57): warning C4018: '<' : signed/unsigned mismatch
      1>neuralnetanalyzer.cpp(67): warning C4018: '<' : signed/unsigned mismatch
      1>neuralnetanalyzer.cpp(71): warning C4018: '<' : signed/unsigned mismatch
-     1>neuralnetanalyzer.cpp(106): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnetanalyzer.cpp(108): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnetanalyzer.cpp(110): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnetanalyzer.cpp(123): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnetanalyzer.cpp(125): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnetanalyzer.cpp(138): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnetanalyzer.cpp(139): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnetanalyzer.cpp(141): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnetanalyzer.cpp(142): warning C4018: '<' : signed/unsigned mismatch
+     1>neuralnetanalyzer.cpp(158): warning C4018: '<' : signed/unsigned mismatch
        Lib:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\Lib.exe /OUT:"C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\Release\CNN.lib" /NOLOGO /LTCG Release\imatrix.obj
          Release\neuralnet.obj
@@ -92,4 +121,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:03.37
+Time Elapsed 00:00:04.65

@@ -50,12 +50,12 @@ public:
 	Matrix2D<T, r, c>(std::initializer_list<std::initializer_list<T>> arr)
 	{
 		std::initializer_list<std::initializer_list<T>>::iterator it = arr.begin();
-		for (int i = 0; i < rows; ++i)
+		for (int i = 0; i < r; ++i)
 		{
 			std::initializer_list<T>::iterator it2 = it->begin();
-			for (int j = 0; j < cols; ++j)
+			for (int j = 0; j < c; ++j)
 			{
-				data[(cols * i) + j] = *it2;
+				data[(c * i) + j] = *it2;
 				++it2;
 			}
 			++it;

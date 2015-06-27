@@ -13,6 +13,9 @@ public:
 	static std::vector<std::vector<IMatrix<float>*>> approximate_weight_gradient(NeuralNet &net);
 	//approximates the bias gradient numerically
 	static std::vector<std::vector<IMatrix<float>*>> approximate_bias_gradient(NeuralNet &net);
+	//find mean gradient error
+	static std::pair<float, float> get_mean_gradient_error(NeuralNet &net, std::vector<std::vector<IMatrix<float>*>> observed_weights,
+																			std::vector<std::vector<IMatrix<float>*>> observed_biases);
 	//update sample
 	static void add_point(float value);
 	//calculate the mean squared error

@@ -93,6 +93,58 @@ std::vector<std::vector<IMatrix<float>*>> NeuralNetAnalyzer::approximate_bias_gr
 	return output;
 }
 
+std::pair<float, float> NeuralNetAnalyzer::get_mean_gradient_error(NeuralNet &net, std::vector<std::vector<IMatrix<float>*>> observed_weights,
+	std::vector<std::vector<IMatrix<float>*>> observed_biases)
+{
+	std::vector<std::vector<IMatrix<float>*>> expected_weights = NeuralNetAnalyzer::approximate_weight_gradient(net);
+	std::vector<std::vector<IMatrix<float>*>> expected_biases = NeuralNetAnalyzer::approximate_bias_gradient(net);
+
+	float weight_sum = 0.0f;
+	float bias_sum = 0.0f;
+
+	int weight_n = 0;
+	int bias_n = 0;
+
+	for (int l = 0; l < expected_weights.size(); ++l)
+	{
+		for (int d = 0; d < expected_weights[l].size(); ++d)
+		{
+			for (int i = 0; i < expected_weights[l][d]->rows(); ++i)
+			{
+				for (int j = 0; j < expected_weights[l][d]->cols(); ++j)
+				{
+					weight_sum += abs(expected_weights[l][d]->at(i, j) - observed_weights[l][d]->at(i, j));
+					++weight_n;
+				}
+			}
+		}
+	}
+
+	for (int l = 0; l < expected_biases.size(); ++l)
+	{
+		for (int f_0 = 0; f_0 < expected_biases[l].size(); ++f_0)
+		{
+			for (int i_0 = 0; i_0 < expected_biases[l][f_0]->rows(); ++i_0)
+			{
+				for (int j_0 = 0; j_0 < expected_biases[l][f_0]->cols(); ++j_0)
+				{
+					bias_sum += abs(expected_biases[l][f_0]->at(i_0, j_0) - observed_biases[l][f_0]->at(i_0, j_0));
+					++bias_n;
+				}
+			}
+		}
+	}
+
+	for (int l = 0; l < expected_weights.size(); ++l)
+		for (int d = 0; d < expected_weights[l].size(); ++d)
+			delete expected_weights[l][d];
+	for (int l = 0; l < expected_biases.size(); ++l)
+		for (int f_0 = 0; f_0 < expected_biases[l].size(); ++f_0)
+			delete expected_biases[l][f_0];
+
+	return std::make_pair(weight_sum / weight_n, bias_sum / bias_n);
+}
+
 void NeuralNetAnalyzer::add_point(float value)
 {
 	if (sample.size() == sample_size)
