@@ -190,3 +190,11 @@ template<typename T, int rows, int cols> void add(IMatrix<T>* &first, IMatrix<T>
 				first->at(i, j) += second->at(i, j);
 		delete second;
 	}
+
+template<typename T, int rows, int cols> void add(IMatrix<T>* &first, IMatrix<T>* second, T mult)
+{
+	for (int i = 0; i < rows; ++i)
+		for (int j = 0; j < cols; ++j)
+			first->at(i, j) += second->at(i, j) * mult;
+	delete second;
+}

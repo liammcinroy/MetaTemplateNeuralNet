@@ -1,7 +1,7 @@
 #ConvolutionalNeuralNetwork
 ==========================
 
-An API for a convolutional neural network implemented in C++ with the intent to increase and assist research on architectures of neural nets through
+An API for a convolutional neural network implemented in C++ with the intent to increase and assist research on architectures of neural nets
 
 ##Static Library
 ==========================
@@ -12,46 +12,44 @@ The build and .h files for referencing as an external static library can be foun
 ##What a Convolutional Neural Network is
 ==========================
 
-A convolutional neural network is made up of many layers of neurons, or nodes, that hold a value. 
-There are also many synapses connecting each neuron, like a link between the nodes. This model is based
-off of how our brains work. In a neural network, a synapse is fired and then determines the value of the 
-neuron it is connected to. Each synapse also has a weight and a bias that go into calculating the value of
-the next neuron. This is similar to how our brains' synapses grow stronger with use, which is how we remember
-events or information. 
+Our brains work by a large web of connected neurons, or simple binary states. These neurons are connected by synapses, which have a strength associated with them. When a neuron fires, it's signal is sent through all of it's connecting synapses to other neurons to determine their value. When we learn, our brain adjusts the strengths of the associated synapses to limit the amount of activated neurons.
 
-Each layer in a convolutional neural network is made up of feature maps, or many neurons that share similar synapses. 
-In these feature maps, the output for each neuron is dependent on the neurons in the previous layer, and their weights.
-This helps segment the data into so called feature points. Many feature maps make up a layer, which all make up networks.
+A neural network is a machine learning algorithm based off of the brain. Within a network, there are layers. Each of these layers has a number of neurons, which take on floating point values, and weights, symbolic of synapses, attached to the neurons in the next layer. These networks then run in a way similar to our brains, given an input, all neurons are fed forward to the next layer by summing the value of the neurons times the weights connecting two neurons. Commonly, a bias is an addition to the network which is used as a simple shift to neurons. The bias is added to the sum of the weights times the neurons to produce the output of the neuron, which is then commonly ran through a continuous activation function, such as a sigmoid, to bound the value of the neuron as well as give the network a differentiable property.
 
-When the network learns, or adjusts the weights based off of labeled data, it uses a process of both discriminating and generating data.
-In each layer, the network first discriminates, then generates, then discriminates again, forming what is known as a Markov Chain. Then, alternating 
-Gibbs sampling is used to then find the difference between the first discriminated layer and the layer that was discriminated after "reconstruction." 
-These values are then multiplied by a small value, or the learning rate of the network. This is done for each layer going up through the network, creating
-a recursion learning based off of the adjusted weights in the previous layer. This entire process is often called "pretraining" as it is less accurate than
-traditional methods (such as backpropagation) but helps learn the correct neighborhood to then fine-tune the network in.
+Weights can be connected between neurons in different ways. Most common are full connectivity layers and shared weight layers. Full connectivity layers have weights going from every input neuron to every output neuron, so every neuron in the layers are connected to every neuron in the layers above. Shared weights are a way of forming similar connections between different neurons by a common weight pattern. A common implementation of this is convolutional layers.
 
-The next process in learning, backpropagation, is found using the error of the entire network. The derivative of this function is found with respect to the 
-weights, so that each weight can find the role it had in the error of the network. These derivatives are then used to find the minimum of the error function. 
-An issue with this algorithm is that the network can become stuck in a local minimum instead of finding the global minimum of the network.
+Convolutional layers make use of mathematical convolution, an operation used to produce feature maps, or highlights from an image. Convolution is formally defined as the sum of all values in the domains of two functions which are multiplied by one another. In real life cases, this is commonly discrete, and is most easily understood in images. Image convolution involves iterating a mask over an image to produce an output, where the output pixel values are equivelant to the sum of the mask multiplied by neighboring pixels in the input when anchored at the center of the mask. This operation draws features from the image, such as edges or curves, and is associated with the way our visual cortex processes imagery.
+
+Networks learn through different algorithms, although the two implemented here are the up-down or wake-sleep algorithm and vanilla backpropagation. Backpropagation is an algorithm which computes the derivatives of the error with respect to the weights, and adjusts the weights in order to find a minimum in the error function. This is a way of approximating the actual error signal of every neuron, so a small step size is often used to prevent divergence. The wake-sleep or up-down algorithm trains the network without knowledge of data in an encoder-decoder format. The layers in the network are fed forward, backwards, and forwards again, before a difference is calculated to adjust the weights. 
 
 ##How this API is implemented
 =================================
 
-This API has a neural network premade, with code to discriminate, generate, and teach. Note that a new input must be set for each iteration of
-discriminating, generating, or teaching. There is also a custom file format created especially for CNNs, consisting only of the data for each layer's 
-weights.
+This API is based off of template meta-programming to optimize efficiency. Therefore, much of this API is based on the assumption that a network architecture will be defined at compile time rather than runtime. 
+
+##Documentation
+===============================
+
+###Macros
+===============================
+
+These macros are used to signify layer types and activation functions. They are prefixed with `CNN_*`. Their name should explain their use. The available layers can be found below.
+
+Available activation functions are linear (y = x), sigmoid (y = 1/(1 + exp(-x)), bipolar sigmoid (y = 2/(1 + exp(-x)) - 1), tanh (y = tanh), and rectified linear (y = max(0, x)).
+
+Available cost functions are quadratic, cross entropy, and log loss.
 
 ###IMatrix
 ===============================
 
-This class is merely a contain for `Matrix2D<T, int, int>` so that matrix sizes unknown at compile time can be computed at runtime.
+This class is merely a container for `Matrix2D<T, int, int>` so that matrix sizes "unknown" at compile time can be computed at runtime.
 
 ###Matrix2D<T, int, int>
 ===============================
 
 This class is a simple matrix implementation, with some extra methods that can be used in situations outside of this neural network.
 
-| Member  | Type | Details |
+| Member/Method  | Type | Details |
 |---------|------|---------|
 | `data` | `std::array<T, rows * cols>` | holds the matrice's data in column major format |
 | `at(int i, int j)` | `T` | returns the value of the matrix at i, j |
@@ -66,39 +64,36 @@ This class is a simple matrix implementation, with some extra methods that can b
 
 This is the interface for all of the various layer types used in the network.
 
-| Member | Type | Details |
+| Member/Method | Type | Details |
 |--------|------|----------|
 | `feature_maps` | `std::vector<IMatrix<float>*>` | Holds the data of the network |
 | `recognition_weights` | `std::vector<IMatrix<float>*>` | The feed forwards weights |
 | `generation_weights` | `std::vector<IMatrix<float>*>` | The feed backwards weights |
 | `feed_forwards(std::vector<IMatrix<float>*> &output)` | `virtual void` | Feeds the layer forward |
-| `feed_forwards_prob(std::vector<IMatrix<float>*> &output)` | `virtual void` | Feed the layer forward using logistic activation function |
-| `feed_backwards(std::vector<IMatrix<float>*> input, bool use_g_weights)` | `virtual std::vector<IMatrix<float>*>` | Feeds the layer backwards using generative or recognition weights |
-| `feed_backwards_prob(std::vector<IMatrix<float>*> input, bool use_g_weights)` | `virtual std::vector<IMatrix<float>*>` | Feeds the layer backwards using generative or recognition weights and the logistic activation function |
-| `dropout()` | `void` | Sets half of the neurons to 0 to prevent overfitting |
-| `wake_sleep(bool binary_net)` | `void` | Performs the wake-sleep algorithm with or without the logistic activation function |
+| `feed_backwards(std::vector<IMatrix<float>*> &input, bool use_g_weights)` | `virtual std::vector<IMatrix<float>*>` | Feeds the layer backwards using generative or recognition weights |
+| `wake_sleep(bool binary_net)` | `void` | Performs the wake-sleep (up-down) algorithm with the specified activation method |
+| `backprop(std::vector<IMatrix<float>*> &data, &deriv, std::vector<IMatrix<float>*> &weight_gradient, &bias_gradient)` | `void` | Performs vanilla backpropagation witht the specified activation method |
 
-
-###PerceptronLayer<int features, int rows, int cols, int out_rows, int out_cols, int out_features>
+###PerceptronFullConnectivityLayer<int features, int rows, int cols, int out_rows, int out_cols, int out_features, int activation_function>
 ===============================
 
 Basic perceptron layer. Interprets architecture as a single dimension array.
 
-Overloaded functions
+Overloaded Methods
 
-| Function | Difference |
+| Method | Difference |
 |----------|-------------|
 | `feed_forwards` | Uses standard sums for feeding forwards |
 | `feed_backwards` | Uses standard sums for feeding backwards |
 
-###ConvolutionLayer<int features, int rows, int cols, int recognition_data_size, int stride, int out_features>
+###ConvolutionLayer<int features, int rows, int cols, int recognition_data_size, int stride, int out_features, int activation_function>
 ===============================
 
 Basic convolutional layer, masks or kernels must be square and odd.
 
-Overloaded functions
+Overloaded Methods
 
-| Function | Difference |
+| Method | Difference |
 |----------|-------------|
 | `feed_forwards` | Uses convolution for feeding forwards |
 | `feed_backwards` | Uses convolution for feeding backwards |
@@ -108,9 +103,9 @@ Overloaded functions
 
 Basic maxpooling layer.
 
-Overloaded functions
+Overloaded Methods
 
-| Function | Difference |
+| Method | Difference |
 |----------|-------------|
 | `feed_forwards` | Uses maxpooling for feeding forwards |
 | `feed_backwards` | N/A |
@@ -118,47 +113,74 @@ Overloaded functions
 ###SoftMaxLayer<int features, int rows, int cols>
 =====================================
 
-Basic softmax layer. Note that when `PerceptronLayer`s feed into this, if the network is binary, those layers will not have binary outputs.
+Basic softmax layer. This will compute derivatives for any cost function, not just log-likelihood. Softmax is performed on each feature map independently.
 
-Overloaded functions
+Overloaded Methods
 
-| Function | Difference |
+| Method | Difference |
 |----------|-------------|
 | `feed_forwards` | N/A |
 | `feed_backwards` | N/A |
+
 
 ###OutputLayer<int features, int rows, int cols>
 =====================================
 
 Basic output layer just to signify the end of the network.
 
-Overloaded functions
+Overloaded Methods
 
-| Function | Difference |
+| Method | Difference |
 |----------|-------------|
 | `feed_forwards` | N/A |
 | `feed_backwards` | N/A |
 
-###`NeuralNetwork`
+###NeuralNetwork
 ===============================
 
-This is the class that encapsulates all of the rest. Has all required methods.
+This is the class that encapsulates all of the rest. Has all required methods. Will add support for other error functions later.
 
-| Member | Type | Details |
+| Member/Method | Type | Details |
 |--------|------|----------|
+| `learning_rate` | `float` | The learning term of the network. Default value is 0 |
+| `momentum_term` | `float` | The momentum term (proportion of learning rate when applied to momentum) of the network. Normally between 0 and 1. Default value is 0 |
+| `cost_function` | `int` | The cost function to be used |
+| `use_batch_learning` | `bool` | Whether you will apply gradient manually |
+| `use_dropout` | `bool` | Whether to train the network with dropout |
+| `use_momentum` | `bool` | Whether to train the network with momentums |
+| `weight_gradient` | `std::vector<std::vector<IMatrix<float>*>>` | The gradient for the weights |
+| `bias_gradient` | `std::vector<std::vector<IMatrix<float>*>>` | The gradient for the biases |
 | `layers` | `std::vector<ILayer*>` | All of the network's layers |
 | `labels` | `std::vector<IMatrix<float>*>` | The current labels |
 | `input` | `std::vector<IMatrix<float>*>` | The current input |
-| `use_dropout` | `bool` | Whether to train the network with dropout |
-| `binary_net` | `bool` | Whether to use the logistic activation function |
 | `add_layer(ILayer* layer)` | `void` | Adds another layer to the network |
+| `setup_gradient()` | `void` | Initializes the network to learn. Must call if learning |
+| `apply_gradient()` | `void` | Updates weights |
+| `apply_gradient(std::vector<std::vector<IMatrix<float>*>> &weights, &biases)` | `void` | Updates weights with custom gradients (use in parallelization) |
 | `save_data(std::string path)` | `void` | Saves the data |
 | `load_data(std::string path)` | `void` | Loads the data (<b>Must have initialized network and filled layers first!!!</b>) |
 | `set_input(std::vector<IMatrix<float>*> input)` | `void` | Sets the current input |
 | `set_labels(std::vector<IMatrix<float>*> labels)` | `void` | Sets the current labels |
-| `discriminate()` | `ILayer*` | Feeds the network forward |
+| `discriminate()` | `void` | Feeds the network forward |
 | `pretrain()` | `void` | Pretrains the network using the wake-sleep algorithm |
-| `train(int epochs)` | `void` | Trains the network using backpropogation |
+| `train(int iterations)` | `void` | Trains the network using backpropogation |
+| `train(int iterations, std::vector<std::vector<IMatrix<float>*>> &weights, &biases)` | `void` | Trains the network using backpropogation with custom gradients (use in parallelization) |
+
+
+###NeuralNetAnalyzer
+
+This is a singleton static class. This class helps with network analysis, such as the mean squared error (MSE), and finite difference backprop checking.
+
+| Member/Method | Type | Details |
+|--------|------|----------|
+| `sample_size` | `static int` | The sample size used to calculate the MSE |
+| `approximate_weight_gradient(NeuralNet &net)` | `static std::vector<std::vector<IMatrix<float>*>>` | Uses finite differences for backprop checking |
+| `approximate_bias_gradient(NeuralNet &net)` | `static std::vector<std::vector<IMatrix<float>*>>` | Uses finite differences for backprop checking |
+| `mean_gradient_error(NeuralNet &net, std::vector<std::vector<IMatrix<float>*>> &observed_weight_gradient, &observed_bias_gradient)` | `static std::pair<float, float>` | Uses finite differences for backprop checking, returns mean difference in ordered pair (weights, biases) |
+| `add_point(float value)` | `static void` | Adds a point for the running calculation of the MSE |
+| `mean_squared_error()` | `static float` | Returns the running MSE |
+| `save_mean_square_error(std::string path)` | `static void` | Saves all calculated MSEs |
+
 
 #Usage
 ===============================

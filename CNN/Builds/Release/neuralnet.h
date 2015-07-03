@@ -8,6 +8,10 @@
 #include "imatrix.h"
 #include "ilayer.h"
 
+#define CNN_QUADRATIC 0
+#define CNN_CROSS_ENTROPY 1
+#define CNN_LOG_LIKELIHOOD 2
+
 class NeuralNet
 {
 public:
@@ -41,6 +45,7 @@ public:
 	float global_error();
 	float learning_rate;
 	float momentum_term;
+	int cost_function = CNN_QUADRATIC;
 	bool use_dropout = false;
 	bool use_batch_learning = false;
 	bool use_momentum = true;
@@ -54,4 +59,6 @@ private:
 	std::vector<std::vector<IMatrix<float>*>> bias_momentum;
 	Matrix2D<int, 4, 1>* coords(int &l, int &k, int &i, int &j);
 	void dropout(ILayer* &layer);
+	//TODO: FIX
+	int error_signals();
 };
