@@ -32,9 +32,11 @@ public:
 	//wake-sleep algorithm
 	void pretrain(int iterations);
 	//backpropogate with levenbourg-marquardt
-	float train(int iterations);
+	float train(int iterations, float mse);
 	//backprop with custom gradients
-	float train(int iterations, std::vector<std::vector<IMatrix<float>*>> weights, std::vector<std::vector<IMatrix<float>*>> biases);
+	float train(int iterations, std::vector<std::vector<IMatrix<float>*>> weights, std::vector<std::vector<IMatrix<float>*>> biases, float mse);
+	//update second derivatives
+	void calculate_hessian(bool use_first_deriv, float gamma);
 	//add a layer to the end of the network
 	void add_layer(ILayer* layer);
 	//reset and apply gradient
@@ -45,10 +47,12 @@ public:
 	float global_error();
 	float learning_rate;
 	float momentum_term;
+	float minimum_divisor;
 	int cost_function = CNN_QUADRATIC;
 	bool use_dropout = false;
 	bool use_batch_learning = false;
 	bool use_momentum = true;
+	bool use_hessian = false;
 	std::vector<ILayer*> layers;
 	std::vector<IMatrix<float>*> input;
 	std::vector<IMatrix<float>*> labels;
@@ -61,4 +65,5 @@ private:
 	void dropout(ILayer* &layer);
 	//TODO: FIX
 	int error_signals();
+	int hessian_error_signals();
 };

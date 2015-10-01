@@ -72,7 +72,7 @@ This is the interface for all of the various layer types used in the network.
 | `feed_forwards(std::vector<IMatrix<float>*> &output)` | `virtual void` | Feeds the layer forward |
 | `feed_backwards(std::vector<IMatrix<float>*> &input, bool use_g_weights)` | `virtual std::vector<IMatrix<float>*>` | Feeds the layer backwards using generative or recognition weights |
 | `wake_sleep(bool binary_net)` | `void` | Performs the wake-sleep (up-down) algorithm with the specified activation method |
-| `backprop(std::vector<IMatrix<float>*> &data, &deriv, std::vector<IMatrix<float>*> &weight_gradient, &bias_gradient)` | `void` | Performs vanilla backpropagation witht the specified activation method |
+| `back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, std::vector<IMatrix<float>*> &weight_momentum, std::vector<IMatrix<float>*> &bias_momentum, float learning_rate, bool use_hessian, float mu, bool use_momentum, float momentum_term)` | `void` | Performs vanilla backpropagation with the specified activation method |
 
 ###PerceptronFullConnectivityLayer<int features, int rows, int cols, int out_rows, int out_cols, int out_features, int activation_function>
 ===============================
@@ -144,10 +144,12 @@ This is the class that encapsulates all of the rest. Has all required methods. W
 |--------|------|----------|
 | `learning_rate` | `float` | The learning term of the network. Default value is 0 |
 | `momentum_term` | `float` | The momentum term (proportion of learning rate when applied to momentum) of the network. Normally between 0 and 1. Default value is 0 |
+| `minimum_divisor` | `float` | The minimum divisor of the learning rate when using the hessian. Default value is 1 |
 | `cost_function` | `int` | The cost function to be used |
 | `use_batch_learning` | `bool` | Whether you will apply gradient manually |
 | `use_dropout` | `bool` | Whether to train the network with dropout |
 | `use_momentum` | `bool` | Whether to train the network with momentums |
+| `use_hessian` | `bool` | Whether to train the network with the hessian |
 | `weight_gradient` | `std::vector<std::vector<IMatrix<float>*>>` | The gradient for the weights |
 | `bias_gradient` | `std::vector<std::vector<IMatrix<float>*>>` | The gradient for the biases |
 | `layers` | `std::vector<ILayer*>` | All of the network's layers |
@@ -163,8 +165,8 @@ This is the class that encapsulates all of the rest. Has all required methods. W
 | `set_labels(std::vector<IMatrix<float>*> labels)` | `void` | Sets the current labels |
 | `discriminate()` | `void` | Feeds the network forward |
 | `pretrain()` | `void` | Pretrains the network using the wake-sleep algorithm |
-| `train(int iterations)` | `void` | Trains the network using backpropogation |
-| `train(int iterations, std::vector<std::vector<IMatrix<float>*>> &weights, &biases)` | `void` | Trains the network using backpropogation with custom gradients (use in parallelization) |
+| `train(int iterations, float mse)` | `void` | Trains the network using backpropogation, skips if error is less than a tenth of the current MSE |
+| `train(int iterations, std::vector<std::vector<IMatrix<float>*>> &weights, &biases, float mse)` | `void` | Trains the network using backpropogation with custom gradients (use in parallelization) |
 
 
 ###NeuralNetAnalyzer

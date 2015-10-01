@@ -13,10 +13,11 @@
 #define CNN_OUTPUT 6
 
 #define CNN_LINEAR 0
-#define CNN_SIGMOID 1
-#define CNN_BIPOLAR_SIGMOID 2
+#define CNN_LOGISTIC 1
+#define CNN_BIPOLAR_LOGISTIC 2
 #define CNN_TANH 3
-#define CNN_RELU 4
+#define CNN_TANH_LECUN 4
+#define CNN_RELU 5
 
 template<int rows, int cols, int kernel_rows, int kernel_cols, int stride> IMatrix<float>*
 convolve(IMatrix<float>* &input, IMatrix<float>* &kernel)
@@ -44,7 +45,7 @@ convolve(IMatrix<float>* &input, IMatrix<float>* &kernel)
 }
 
 template<int rows, int cols, int kernel_rows, int kernel_cols, int stride> void
-backprop_kernel(IMatrix<float>* &input, IMatrix<float>* &output, IMatrix<float>* &kernel_gradient, float learning_rate)
+back_prop_kernel(IMatrix<float>* &input, IMatrix<float>* &output, IMatrix<float>* &kernel_gradient, float learning_rate)
 {
 	const int N = (kernel_rows - 1) / 2;
 	const int M = (kernel_cols - 1) / 2;
@@ -66,6 +67,29 @@ backprop_kernel(IMatrix<float>* &input, IMatrix<float>* &output, IMatrix<float>*
 	}
 }
 
+template<int rows, int cols, int kernel_rows, int kernel_cols, int stride> void
+back_prop_kernel_hessian(IMatrix<float>* &input, IMatrix<float>* &output, IMatrix<float>* &kernel_hessian, float gamma)
+{
+	const int N = (kernel_rows - 1) / 2;
+	const int M = (kernel_cols - 1) / 2;
+	const int out_rows = (rows - kernel_rows) / stride + 1;
+	const int out_cols = (cols - kernel_cols) / stride + 1;
+
+	//change focus of kernel
+	for (int i = N; i < (rows - N); i += stride)
+	{
+		for (int j = M; j < (cols - M); j += stride)
+		{
+			//iterate over kernel
+			float sum = 0;
+			float out = output->at((i - N) / stride, (j - N) / stride);
+			for (int n = N; n >= -N; --n)
+				for (int m = M; m >= -M; --m)
+					kernel_hessian->at(N - n, M - m) += gamma * input->at(i - n, j - m) * input->at(i - n, j - m) * out;
+		}
+	}
+}
+
 template<int rows, int cols, int kernel_rows, int kernel_cols, int stride> IMatrix<float>*
 convolve_back(IMatrix<float>* &input, IMatrix<float>* &kernel)
 {
@@ -81,14 +105,35 @@ convolve_back(IMatrix<float>* &input, IMatrix<float>* &kernel)
 		for (int j = M; j < (cols - M); j += stride)
 		{
 			//find all possible ways convolved into
-			float sum = 0;
 			for (int n = N; n >= -N; --n)
-			{
 				for (int m = M; m >= -M; --m)
-				{
 					output->at(i - n, j - m) += kernel->at(N - n, M - m) * input->at(times_down, times_across);
-				}
-			}
+			++times_across;
+		}
+		times_across = 0;
+		++times_down;
+	}
+	return output;
+}
+
+template<int rows, int cols, int kernel_rows, int kernel_cols, int stride> IMatrix<float>*
+convolve_back_hessian_weights(IMatrix<float>* &input, IMatrix<float>* &kernel)
+{
+	const int N = (kernel_rows - 1) / 2;
+	const int M = (kernel_cols - 1) / 2;
+	Matrix2D<float, rows, cols>* output = new Matrix2D<float, rows, cols>();
+
+	int times_across = 0;
+	int times_down = 0;
+
+	for (int i = N; i < (rows - N); i += stride)
+	{
+		for (int j = M; j < (cols - M); j += stride)
+		{
+			//find all possible ways convolved into
+			for (int n = N; n >= -N; --n)
+				for (int m = M; m >= -M; --m)
+					output->at(i - n, j - m) += kernel->at(N - n, M - m) * kernel->at(N - n, M - m) * input->at(times_down, times_across);
 			++times_across;
 		}
 		times_across = 0;
@@ -110,7 +155,9 @@ public:
 
 	virtual void wake_sleep(float &learning_rate, bool &use_dropout) = 0;
 
-	virtual  void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, float learning_rate) = 0;
+	virtual void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, std::vector<IMatrix<float>*> &weight_momentum, std::vector<IMatrix<float>*> &bias_momentum, float learning_rate, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term) = 0;
+
+	virtual void back_prop_second(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &deriv_first_in, std::vector<IMatrix<float>*> &deriv_first_out, bool use_first_deriv, float gamma) = 0;
 
 	virtual ILayer* clone() = 0;
 
@@ -118,11 +165,13 @@ public:
 
 	std::vector<IMatrix<float>*> biases;
 
-	std::vector<IMatrix<float>*> recognition_data;
+	std::vector<IMatrix<float>*> recognition_weights;
 
-	std::vector<IMatrix<float>*> generative_data;
+	std::vector<IMatrix<float>*> generative_weights;
 
-	std::vector<IMatrix<float>*> second_derivatives;
+	std::vector<IMatrix<float>*> hessian_weights;
+
+	std::vector<IMatrix<float>*> hessian_biases;
 
 	int type;
 
@@ -136,12 +185,14 @@ public:
 	{
 		if (activation == CNN_LINEAR)
 			return value;
-		if (activation == CNN_SIGMOID)
+		if (activation == CNN_LOGISTIC)
 			return value < 5 && value > -5 ? (1 / (1 + exp(-value))) : (value >= 5 ? 1.0f : 0.0f);
-		if (activation == CNN_BIPOLAR_SIGMOID)
+		if (activation == CNN_BIPOLAR_LOGISTIC)
 			return value < 5 && value > -5 ? ((2 / (1 + exp(-value))) - 1) : (value >= 5 ? 1.0f : -1.0f);
 		if (activation == CNN_TANH)
 			return value < 5 && value > -5 ? tanh(value) : (value >= 5 ? 1.0f : -1.0f);
+		if (activation == CNN_TANH_LECUN)
+			return value < 5 && value > -5 ? 1.7159f * tanh(0.66666667f * value) : ((value >= 5 ? 1.7159f : -1.7159f));
 		if (activation == CNN_RELU)
 			return value > 0 ? value : 0;
 	}
@@ -150,14 +201,32 @@ public:
 	{
 		if (activation == CNN_LINEAR)
 			return 1;
-		if (activation == CNN_SIGMOID)
+		if (activation == CNN_LOGISTIC)
 			return value * (1 - value);
-		if (activation == CNN_BIPOLAR_SIGMOID)
+		if (activation == CNN_BIPOLAR_LOGISTIC)
 			return (1 + value) * (1 - value) / 2;
 		if (activation == CNN_TANH)
 			return 1 - value * value;
+		if (activation == CNN_TANH_LECUN)
+			return (0.66666667f / 1.7159f * (1.7159f + value) * (1.7159f - value));
 		if (activation == CNN_RELU)
 			return value > 0 ? 1 : 0;
+	}
+
+	inline float activation_second_derivative(float value, int activation)
+	{
+		if (activation == CNN_LINEAR)
+			return 0;
+		if (activation == CNN_LOGISTIC)
+			return value * (1 - value) * (1 - 2 * value);
+		if (activation == CNN_BIPOLAR_LOGISTIC)
+			return (1 + value) * (1 - value) * value / 2;
+		if (activation == CNN_TANH)
+			return (2 * ((value * value) - 1) * value);
+		if (activation == CNN_TANH_LECUN)
+			return (2 * (0.66666667f * 0.66666667f) / (1.7159f * 1.7159f) * (value + 1.7159f) * (value - 1.7159f) * (value));
+		if (activation == CNN_RELU)
+			return 0;
 	}
 };
 
@@ -175,20 +244,24 @@ public:
 			feature_maps[f] = new Matrix2D<float, rows, cols>();
 
 		biases = std::vector<IMatrix<float>*>(out_features * features);
-		recognition_data = std::vector<IMatrix<float>*>(out_features * features);
-		generative_data = std::vector<IMatrix<float>*>(out_features * features);
+		recognition_weights = std::vector<IMatrix<float>*>(out_features * features);
+		generative_weights = std::vector<IMatrix<float>*>(out_features * features);
+		hessian_weights = std::vector<IMatrix<float>*>(out_features * features);
+		hessian_biases = std::vector<IMatrix<float>*>(out_features * features);
 		for (int k = 0; k < out_features * features; ++k)
 		{
 			biases[k] = new Matrix2D<float, 1, 1>({ 0 });
-			recognition_data[k] = new Matrix2D<float, kernel_size, kernel_size>();
-			generative_data[k] = new Matrix2D<float, kernel_size, kernel_size>();
+			hessian_biases[k] = new Matrix2D<float, 1, 1>({ 0 });
+			hessian_weights[k] = new Matrix2D<float, kernel_size, kernel_size>();
+			recognition_weights[k] = new Matrix2D<float, kernel_size, kernel_size>();
+			generative_weights[k] = new Matrix2D<float, kernel_size, kernel_size>();
 			for (int i = 0; i < kernel_size; ++i)
 			{
 				for (int j = 0; j < kernel_size; ++j)
 				{
 					//purely random works best
-					recognition_data[k]->at(i, j) = .05f * ((2.0f * rand()) / RAND_MAX - 1);
-					generative_data[k]->at(i, j) = recognition_data[k]->at(i, j);
+					recognition_weights[k]->at(i, j) = .05f * ((2.0f * rand()) / RAND_MAX - 1);
+					generative_weights[k]->at(i, j) = recognition_weights[k]->at(i, j);
 				}
 			}
 		}
@@ -200,8 +273,8 @@ public:
 			delete feature_maps[i];
 		for (int i = 0; i < out_features; ++i)
 		{
-			delete recognition_data[i];
-			delete generative_data[i];
+			delete recognition_weights[i];
+			delete generative_weights[i];
 		}
 	}
 
@@ -216,7 +289,7 @@ public:
 			for (int f = 0; f < features; ++f)
 			{
 				add<float, out_rows, out_cols>
-					(output[f_0], convolve<rows, cols, kernel_size, kernel_size, stride>(feature_maps[f], recognition_data[f_0 * features + f]));
+					(output[f_0], convolve<rows, cols, kernel_size, kernel_size, stride>(feature_maps[f], recognition_weights[f_0 * features + f]));
 				if (use_biases)
 					for (int i = 0; i < out_rows; ++i)
 						for (int j = 0; j < out_cols; ++j)
@@ -234,21 +307,21 @@ public:
 
 	void feed_backwards(std::vector<IMatrix<float>*> &input, const bool &use_g_weights)
 	{
-		//Do the first only
 		for (int f = 0; f < features; ++f)
 		{
 			for (int f_0 = 0; f_0 < out_features; ++f_0)
 			{
 				if (!use_g_weights)
 					add<float, rows, cols>(feature_maps[f],
-					convolve_back<rows, cols, kernel_size, kernel_size, stride>(input[f_0], recognition_data[f_0 * features + f]));
+					convolve_back<rows, cols, kernel_size, kernel_size, stride>(input[f_0], recognition_weights[f_0 * features + f]));
 				else
 					add<float, rows, cols>(feature_maps[f],
-					convolve_back<rows, cols, kernel_size, kernel_size, stride>(input[f_0], generative_data[f_0 * features + f]));
+					convolve_back<rows, cols, kernel_size, kernel_size, stride>(input[f_0], generative_weights[f_0 * features + f]));
 			}
 		}
 	}
 
+	//todo: fix
 	void wake_sleep(float &learning_rate, bool &use_dropout)
 	{
 		//find difference via gibbs sampling
@@ -267,23 +340,23 @@ public:
 		//adjust weights
 		for (int f_0 = 0; f_0 < reconstructed.size(); ++f_0)
 		{
-			int N = (generative_data[f_0]->rows() - 1) / 2;
+			int N = (generative_weights[f_0]->rows() - 1) / 2;
 			int times_down = 0;
 			int times_across = 0;
 
-			for (int i = N; i < (rows - generative_data[f_0]->rows()) + stride; i += stride)
+			for (int i = N; i < (rows - generative_weights[f_0]->rows()) + stride; i += stride)
 			{
-				for (int j = N; j < (cols - generative_data[f_0]->rows()) + stride; j += stride)
+				for (int j = N; j < (cols - generative_weights[f_0]->rows()) + stride; j += stride)
 				{
-					float delta_w = -learning_rate *
+					float delta_w = -learning_rate * //[hessian_weights[]->at(I,J)]
 						(discriminated[f_0]->at(times_across, times_down) - reconstructed[f_0]->at(times_across, times_down));
 
 					for (int n = N; n >= -N; --n)
 					{
 						for (int m = N; m >= -N; --m)
 						{
-							recognition_data[f_0]->at(N - n, N - m) += delta_w;
-							generative_data[f_0]->at(N - n, N - m) -= delta_w;
+							recognition_weights[f_0]->at(N - n, N - m) += delta_w;
+							generative_weights[f_0]->at(N - n, N - m) -= delta_w;
 						}
 					}
 					++times_across;
@@ -300,8 +373,7 @@ public:
 		}
 	}
 
-	//todo: fix
-	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, float learning_rate)
+	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, std::vector<IMatrix<float>*> &weight_momentum, std::vector<IMatrix<float>*> &bias_momentum, float learning_rate, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
 	{
 		std::vector<IMatrix<float>*> temp = std::vector<IMatrix<float>*>(features);
 		for (int f = 0; f < features; ++f)
@@ -329,17 +401,123 @@ public:
 			for (int f = 0; f < features; ++f)
 			{
 				//adjust the gradient
-				backprop_kernel<rows, cols, kernel_size, kernel_size, stride>(temp[f], deriv[f_0], weight_gradient[f_0 * features + f], learning_rate);
+				back_prop_kernel<rows, cols, kernel_size, kernel_size, stride>(temp[f], deriv[f_0], weight_gradient[f_0 * features + f], learning_rate);
+
+				if (use_hessian_weights)
+					for (int i = 0; i < kernel_size; ++i)
+						for (int j = 0; j < kernel_size; ++j)
+							weight_gradient[f_0 * features + f]->at(i, j) /= (hessian_weights[f_0 * features + f]->at(i, j) + mu);
 
 				if (use_biases)
-					for (int i_0 = 0; i_0 < out_rows; ++i_0)
-						for (int j_0 = 0; j_0 < out_cols; ++j_0)
-							bias_gradient[f_0 * features + f]->at(0, 0) += -learning_rate * deriv[f_0]->at(i_0, j_0);
+				{
+					if (use_hessian_weights)
+						for (int i_0 = 0; i_0 < out_rows; ++i_0)
+							for (int j_0 = 0; j_0 < out_cols; ++j_0)
+								bias_gradient[f_0 * features + f]->at(0, 0) += -learning_rate * deriv[f_0]->at(i_0, j_0)
+																			/ (hessian_biases[f_0 * features + f]->at(0, 0) + mu);
+					else
+						for (int i_0 = 0; i_0 < out_rows; ++i_0)
+							for (int j_0 = 0; j_0 < out_cols; ++j_0)
+								bias_gradient[f_0 * features + f]->at(0, 0) += -learning_rate * deriv[f_0]->at(i_0, j_0);
+				}
+
+				if (use_momentum)
+				{
+					for (int i = 0; i < kernel_size; ++i)
+					{
+						for (int j = 0; j < kernel_size; ++j)
+						{
+							recognition_weights[f_0 * features + f]->at(i, j) += weight_gradient[f_0 * features + f]->at(i, j)
+								+ momentum_term * weight_momentum[f_0 * features + f]->at(i, j);
+							weight_momentum[f_0 * features + f]->at(i, j) = momentum_term * weight_momentum[f_0 * features + f]->at(i, j)
+								+ weight_gradient[f_0 * features + f]->at(i, j);
+							weight_gradient[f_0 * features + f]->at(i, j) = 0;
+						}
+					}
+
+					biases[f_0 * features + f]->at(0, 0) += bias_gradient[f_0 * features + f]->at(0, 0)
+						+ momentum_term * bias_momentum[f_0 * features + f]->at(0, 0);
+					biases[f_0 * features + f]->at(0, 0) = momentum_term * bias_momentum[f_0 * features + f]->at(0, 0)
+						+ bias_gradient[f_0 * features + f]->at(0, 0);
+					bias_gradient[f_0 * features + f]->at(0, 0) = 0;
+				}
 			}
 		}
 
 		//update deltas
 		feed_backwards(deriv, false);
+
+		//clean up
+		for (int f = 0; f < features; ++f)
+			delete temp[f];
+	}
+
+	void back_prop_second(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &deriv_first_in, std::vector<IMatrix<float>*> &deriv_first_out, bool use_first_deriv, float gamma)
+	{
+		std::vector<IMatrix<float>*> temp = std::vector<IMatrix<float>*>(features);
+		for (int f = 0; f < features; ++f)
+		{
+			temp[f] = feature_maps[f]->clone();
+			for (int i = 0; i < rows; ++i)
+				for (int j = 0; j < cols; ++j)
+					feature_maps[f]->at(i, j) = 0;
+		}
+
+		const int out_rows = (rows - kernel_size) / stride + 1;
+		const int out_cols = (cols - kernel_size) / stride + 1;
+
+		//adjust by 1 - gamma
+		for (int d = 0; d < features * out_features; ++d)
+			for (int i = 0; i < kernel_size; ++i)
+				for (int j = 0; j < kernel_size; ++j)
+					hessian_weights[d]->at(i, j) *= (1 - gamma);
+		if (use_biases)
+			for (int d = 0; d < features * out_features; ++d)
+				hessian_biases[d]->at(0, 0) *= (1 - gamma);
+
+		//adjust gradients and update features
+		for (int f_0 = 0; f_0 < out_features; ++f_0)
+		{
+			for (int i_0 = 0; i_0 < out_rows; ++i_0)
+			{
+				for (int j_0 = 0; j_0 < out_cols; ++j_0)
+				{
+					float deriv_temp = activation_derivative(data[f_0]->at(i_0, j_0), activation);
+					deriv[f_0]->at(i_0, j_0) *= deriv_temp * deriv_temp;
+
+					if (use_first_deriv)
+					{
+						deriv[f_0]->at(i_0, j_0) += deriv_first_in[f_0]->at(i_0, j_0) * activation_second_derivative(data[f_0]->at(i_0, j_0), activation);
+						deriv_first_in[f_0]->at(i_0, j_0) *= deriv_temp;
+					}
+				}
+			}
+
+			//update hessian
+			for (int f = 0; f < features; ++f)
+			{
+				back_prop_kernel_hessian<rows, cols, kernel_size, kernel_size, stride>(temp[f], deriv[f_0],
+																hessian_weights[f_0 * features + f], gamma);
+
+				if (use_biases)
+					for (int i_0 = 0; i_0 < out_rows; ++i_0)
+						for (int j_0 = 0; j_0 < out_cols; ++j_0)
+							hessian_biases[f_0 * features + f]->at(0, 0) += gamma * deriv[f_0]->at(i_0, j_0);
+			}
+		}
+
+		//update deltas, feed backwards except w^2
+		for (int f = 0; f < features; ++f)
+		{
+			for (int f_0 = 0; f_0 < out_features; ++f_0)
+			{
+				add<float, rows, cols>(feature_maps[f],
+					convolve_back_hessian_weights<rows, cols, kernel_size, kernel_size, stride>(deriv[f_0], recognition_weights[f_0 * features + f]));
+				if (use_first_deriv)
+					add<float, rows, cols>(deriv_first_out[f],
+						convolve_back<rows, cols, kernel_size, kernel_size, stride>(deriv_first_in[f_0], recognition_weights[f_0 * features + f]));
+			}
+		}
 
 		//clean up
 		for (int f = 0; f < features; ++f)
@@ -362,20 +540,25 @@ public:
 				for (int j = 0; j < biases[f]->cols(); ++j)
 					copy->biases[f]->at(i, j) = this->biases[f]->at(i, j);
 
-		for (int d = 0; d < recognition_data.size(); ++d)
-			for (int i = 0; i < recognition_data[d]->rows(); ++i)
-				for (int j = 0; j < recognition_data[d]->cols(); ++j)
-					copy->recognition_data[d]->at(i, j) = this->recognition_data[d]->at(i, j);
+		for (int d = 0; d < recognition_weights.size(); ++d)
+			for (int i = 0; i < recognition_weights[d]->rows(); ++i)
+				for (int j = 0; j < recognition_weights[d]->cols(); ++j)
+					copy->recognition_weights[d]->at(i, j) = this->recognition_weights[d]->at(i, j);
 
-		for (int d = 0; d < generative_data.size(); ++d)
-			for (int i = 0; i < generative_data[d]->rows(); ++i)
-				for (int j = 0; j < generative_data[d]->cols(); ++j)
-					copy->generative_data[d]->at(i, j) = this->generative_data[d]->at(i, j);
+		for (int d = 0; d < generative_weights.size(); ++d)
+			for (int i = 0; i < generative_weights[d]->rows(); ++i)
+				for (int j = 0; j < generative_weights[d]->cols(); ++j)
+					copy->generative_weights[d]->at(i, j) = this->generative_weights[d]->at(i, j);
 
-		for (int d = 0; d < second_derivatives.size(); ++d)
-			for (int i = 0; i < second_derivatives[d]->rows(); ++i)
-				for (int j = 0; j < second_derivatives[d]->cols(); ++j)
-					copy->second_derivatives[d]->at(i, j) = this->second_derivatives[d]->at(i, j);
+		for (int d = 0; d < hessian_weights.size(); ++d)
+			for (int i = 0; i < hessian_weights[d]->rows(); ++i)
+				for (int j = 0; j < hessian_weights[d]->cols(); ++j)
+					copy->hessian_weights[d]->at(i, j) = this->hessian_weights[d]->at(i, j);
+
+		for (int d = 0; d < hessian_biases.size(); ++d)
+			for (int i = 0; i < hessian_biases[d]->rows(); ++i)
+				for (int j = 0; j < hessian_biases[d]->cols(); ++j)
+					copy->hessian_biases[d]->at(i, j) = this->hessian_biases[d]->at(i, j);
 
 		return copy;
 	}
@@ -391,43 +574,41 @@ public:
 		type = CNN_PERCEPTRON_FULL_CONNECTIVITY;
 		feature_maps = std::vector<IMatrix<float>*>(features);
 		biases = std::vector<IMatrix<float>*>(out_features);
-		recognition_data = std::vector<IMatrix<float>*>(1);
-		generative_data = std::vector<IMatrix<float>*>(1);
-		second_derivatives = std::vector<IMatrix<float>*>(1);
+		recognition_weights = std::vector<IMatrix<float>*>(1);
+		generative_weights = std::vector<IMatrix<float>*>(1);
+		hessian_weights = std::vector<IMatrix<float>*>(1);
+		hessian_biases = std::vector<IMatrix<float>*>(out_features);
 
 		for (int k = 0; k < features; ++k)
 			feature_maps[k] = new Matrix2D<float, rows, cols>();
 
 		for (int k = 0; k < out_features; ++k)
+		{
 			biases[k] = new Matrix2D<float, out_rows, out_cols>();
+			hessian_biases[k] = new Matrix2D<float, out_rows, out_cols>();
+		}
 
 		//const float s_d = 1.0f / (rows * cols * features);
-		const float beta = .7 * pow(out_rows * out_cols * out_features, 1 / (rows * cols * features));
-		float n = 0.0f;
-
-		recognition_data[0] = new Matrix2D<float, out_rows * out_cols * out_features, rows * cols * features>();
-		generative_data[0] = new Matrix2D<float, out_rows * out_cols * out_features, rows * cols * features>();
-		second_derivatives[0] = new Matrix2D<float, out_rows * out_cols * out_features, rows * cols * features>();
+		recognition_weights[0] = new Matrix2D<float, out_rows * out_cols * out_features, rows * cols * features>();
+		generative_weights[0] = new Matrix2D<float, out_rows * out_cols * out_features, rows * cols * features>();
+		hessian_weights[0] = new Matrix2D<float, out_rows * out_cols * out_features, rows * cols * features>();
 		for (int i = 0; i < out_rows * out_cols * out_features; ++i)
 		{
 			for (int j = 0; j < rows * cols * features; ++j)
 			{
 				//gaussian distributed
 				float x = sqrt(-2 * log(1.0f * (rand() + 1) / (RAND_MAX + 1))) * sin(2 * 3.14152f * rand() / RAND_MAX);
-				recognition_data[0]->at(i, j) = x * .1f;
-				generative_data[0]->at(i, j) = recognition_data[0]->at(i, j);
-				second_derivatives[0]->at(i, j) = 0;
+				recognition_weights[0]->at(i, j) = x * .1f;
+				generative_weights[0]->at(i, j) = recognition_weights[0]->at(i, j);
 			}
 		}
-
-		float factor = beta / sqrt(n);
 	}
 
 	~PerceptronFullConnectivityLayer<features, rows, cols, out_features, out_rows, out_cols, activation_function>()
 	{
-		delete recognition_data[0];
-		delete generative_data[0];
-		delete second_derivatives[0];
+		delete recognition_weights[0];
+		delete generative_weights[0];
+		delete hessian_weights[0];
 		for (int i = 0; i < features; ++i)
 			delete feature_maps[i];
 		for (int i = 0; i < out_features; ++i)
@@ -450,7 +631,7 @@ public:
 						for (int i = 0; i < rows; ++i)
 							for (int j = 0; j < cols; ++j)
 								sum += (feature_maps[f]->at(i, j) *
-								recognition_data[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j));
+								recognition_weights[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j));
 
 						//add bias
 						if (use_biases)
@@ -481,10 +662,10 @@ public:
 							for (int j_0 = 0; j_0 < out_cols; ++j_0)
 							{
 								if (use_g_weights)
-									sum += generative_data[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j)
+									sum += generative_weights[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j)
 									* input[f_0]->at(i_0, j_0);
 								else
-									sum += recognition_data[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j)
+									sum += recognition_weights[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j)
 									* input[f_0]->at(i_0, j_0);
 							}
 						}
@@ -495,6 +676,7 @@ public:
 		}
 	}
 
+	//todo: fix
 	void wake_sleep(float &learning_rate, bool &use_dropout)
 	{
 		//find difference via gibbs sampling
@@ -524,8 +706,8 @@ public:
 						{
 							for (int j = 0; j < feature_maps[f]->cols(); ++j)
 							{
-								recognition_data[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) += delta_weight;
-								generative_data[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) -= delta_weight;
+								recognition_weights[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) += delta_weight;
+								generative_weights[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) -= delta_weight;
 							}
 						}
 					}
@@ -539,7 +721,7 @@ public:
 			delete discriminated[i];
 	}
 
-	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, float learning_rate)
+	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, std::vector<IMatrix<float>*> &weight_momentum, std::vector<IMatrix<float>*> &bias_momentum, float learning_rate, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
 	{
 		std::vector<IMatrix<float>*> temp = std::vector<IMatrix<float>*>(features);
 		for (int f = 0; f < features; ++f)
@@ -559,7 +741,20 @@ public:
 					deriv[f_0]->at(i_0, j_0) *= activation_derivative(data[f_0]->at(i_0, j_0), activation);
 
 					if (use_biases)
-						bias_gradient[f_0]->at(i_0, j_0) += -learning_rate * deriv[f_0]->at(i_0, j_0);
+					{
+						if (use_hessian_weights)
+							bias_gradient[f_0]->at(i_0, j_0) += -learning_rate * deriv[f_0]->at(i_0, j_0) 
+																/ (hessian_biases[f_0]->at(i_0, j_0) + mu);
+						else
+							bias_gradient[f_0]->at(i_0, j_0) += -learning_rate * deriv[f_0]->at(i_0, j_0);
+
+						if (use_momentum)
+						{
+							biases[f_0]->at(i_0, j_0) += bias_gradient[f_0]->at(i_0, j_0) + momentum_term * bias_momentum[f_0]->at(i_0, j_0);
+							bias_momentum[f_0]->at(i_0, j_0) = momentum_term * bias_momentum[f_0]->at(i_0, j_0) + bias_gradient[f_0]->at(i_0, j_0);
+							bias_gradient[f_0]->at(i_0, j_0) = 0;
+						}
+					}
 
 					for (int f = 0; f < features; ++f)
 					{
@@ -567,10 +762,89 @@ public:
 						{
 							for (int j = 0; j < cols; ++j)
 							{
-								feature_maps[f]->at(i, j) += 
-									deriv[f_0]->at(i_0, j_0) * recognition_data[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
-								weight_gradient[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) +=
+								feature_maps[f]->at(i, j) += deriv[f_0]->at(i_0, j_0) 
+									* recognition_weights[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
+								if (use_hessian_weights)
+									weight_gradient[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) +=
+										-learning_rate / (hessian_weights[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) + mu)
+										* deriv[f_0]->at(i_0, j_0) * temp[f]->at(i, j);
+								else
+									weight_gradient[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) +=
 									-learning_rate * deriv[f_0]->at(i_0, j_0) * temp[f]->at(i, j);
+								if (use_momentum)
+								{
+									recognition_weights[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) +=
+										weight_gradient[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j)
+										+ momentum_term * weight_momentum[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
+									weight_momentum[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) =
+										momentum_term * weight_momentum[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j)
+										+ weight_gradient[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
+									weight_gradient[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) = 0;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		for (int f = 0; f < features; ++f)
+			delete temp[f];
+	}
+
+	void back_prop_second(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &deriv_first_in, std::vector<IMatrix<float>*> &deriv_first_out, bool use_first_deriv, float gamma)
+	{
+		std::vector<IMatrix<float>*> temp = std::vector<IMatrix<float>*>(features);
+		for (int f = 0; f < features; ++f)
+		{
+			temp[f] = feature_maps[f]->clone();
+			for (int i = 0; i < rows; ++i)
+				for (int j = 0; j < cols; ++j)
+					feature_maps[f]->at(i, j) = 0;
+		}
+
+		for (int i = 0; i < out_features * out_rows * out_cols; ++i)
+			for (int j = 0; j < features * rows * cols; ++j)
+				hessian_weights[0]->at(i, j) *= (1 - gamma);
+		if (use_biases)
+			for (int f_0 = 0; f_0 < out_features; ++f_0)
+				for (int i_0 = 0; i_0 < out_rows; ++i_0)
+					for (int j_0 = 0; j_0 < out_cols; ++j_0)
+						hessian_biases[f_0]->at(i_0, j_0) *= (1 - gamma);
+
+		for (int f_0 = 0; f_0 < out_features; ++f_0)
+		{
+			for (int i_0 = 0; i_0 < out_rows; ++i_0)
+			{
+				for (int j_0 = 0; j_0 < out_cols; ++j_0)
+				{
+					float deriv_temp = activation_derivative(data[f_0]->at(i_0, j_0), activation);
+					deriv[f_0]->at(i_0, j_0) *= deriv_temp * deriv_temp;
+
+					if (use_first_deriv)
+					{
+						deriv[f_0]->at(i_0, j_0) += deriv_first_in[f_0]->at(i_0, j_0) * activation_second_derivative(data[f_0]->at(i_0, j_0), activation);
+						deriv_first_in[f_0]->at(i_0, j_0) *= deriv_temp;
+					}
+
+					if (use_biases)
+						hessian_biases[f_0]->at(i_0, j_0) += gamma * deriv[f_0]->at(i_0, j_0);
+
+					for (int f = 0; f < features; ++f)
+					{
+						for (int i = 0; i < rows; ++i)
+						{
+							for (int j = 0; j < cols; ++j)
+							{
+								float w = recognition_weights[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
+								float x = temp[f]->at(i, j);
+
+								feature_maps[f]->at(i, j) += deriv[f_0]->at(i_0, j_0) * w * w;
+								hessian_weights[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) +=
+									gamma * deriv[f_0]->at(i_0, j_0) * x * x;
+
+								if (use_first_deriv)
+									deriv_first_out[f]->at(i, j) += deriv_first_in[f_0]->at(i_0, j_0) * w;
 							}
 						}
 					}
@@ -598,20 +872,25 @@ public:
 				for (int j = 0; j < biases[f]->cols(); ++j)
 					copy->biases[f]->at(i, j) = this->biases[f]->at(i, j);
 
-		for (int d = 0; d < recognition_data.size(); ++d)
-			for (int i = 0; i < recognition_data[d]->rows(); ++i)
-				for (int j = 0; j < recognition_data[d]->cols(); ++j)
-					copy->recognition_data[d]->at(i, j) = this->recognition_data[d]->at(i, j);
+		for (int d = 0; d < recognition_weights.size(); ++d)
+			for (int i = 0; i < recognition_weights[d]->rows(); ++i)
+				for (int j = 0; j < recognition_weights[d]->cols(); ++j)
+					copy->recognition_weights[d]->at(i, j) = this->recognition_weights[d]->at(i, j);
 
-		for (int d = 0; d < generative_data.size(); ++d)
-			for (int i = 0; i < generative_data[d]->rows(); ++i)
-				for (int j = 0; j < generative_data[d]->cols(); ++j)
-					copy->generative_data[d]->at(i, j) = this->generative_data[d]->at(i, j);
+		for (int d = 0; d < generative_weights.size(); ++d)
+			for (int i = 0; i < generative_weights[d]->rows(); ++i)
+				for (int j = 0; j < generative_weights[d]->cols(); ++j)
+					copy->generative_weights[d]->at(i, j) = this->generative_weights[d]->at(i, j);
 
-		for (int d = 0; d < second_derivatives.size(); ++d)
-			for (int i = 0; i < second_derivatives[d]->rows(); ++i)
-				for (int j = 0; j < second_derivatives[d]->cols(); ++j)
-					copy->second_derivatives[d]->at(i, j) = this->second_derivatives[d]->at(i, j);
+		for (int d = 0; d < hessian_weights.size(); ++d)
+			for (int i = 0; i < hessian_weights[d]->rows(); ++i)
+				for (int j = 0; j < hessian_weights[d]->cols(); ++j)
+					copy->hessian_weights[d]->at(i, j) = this->hessian_weights[d]->at(i, j);
+
+		for (int d = 0; d < hessian_biases.size(); ++d)
+			for (int i = 0; i < hessian_biases[d]->rows(); ++i)
+				for (int j = 0; j < hessian_biases[d]->cols(); ++j)
+					copy->hessian_biases[d]->at(i, j) = this->hessian_biases[d]->at(i, j);
 
 		return copy;
 	}
@@ -629,9 +908,9 @@ public:
 		connections_per_neuron = connections;
 		feature_maps = std::vector<IMatrix<float>*>(features);
 		biases = std::vector<IMatrix<float>*>(out_features);
-		recognition_data = std::vector<IMatrix<float>*>(1);
-		generative_data = std::vector<IMatrix<float>*>(1);
-		second_derivatives = std::vector<IMatrix<float>*>(1);
+		recognition_weights = std::vector<IMatrix<float>*>(1);
+		generative_weights = std::vector<IMatrix<float>*>(1);
+		hessian_weights = std::vector<IMatrix<float>*>(1);
 
 		for (int k = 0; k < features; ++k)
 			feature_maps[k] = new Matrix2D<float, rows, cols>();
@@ -641,27 +920,27 @@ public:
 
 		const float s_d = 1.0f / connections;
 
-		recognition_data[0] = new Matrix2D<float, connections, rows * cols * features>();
-		generative_data[0] = new Matrix2D<float, connections, rows * cols * features>();
-		second_derivatives[0] = new Matrix2D<float, connections, rows * cols * features>();
+		recognition_weights[0] = new Matrix2D<float, connections, rows * cols * features>();
+		generative_weights[0] = new Matrix2D<float, connections, rows * cols * features>();
+		hessian_weights[0] = new Matrix2D<float, connections, rows * cols * features>();
 		for (int i = 0; i < connections; ++i)
 		{
 			for (int j = 0; j < rows * cols * features; ++j)
 			{
 				//uniformally distributed
 				float x = (2.0f * s_d * rand()) / RAND_MAX - s_d;
-				recognition_data[0]->at(i, j) = x;
-				generative_data[0]->at(i, j) = recognition_data[0]->at(i, j);
-				second_derivatives[0]->at(i, j) = 0;
+				recognition_weights[0]->at(i, j) = x;
+				generative_weights[0]->at(i, j) = recognition_weights[0]->at(i, j);
+				hessian_weights[0]->at(i, j) = 0;
 			}
 		}
 	}
 
 	~PerceptronLocalConnectivityLayer<features, rows, cols, out_rows, out_cols, out_features, connections, activation_function>()
 	{
-		delete recognition_data[0];
-		delete generative_data[0];
-		delete second_derivatives[0];
+		delete recognition_weights[0];
+		delete generative_weights[0];
+		delete hessian_weights[0];
 		for (int i = 0; i < features; ++i)
 			delete feature_maps[i];
 		for (int i = 0; i < out_features; ++i)
@@ -701,7 +980,7 @@ public:
 						f_0 = (n - j_0 - i_0 * out_cols) / (out_rows * out_cols);
 
 						//add to weight
-						output[f_0]->at(i_0, j_0) += recognition_data[0]->at(k, f * rows * cols + i * cols + j) * feature_maps[f]->at(i, j);
+						output[f_0]->at(i_0, j_0) += recognition_weights[0]->at(k, f * rows * cols + i * cols + j) * feature_maps[f]->at(i, j);
 						//increment neuron index
 						++n;
 					}
@@ -768,7 +1047,7 @@ public:
 						f_0 = (n - j_0 - i_0 * out_cols) / (out_rows * out_cols);
 
 						//add to weight
-						output[f_0]->at(i_0, j_0) += recognition_data[0]->at(k, f * rows * cols + i * cols + j) * feature_maps[f]->at(i, j);
+						output[f_0]->at(i_0, j_0) += recognition_weights[0]->at(k, f * rows * cols + i * cols + j) * feature_maps[f]->at(i, j);
 						//decrement neuron index
 						--n;
 					}
@@ -842,9 +1121,9 @@ public:
 
 						//add to weight
 						if (!use_g_weights)
-							feature_maps[f]->at(i, j) += recognition_data[0]->at(k, f * rows * cols + i * cols + j) * input[f_0]->at(i_0, j_0);
+							feature_maps[f]->at(i, j) += recognition_weights[0]->at(k, f * rows * cols + i * cols + j) * input[f_0]->at(i_0, j_0);
 						else
-							feature_maps[f]->at(i, j) += generative_data[0]->at(k, f * rows * cols + i * cols + j) * input[f_0]->at(i_0, j_0);
+							feature_maps[f]->at(i, j) += generative_weights[0]->at(k, f * rows * cols + i * cols + j) * input[f_0]->at(i_0, j_0);
 
 						//increment neuron index
 						++n;
@@ -912,9 +1191,9 @@ public:
 
 						//add to weight
 						if (!use_g_weights)
-							feature_maps[f]->at(i, j) += recognition_data[0]->at(k, f * rows * cols + i * cols + j) * input[f_0]->at(i_0, j_0);
+							feature_maps[f]->at(i, j) += recognition_weights[0]->at(k, f * rows * cols + i * cols + j) * input[f_0]->at(i_0, j_0);
 						else
-							feature_maps[f]->at(i, j) += generative_data[0]->at(k, f * rows * cols + i * cols + j) * input[f_0]->at(i_0, j_0);
+							feature_maps[f]->at(i, j) += generative_weights[0]->at(k, f * rows * cols + i * cols + j) * input[f_0]->at(i_0, j_0);
 
 						//decrement neuron index
 						--n;
@@ -981,7 +1260,7 @@ public:
 					for (int k = 0; k < connections; ++k)
 					{
 						//add to weight
-						output[f_0]->at(i_0, j_0) += recognition_data[0]->at(k, f * rows * cols + i * cols + j) * feature_maps[f]->at(i, j);
+						output[f_0]->at(i_0, j_0) += recognition_weights[0]->at(k, f * rows * cols + i * cols + j) * feature_maps[f]->at(i, j);
 						//increment neuron index
 						++j_0;
 						if (j_0 >= out_cols)
@@ -1040,7 +1319,7 @@ public:
 					for (int k = connections - 1; k > 0; --k)
 					{
 						//add to weight
-						output[f_0]->at(i_0, j_0) += recognition_data[0]->at(k, f * rows * cols + i * cols + j) * feature_maps[f]->at(i, j);
+						output[f_0]->at(i_0, j_0) += recognition_weights[0]->at(k, f * rows * cols + i * cols + j) * feature_maps[f]->at(i, j);
 						//decrement neuron index
 						--j_0;
 						if (j_0 < 0)
@@ -1084,7 +1363,7 @@ public:
 				break;
 		}
 
-		//sigmoid & bias
+		//LOGISTIC & bias
 		if (use_biases)
 			for (f_0 = 0; f_0 < out_features; ++f_0)
 				for (i_0 = 0; i_0 < out_rows; ++i_0)
@@ -1125,9 +1404,9 @@ public:
 					{
 						//add to weight
 						if (!use_g_weights)
-							feature_maps[f]->at(i, j) += recognition_data[0]->at(k, f * rows * cols + i * cols + j) * input[f_0]->at(i_0, j_0);
+							feature_maps[f]->at(i, j) += recognition_weights[0]->at(k, f * rows * cols + i * cols + j) * input[f_0]->at(i_0, j_0);
 						else
-							feature_maps[f]->at(i, j) += generative_data[0]->at(k, f * rows * cols + i * cols + j) * input[f_0]->at(i_0, j_0);
+							feature_maps[f]->at(i, j) += generative_weights[0]->at(k, f * rows * cols + i * cols + j) * input[f_0]->at(i_0, j_0);
 
 						//increment neuron index
 						++j_0;
@@ -1188,9 +1467,9 @@ public:
 					{
 						//add to weight
 						if (!use_g_weights)
-							feature_maps[f]->at(i, j) += recognition_data[0]->at(k, f * rows * cols + i * cols + j) * input[f_0]->at(i_0, j_0);
+							feature_maps[f]->at(i, j) += recognition_weights[0]->at(k, f * rows * cols + i * cols + j) * input[f_0]->at(i_0, j_0);
 						else
-							feature_maps[f]->at(i, j) += generative_data[0]->at(k, f * rows * cols + i * cols + j) * input[f_0]->at(i_0, j_0);
+							feature_maps[f]->at(i, j) += generative_weights[0]->at(k, f * rows * cols + i * cols + j) * input[f_0]->at(i_0, j_0);
 
 						//decrement neuron index
 						--j_0;
@@ -1246,7 +1525,7 @@ public:
 		//TODO
 	}
 
-	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, float learning_rate)
+	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, std::vector<IMatrix<float>*> &weight_momentum, std::vector<IMatrix<float>*> &bias_momentum, float learning_rate, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
 	{
 	}
 
@@ -1266,20 +1545,20 @@ public:
 				for (int j = 0; j < biases[f]->cols(); ++j)
 					copy->biases[f]->at(i, j) = this->biases[f]->at(i, j);
 
-		for (int d = 0; d < recognition_data.size(); ++d)
-			for (int i = 0; i < recognition_data[d]->rows(); ++i)
-				for (int j = 0; j < recognition_data[d]->cols(); ++j)
-					copy->recognition_data[d]->at(i, j) = this->recognition_data[d]->at(i, j);
+		for (int d = 0; d < recognition_weights.size(); ++d)
+			for (int i = 0; i < recognition_weights[d]->rows(); ++i)
+				for (int j = 0; j < recognition_weights[d]->cols(); ++j)
+					copy->recognition_weights[d]->at(i, j) = this->recognition_weights[d]->at(i, j);
 
-		for (int d = 0; d < generative_data.size(); ++d)
-			for (int i = 0; i < generative_data[d]->rows(); ++i)
-				for (int j = 0; j < generative_data[d]->cols(); ++j)
-					copy->generative_data[d]->at(i, j) = this->generative_data[d]->at(i, j);
+		for (int d = 0; d < generative_weights.size(); ++d)
+			for (int i = 0; i < generative_weights[d]->rows(); ++i)
+				for (int j = 0; j < generative_weights[d]->cols(); ++j)
+					copy->generative_weights[d]->at(i, j) = this->generative_weights[d]->at(i, j);
 
-		for (int d = 0; d < second_derivatives.size(); ++d)
-			for (int i = 0; i < second_derivatives[d]->rows(); ++i)
-				for (int j = 0; j < second_derivatives[d]->cols(); ++j)
-					copy->second_derivatives[d]->at(i, j) = this->second_derivatives[d]->at(i, j);
+		for (int d = 0; d < hessian_weights.size(); ++d)
+			for (int i = 0; i < hessian_weights[d]->rows(); ++i)
+				for (int j = 0; j < hessian_weights[d]->cols(); ++j)
+					copy->hessian_weights[d]->at(i, j) = this->hessian_weights[d]->at(i, j);
 
 		return copy;
 	}
@@ -1300,20 +1579,20 @@ public:
 			feature_maps[i] = new Matrix2D<float, rows, cols>();
 			switches[i] = new Matrix2D<std::pair<int, int>, out_rows, out_cols>();
 		}
-		recognition_data = std::vector<IMatrix<float>*>(1);
-		recognition_data[0] = new Matrix2D<float, 0, 0>();
-		generative_data = std::vector<IMatrix<float>*>(1);
-		generative_data[0] = new Matrix2D<float, 0, 0>();
+		recognition_weights = std::vector<IMatrix<float>*>(1);
+		recognition_weights[0] = new Matrix2D<float, 0, 0>();
+		generative_weights = std::vector<IMatrix<float>*>(1);
+		generative_weights[0] = new Matrix2D<float, 0, 0>();
 	}
 
 	~MaxpoolLayer<features, rows, cols, out_rows, out_cols>()
 	{
 		for (int i = 0; i < feature_maps.size(); ++i)
 			delete feature_maps[i];
-		for (int i = 0; i < recognition_data.size(); ++i)
+		for (int i = 0; i < recognition_weights.size(); ++i)
 		{
-			delete recognition_data[i];
-			delete generative_data[i];
+			delete recognition_weights[i];
+			delete generative_weights[i];
 		}
 	}
 
@@ -1379,7 +1658,36 @@ public:
 		//not applicable
 	}
 
-	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, float learning_rate)
+	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, std::vector<IMatrix<float>*> &weight_momentum, std::vector<IMatrix<float>*> &bias_momentum, float learning_rate, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
+	{
+		//just move the values back to which ones were passed on
+		for (int f = 0; f < features; ++f)
+		{
+			const int down = rows / out_rows;
+			const int across = cols / out_cols;
+
+			//search each sample
+			for (int i_0 = 0; i_0 < out_rows; ++i_0)
+			{
+				for (int j_0 = 0; j_0 < out_cols; ++j_0)
+				{
+					std::pair<int, int> coords = switches[f]->at(i_0, j_0);
+					for (int i = 0; i < down; ++i)
+					{
+						for (int j = 0; j < across; ++j)
+						{
+							if (i == coords.first && j == coords.second)
+								feature_maps[f]->at(i_0 * down + i, j_0 * across + j) = deriv[f]->at(i_0, j_0);
+							else
+								feature_maps[f]->at(i * down, j * across) = 0;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	void back_prop_second(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &deriv_first_in, std::vector<IMatrix<float>*> &deriv_first_out, bool use_first_deriv, float gamma)
 	{
 		//just move the values back to which ones were passed on
 		for (int f = 0; f < features; ++f)
@@ -1438,20 +1746,20 @@ public:
 		feature_maps = std::vector<IMatrix<float>*>(features);
 		for (int i = 0; i < features; ++i)
 			feature_maps[i] = new Matrix2D<float, rows, cols>();
-		recognition_data = std::vector<IMatrix<float>*>(1);
-		recognition_data[0] = new Matrix2D<float, 0, 0>();
-		generative_data = std::vector<IMatrix<float>*>(1);
-		generative_data[0] = new Matrix2D<float, 0, 0>();
+		recognition_weights = std::vector<IMatrix<float>*>(1);
+		recognition_weights[0] = new Matrix2D<float, 0, 0>();
+		generative_weights = std::vector<IMatrix<float>*>(1);
+		generative_weights[0] = new Matrix2D<float, 0, 0>();
 	}
 
 	~SoftMaxLayer<features, rows, cols>()
 	{
 		for (int i = 0; i < feature_maps.size(); ++i)
 			delete feature_maps[i];
-		for (int i = 0; i < recognition_data.size(); ++i)
+		for (int i = 0; i < recognition_weights.size(); ++i)
 		{
-			delete recognition_data[i];
-			delete generative_data[i];
+			delete recognition_weights[i];
+			delete generative_weights[i];
 		}
 	}
 
@@ -1480,8 +1788,30 @@ public:
 	{
 	}
 
-	//TODO: FIX
-	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, float learning_rate)
+	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, std::vector<IMatrix<float>*> &weight_momentum, std::vector<IMatrix<float>*> &bias_momentum, float learning_rate, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
+	{
+		for (int f = 0; f < features; ++f)
+		{
+			for (int i = 0; i < rows; ++i)
+			{
+				for (int j = 0; j < cols; ++j)
+				{
+					//cycle through all again
+					for (int i2 = 0; i2 < rows; ++i2)
+					{
+						for (int j2 = 0; j2 < cols; ++j2)
+						{
+							float h_i = data[f]->at(i, j);
+							float h_j = data[f]->at(i2, j2);
+							feature_maps[f]->at(i, j) += (i2 == i && j2 == j) ? h_i * (1 - h_i) : -h_i * h_j;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	void back_prop_second(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &deriv_first_in, std::vector<IMatrix<float>*> &deriv_first_out, bool use_first_deriv, float gamma)
 	{
 		for (int f = 0; f < features; ++f)
 		{
@@ -1530,20 +1860,20 @@ public:
 		feature_maps = std::vector<IMatrix<float>*>(features);
 		for (int i = 0; i < features; ++i)
 			feature_maps[i] = new Matrix2D<float, rows, cols>();
-		recognition_data = std::vector<IMatrix<float>*>(1);
-		recognition_data[0] = new Matrix2D<float, 0, 0>();
-		generative_data = std::vector<IMatrix<float>*>(1);
-		generative_data[0] = new Matrix2D<float, 0, 0>();
+		recognition_weights = std::vector<IMatrix<float>*>(1);
+		recognition_weights[0] = new Matrix2D<float, 0, 0>();
+		generative_weights = std::vector<IMatrix<float>*>(1);
+		generative_weights[0] = new Matrix2D<float, 0, 0>();
 	}
 
 	~InputLayer<features, rows, cols>()
 	{
 		for (int i = 0; i < feature_maps.size(); ++i)
 			delete feature_maps[i];
-		for (int i = 0; i < recognition_data.size(); ++i)
+		for (int i = 0; i < recognition_weights.size(); ++i)
 		{
-			delete recognition_data[i];
-			delete generative_data[i];
+			delete recognition_weights[i];
+			delete generative_weights[i];
 		}
 	}
 
@@ -1564,7 +1894,11 @@ public:
 	{
 	}
 
-	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, float learning_rate)
+	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, std::vector<IMatrix<float>*> &weight_momentum, std::vector<IMatrix<float>*> &bias_momentum, float learning_rate, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
+	{
+	}
+
+	void back_prop_second(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &deriv_first_in, std::vector<IMatrix<float>*> &deriv_first_out, bool use_first_deriv, float gamma)
 	{
 	}
 
@@ -1581,7 +1915,6 @@ public:
 
 		return copy;
 	}
-
 };
 
 template<int features, int rows, int cols>
@@ -1595,20 +1928,20 @@ public:
 		feature_maps = std::vector<IMatrix<float>*>(features);
 		for (int i = 0; i < features; ++i)
 			feature_maps[i] = new Matrix2D<float, rows, cols>();
-		recognition_data = std::vector<IMatrix<float>*>(1);
-		recognition_data[0] = new Matrix2D<float, 0, 0>();
-		generative_data = std::vector<IMatrix<float>*>(1);
-		generative_data[0] = new Matrix2D<float, 0, 0>();
+		recognition_weights = std::vector<IMatrix<float>*>(1);
+		recognition_weights[0] = new Matrix2D<float, 0, 0>();
+		generative_weights = std::vector<IMatrix<float>*>(1);
+		generative_weights[0] = new Matrix2D<float, 0, 0>();
 	}
 
 	~OutputLayer<features, rows, cols>()
 	{
 		for (int i = 0; i < feature_maps.size(); ++i)
 			delete feature_maps[i];
-		for (int i = 0; i < recognition_data.size(); ++i)
+		for (int i = 0; i < recognition_weights.size(); ++i)
 		{
-			delete recognition_data[i];
-			delete generative_data[i];
+			delete recognition_weights[i];
+			delete generative_weights[i];
 		}
 	}
 
@@ -1624,7 +1957,11 @@ public:
 	{
 	}
 
-	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, float learning_rate)
+	void back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, std::vector<IMatrix<float>*> &weight_momentum, std::vector<IMatrix<float>*> &bias_momentum, float learning_rate, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
+	{
+	}
+
+	void back_prop_second(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &deriv_first_in, std::vector<IMatrix<float>*> &deriv_first_out, bool use_first_deriv, float gamma)
 	{
 	}
 

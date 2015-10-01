@@ -61,17 +61,15 @@ void NeuralNet::setup_gradient()
 	//gradients setup for weights and biases
 	weight_gradient = std::vector<std::vector<IMatrix<float>*>>(layers.size());
 	bias_gradient = std::vector<std::vector<IMatrix<float>*>>(layers.size());
-	if (use_momentum)
-	{
-		weight_momentum = std::vector<std::vector<IMatrix<float>*>>(layers.size());
-		bias_momentum = std::vector<std::vector<IMatrix<float>*>>(layers.size());
-	}
+
+	weight_momentum = std::vector<std::vector<IMatrix<float>*>>(layers.size());
+	bias_momentum = std::vector<std::vector<IMatrix<float>*>>(layers.size());
 
 	for (int l = 0; l < layers.size(); ++l)
 	{
-		weight_gradient[l] = std::vector<IMatrix<float>*>(layers[l]->recognition_data.size());
-		for (int d = 0; d < layers[l]->recognition_data.size(); ++d)
-			weight_gradient[l][d] = layers[l]->recognition_data[d]->clone();
+		weight_gradient[l] = std::vector<IMatrix<float>*>(layers[l]->recognition_weights.size());
+		for (int d = 0; d < layers[l]->recognition_weights.size(); ++d)
+			weight_gradient[l][d] = layers[l]->recognition_weights[d]->clone();
 
 		if (layers[l]->use_biases)
 		{
@@ -82,9 +80,9 @@ void NeuralNet::setup_gradient()
 
 		if (use_momentum)
 		{
-			weight_momentum[l] = std::vector<IMatrix<float>*>(layers[l]->recognition_data.size());
-			for (int d = 0; d < layers[l]->recognition_data.size(); ++d)
-				weight_momentum[l][d] = layers[l]->recognition_data[d]->clone();
+			weight_momentum[l] = std::vector<IMatrix<float>*>(layers[l]->recognition_weights.size());
+			for (int d = 0; d < layers[l]->recognition_weights.size(); ++d)
+				weight_momentum[l][d] = layers[l]->recognition_weights[d]->clone();
 
 			if (layers[l]->use_biases)
 			{
@@ -123,22 +121,22 @@ void NeuralNet::save_data(std::string path)
 	std::ofstream file(path);
 	for (int l = 0; l < layers.size(); ++l)
 	{
-		//begin recognition_data values
-		for (int f = 0; f < layers[l]->recognition_data.size(); ++f)
-			for (int i = 0; i < layers[l]->recognition_data[f]->rows(); ++i)
-				for (int j = 0; j < layers[l]->recognition_data[f]->cols(); ++j)
-					file << std::to_string(layers[l]->recognition_data[f]->at(i, j)) << ',';//recognition_data values
-		//end recognition_data values
+		//begin recognition_weights values
+		for (int f = 0; f < layers[l]->recognition_weights.size(); ++f)
+			for (int i = 0; i < layers[l]->recognition_weights[f]->rows(); ++i)
+				for (int j = 0; j < layers[l]->recognition_weights[f]->cols(); ++j)
+					file << std::to_string(layers[l]->recognition_weights[f]->at(i, j)) << ',';//recognition_weights values
+		//end recognition_weights values
 	}
 
 	for (int l = 0; l < layers.size(); ++l)
 	{
-		//begin generative_data values
-		for (int f = 0; f < layers[l]->generative_data.size(); ++f)
-			for (int i = 0; i < layers[l]->generative_data[f]->rows(); ++i)
-				for (int j = 0; j < layers[l]->generative_data[f]->cols(); ++j)
-					file << std::to_string(layers[l]->generative_data[f]->at(i, j)) << ',';//recognition_data values
-		//end generative_data values
+		//begin generative_weights values
+		for (int f = 0; f < layers[l]->generative_weights.size(); ++f)
+			for (int i = 0; i < layers[l]->generative_weights[f]->rows(); ++i)
+				for (int j = 0; j < layers[l]->generative_weights[f]->cols(); ++j)
+					file << std::to_string(layers[l]->generative_weights[f]->at(i, j)) << ',';//recognition_weights values
+		//end generative_weights values
 	}
 
 	for (int l = 0; l < layers.size(); ++l)
@@ -147,12 +145,13 @@ void NeuralNet::save_data(std::string path)
 		for (int f = 0; f < layers[l]->biases.size(); ++f)
 			for (int i = 0; i < layers[l]->biases[f]->rows(); ++i)
 				for (int j = 0; j < layers[l]->biases[f]->cols(); ++j)
-					file << std::to_string(layers[l]->biases[f]->at(i, j)) << ',';//recognition_data values
+					file << std::to_string(layers[l]->biases[f]->at(i, j)) << ',';//recognition_weights values
 		//end biases values
 	}
 	file.flush();
 }
 
+//todo: don't employ goto
 void NeuralNet::load_data(std::string path)
 {
 	std::ifstream file(path);
@@ -166,86 +165,57 @@ void NeuralNet::load_data(std::string path)
 	while (std::getline(file, data, ','))
 	{
 		float value = std::stof(data);
+		std::vector<IMatrix<float>*>* ref;
+	conditions:
 		if (!greater)
-		{
-			if (j >= layers[l]->recognition_data[c]->cols())
-			{
-				j = 0;
-				++i;
-			}
-			if (i >= layers[l]->recognition_data[c]->rows())
-			{
-				i = 0;
-				++c;
-			}
-			if (c >= layers[l]->recognition_data.size())
-			{
-				c = 0;
-				i = 0;
-				j = 0;
-				++l;
-			}
-
-			layers[l]->recognition_data[c]->at(i, j) = value;
-		}
-
+			ref = &layers[l]->recognition_weights;
 		else if (!biases)
-		{
-			if (j >= layers[l]->generative_data[c]->cols())
-			{
-				j = 0;
-				++i;
-			}
-			if (i >= layers[l]->generative_data[c]->rows())
-			{
-				i = 0;
-				++c;
-			}
-			if (c >= layers[l]->generative_data.size())
-			{
-				c = 0;
-				i = 0;
-				j = 0;
-				++l;
-			}
-
-			layers[l]->generative_data[c]->at(i, j) = value;
-		}
-
+			ref = &layers[l]->generative_weights;
 		else
-		{
-			if (j >= layers[l]->biases[c]->cols())
-			{
-				j = 0;
-				++i;
-			}
-			if (i >= layers[l]->biases[c]->rows())
-			{
-				i = 0;
-				++c;
-			}
-			if (c >= layers[l]->biases.size())
-			{
-				c = 0;
-				i = 0;
-				j = 0;
-				++l;
-			}
+			ref = &layers[l]->biases;
 
-			layers[l]->recognition_data[c]->at(i, j) = value;
+		if (c >= ref->size())
+			goto features;
+
+		if (j >= ref->at(c)->cols())
+		{
+			j = 0;
+			++i;
 		}
 
-		if (l >= layers.size())
+		if (i >= ref->at(c)->rows())
 		{
-			if (!greater)
-				greater = true;
-			else
-				biases = true;
-			c = 0;
 			i = 0;
 			j = 0;
-			l = 0;
+			++c;
 		}
+
+		if (c >= ref->size())
+		{
+	features:
+			i = 0; 
+			j = 0;
+			c = 0;
+			++l;
+
+			if (l >= layers.size())
+			{
+				i = 0;
+				j = 0;
+				c = 0;
+				l = 0;
+				if (!greater)
+					greater = true;
+				else if (!biases)
+					biases = true;
+				else
+					return;
+			}
+
+			goto conditions;
+		}
+		ref->at(c)->at(i, j) = value;
+		++j;
 	}
 }
 
@@ -302,7 +272,7 @@ void NeuralNet::pretrain(int iterations)
 	}
 }
 
-float NeuralNet::train(int iterations)
+float NeuralNet::train(int iterations, float mse = 0.0f)
 {
 	float error;
 	for (int e = 0; e < iterations; ++e)
@@ -317,7 +287,7 @@ float NeuralNet::train(int iterations)
 		error = global_error();
 
 		//values of the network when fed forward
-		if (error > .01f)
+		if (error > mse / 10)
 		{
 			std::vector<std::vector<IMatrix<float>*>> temp(layers.size());
 			for (int l = 0; l < layers.size(); ++l)
@@ -333,16 +303,19 @@ float NeuralNet::train(int iterations)
 			//backprop for each layer
 			if (use_batch_learning)
 				for (int l = layers.size() - 2 - off; l > 0; --l)
-					layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, weight_gradient[l], bias_gradient[l], learning_rate);
-			else if (!use_momentum)
+					layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, weight_gradient[l], 
+						bias_gradient[l], std::vector<IMatrix<float>*>(), std::vector<IMatrix<float>*>(),
+						learning_rate, use_hessian, minimum_divisor, false, 0.0f);
+			else if (use_momentum)
 				for (int l = layers.size() - 2 - off; l > 0; --l)
-					layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, layers[l]->recognition_data, layers[l]->biases, learning_rate);
+					layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, weight_gradient[l],
+					bias_gradient[l], weight_momentum[l], bias_momentum[l],
+					learning_rate, use_hessian, minimum_divisor, true, momentum_term);
 			else
-			{
 				for (int l = layers.size() - 2 - off; l > 0; --l)
-					layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, weight_gradient[l], bias_gradient[l], learning_rate);
-				apply_gradient();
-			}
+					layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, layers[l]->recognition_weights,
+						layers[l]->biases, std::vector<IMatrix<float>*>(), std::vector<IMatrix<float>*>(),
+						learning_rate, use_hessian, minimum_divisor, false, 0.0f);
 
 
 			for (int i = 0; i < temp.size(); ++i)
@@ -353,7 +326,7 @@ float NeuralNet::train(int iterations)
 	return error;
 }
 
-float NeuralNet::train(int iterations, std::vector<std::vector<IMatrix<float>*>> weights, std::vector<std::vector<IMatrix<float>*>> biases)
+float NeuralNet::train(int iterations, std::vector<std::vector<IMatrix<float>*>> weights, std::vector<std::vector<IMatrix<float>*>> biases, float mse = 0.0)
 {
 	float error;
 	for (int e = 0; e < iterations; ++e)
@@ -367,7 +340,7 @@ float NeuralNet::train(int iterations, std::vector<std::vector<IMatrix<float>*>>
 		discriminate();
 		error = global_error();
 
-		if (error > .01f)
+		if (error > mse / 10)
 		{
 			//values of the network when fed forward
 			std::vector<std::vector<IMatrix<float>*>> temp(layers.size());
@@ -382,12 +355,16 @@ float NeuralNet::train(int iterations, std::vector<std::vector<IMatrix<float>*>>
 			int off = error_signals();
 
 			//backprop for each layer
-			for (int l = layers.size() - 2 - off; l > 0; --l)
-				layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, weights[l], biases[l], learning_rate);
-
-			//update weights if applicable
-			if (!use_batch_learning)
-				apply_gradient(weights, biases);
+			if (use_batch_learning)
+				for (int l = layers.size() - 2 - off; l > 0; --l)
+					layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps,
+						weights[l], biases[l], std::vector<IMatrix<float>*>(), std::vector<IMatrix<float>*>(),
+						learning_rate, use_hessian, minimum_divisor, false, 0.0f);
+			else
+				for (int l = layers.size() - 2 - off; l > 0; --l)
+					layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps,
+						weights[l], biases[l], weight_momentum[l], bias_momentum[l],
+						learning_rate, use_hessian, minimum_divisor, use_momentum, momentum_term);
 
 			for (int i = 0; i < temp.size(); ++i)
 				for (int j = 0; j < temp[i].size(); ++j)
@@ -395,6 +372,95 @@ float NeuralNet::train(int iterations, std::vector<std::vector<IMatrix<float>*>>
 		}
 	}
 	return error;
+}
+
+void NeuralNet::calculate_hessian(bool use_first_deriv, float gamma)
+{
+	for (int f = 0; f < input.size(); ++f)
+		for (int i = 0; i < input[f]->rows(); ++i)
+			for (int j = 0; j < input[f]->cols(); ++j)
+				layers[0]->feature_maps[f]->at(i, j) = input[f]->at(i, j);
+
+	discriminate();
+
+	//values of the network when fed forward
+	std::vector<std::vector<IMatrix<float>*>> temp(layers.size());
+	for (int l = 0; l < layers.size(); ++l)
+	{
+		temp[l] = std::vector<IMatrix<float>*>(layers[l]->feature_maps.size());
+		for (int f = 0; f < layers[l]->feature_maps.size(); ++f)
+			temp[l][f] = layers[l]->feature_maps[f]->clone();
+	}
+
+	//first derivatives
+	std::vector<std::vector<IMatrix<float>*>> deriv_first(layers.size());
+	for (int l = 0; l < layers.size() && use_first_deriv; ++l)
+	{
+		deriv_first[l] = std::vector<IMatrix<float>*>(layers[l]->feature_maps.size());
+		for (int f = 0; f < layers[l]->feature_maps.size(); ++f)
+		{
+			deriv_first[l][f] = layers[l]->feature_maps[f]->clone();
+			for (int i = 0; i < deriv_first[l][f]->rows(); ++i)
+				for (int j = 0; j < deriv_first[l][f]->cols(); ++j)
+					deriv_first[l][f]->at(i, j) = 0;
+		}
+	}
+
+	//get error signals for output for first derivatives
+	if (use_first_deriv)
+	{
+		if (cost_function == CNN_QUADRATIC)
+			for (int k = 0; k < labels.size(); ++k)
+				for (int i = 0; i < labels[k]->rows(); ++i)
+					for (int j = 0; j < labels[k]->cols(); ++j)
+						deriv_first[deriv_first.size() - 1][k]->at(i, j) = layers[layers.size() - 1]->feature_maps[k]->at(i, j) - labels[k]->at(i, j);
+		if (cost_function == CNN_CROSS_ENTROPY)
+		{
+			for (int k = 0; k < labels.size(); ++k)
+			{
+				for (int i = 0; i < labels[k]->rows(); ++i)
+				{
+					for (int j = 0; j < labels[k]->cols(); ++j)
+					{
+						float t = labels[k]->at(i, j);
+						float x = layers[layers.size() - 1]->feature_maps[k]->at(i, j);
+
+						deriv_first[layers.size() - 1][k]->at(i, j) = (x - t) / (x * (1 - x));
+					}
+				}
+			}
+		}
+		if (cost_function == CNN_LOG_LIKELIHOOD)
+		{
+			if (layers[layers.size() - 2]->type == CNN_SOFTMAX)
+				for (int k = 0; k < labels.size(); ++k)
+					for (int i = 0; i < labels[k]->rows(); ++i)
+						for (int j = 0; j < labels[k]->cols(); ++j)
+							deriv_first[layers.size() - 2][k]->at(i, j) = layers[layers.size() - 2]->feature_maps[k]->at(i, j) - labels[k]->at(i, j);
+			else
+				for (int k = 0; k < labels.size(); ++k)
+					for (int i = 0; i < labels[k]->rows(); ++i)
+						for (int j = 0; j < labels[k]->cols(); ++j)
+							deriv_first[layers.size() - 1][k]->at(i, j) = (labels[k]->at(i, j) > 0) ? -1 / layers[layers.size() - 1]->feature_maps[k]->at(i, j) : 0;
+		}
+	}
+
+	//get error signals for output for second derivatives and returns any layers to be skipped
+	int off = hessian_error_signals();
+
+	//backprop for each layer
+	for (int l = layers.size() - 2 - off; l > 0; --l)
+		layers[l]->back_prop_second(temp[l + 1], layers[l + 1]->feature_maps, deriv_first[l + 1], deriv_first[l], use_first_deriv, gamma);
+
+	for (int i = 0; i < temp.size(); ++i)
+	{
+		for (int j = 0; j < temp[i].size(); ++j)
+		{
+			delete temp[i][j];
+			if (use_first_deriv)
+				delete deriv_first[i][j];
+		}
+	}
 }
 
 void NeuralNet::add_layer(ILayer* layer)
@@ -411,7 +477,7 @@ void NeuralNet::apply_gradient()
 			for (int d = 0; d < weight_gradient[l].size(); ++d)
 				for (int i = 0; i < weight_gradient[l][d]->rows(); ++i)
 					for (int j = 0; j < weight_gradient[l][d]->cols(); ++j)
-						layers[l]->recognition_data[d]->at(i, j) += weight_gradient[l][d]->at(i, j) 
+						layers[l]->recognition_weights[d]->at(i, j) += weight_gradient[l][d]->at(i, j) 
 																	+ momentum_term * weight_momentum[l][d]->at(i, j);
 
 		//update biases
@@ -430,7 +496,7 @@ void NeuralNet::apply_gradient()
 			for (int d = 0; d < weight_gradient[l].size(); ++d)
 				for (int i = 0; i < weight_gradient[l][d]->rows(); ++i)
 					for (int j = 0; j < weight_gradient[l][d]->cols(); ++j)
-						layers[l]->recognition_data[d]->at(i, j) += weight_gradient[l][d]->at(i, j);
+						layers[l]->recognition_weights[d]->at(i, j) += weight_gradient[l][d]->at(i, j);
 
 		//update biases
 		for (int l = 0; l < bias_gradient.size(); ++l)
@@ -476,7 +542,7 @@ void NeuralNet::apply_gradient(std::vector<std::vector<IMatrix<float>*>> weights
 			for (int d = 0; d < weights[l].size(); ++d)
 				for (int i = 0; i < weights[l][d]->rows(); ++i)
 					for (int j = 0; j < weights[l][d]->cols(); ++j)
-						layers[l]->recognition_data[d]->at(i, j) += weights[l][d]->at(i, j)
+						layers[l]->recognition_weights[d]->at(i, j) += weights[l][d]->at(i, j)
 						+ momentum_term * weight_momentum[l][d]->at(i, j);
 
 		//update biases
@@ -495,7 +561,7 @@ void NeuralNet::apply_gradient(std::vector<std::vector<IMatrix<float>*>> weights
 			for (int d = 0; d < weights[l].size(); ++d)
 				for (int i = 0; i < weights[l][d]->rows(); ++i)
 					for (int j = 0; j < weights[l][d]->cols(); ++j)
-						layers[l]->recognition_data[d]->at(i, j) += weights[l][d]->at(i, j);
+						layers[l]->recognition_weights[d]->at(i, j) += weights[l][d]->at(i, j);
 
 		//update biases
 		for (int l = 0; l < biases.size(); ++l)
@@ -573,6 +639,7 @@ float NeuralNet::global_error()
 	}
 }
 
+//todo: check
 int NeuralNet::error_signals()
 {
 	if (cost_function == CNN_QUADRATIC)
@@ -611,6 +678,49 @@ int NeuralNet::error_signals()
 				for (int i = 0; i < labels[k]->rows(); ++i)
 					for (int j = 0; j < labels[k]->cols(); ++j)
 						layers[layers.size() - 1]->feature_maps[k]->at(i, j) = (labels[k]->at(i, j) > 0) ? -1 / layers[layers.size() - 1]->feature_maps[k]->at(i, j) : 0;
+	}
+	return 0;
+}
+
+//todo: check
+int NeuralNet::hessian_error_signals()
+{
+	if (cost_function == CNN_QUADRATIC)
+		for (int k = 0; k < labels.size(); ++k)
+			for (int i = 0; i < labels[k]->rows(); ++i)
+				for (int j = 0; j < labels[k]->cols(); ++j)
+					layers[layers.size() - 1]->feature_maps[k]->at(i, j) = 1;
+	if (cost_function == CNN_CROSS_ENTROPY)
+	{
+		for (int k = 0; k < labels.size(); ++k)
+		{
+			for (int i = 0; i < labels[k]->rows(); ++i)
+			{
+				for (int j = 0; j < labels[k]->cols(); ++j)
+				{
+					float t = labels[k]->at(i, j);
+					float x = layers[layers.size() - 1]->feature_maps[k]->at(i, j);
+
+					layers[layers.size() - 1]->feature_maps[k]->at(i, j) = (1 - (x - t) * x) / (x * (1 - x));
+				}
+			}
+		}
+	}
+	if (cost_function == CNN_LOG_LIKELIHOOD)
+	{
+		if (layers[layers.size() - 2]->type == CNN_SOFTMAX)
+		{
+			for (int k = 0; k < labels.size(); ++k)
+				for (int i = 0; i < labels[k]->rows(); ++i)
+					for (int j = 0; j < labels[k]->cols(); ++j)
+						layers[layers.size() - 2]->feature_maps[k]->at(i, j) = 1;
+			return 1;
+		}
+		else
+			for (int k = 0; k < labels.size(); ++k)
+				for (int i = 0; i < labels[k]->rows(); ++i)
+					for (int j = 0; j < labels[k]->cols(); ++j)
+						layers[layers.size() - 1]->feature_maps[k]->at(i, j) = (labels[k]->at(i, j) > 0) ? 1 / layers[layers.size() - 1]->feature_maps[k]->at(i, j) * layers[layers.size() - 1]->feature_maps[k]->at(i, j) : 0;
 	}
 	return 0;
 }
