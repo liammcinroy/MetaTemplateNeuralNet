@@ -228,6 +228,14 @@ public:
 		if (activation == CNN_RELU)
 			return 0;
 	}
+
+	inline void stochastic_rounding(std::vector<IMatrix<float>*> &data)
+	{
+		for (int f = 0; f < data.size(); ++f)
+			for (int i = 0; i < data[f]->rows(); ++i)
+				for (int j = 0; j < data[f]->cols(); ++j)
+					data[f]->at(i, j) = ((rand() * 1.0f) / RAND_MAX < data[f]->at(i, j)) ? 1 : 0;
+	}
 };
 
 template<int features, int rows, int cols,
@@ -261,7 +269,7 @@ public:
 				{
 					//purely random works best
 					recognition_weights[k]->at(i, j) = .05f * ((2.0f * rand()) / RAND_MAX - 1);
-					generative_weights[k]->at(i, j) = recognition_weights[k]->at(i, j);
+					generative_weights[k]->at(i, j) = .05f * ((2.0f * rand()) / RAND_MAX - 1);
 				}
 			}
 		}
@@ -318,13 +326,23 @@ public:
 					add<float, rows, cols>(feature_maps[f],
 					convolve_back<rows, cols, kernel_size, kernel_size, stride>(input[f_0], generative_weights[f_0 * features + f]));
 			}
+
+			for (int i = 0; i < rows; ++i)
+				for (int j = 0; j < cols; ++j)
+					feature_maps[f]->at(i, j) = activate(feature_maps[f]->at(i, j), activation);
 		}
 	}
 
 	//todo: fix
 	void wake_sleep(float &learning_rate, bool &use_dropout)
 	{
+		stochastic_rounding(feature_maps);
+
 		//find difference via gibbs sampling
+		std::vector<IMatrix<float>*> original;
+		for (int i = 0; i < features; ++i)
+			original.push_back(feature_maps[i]->clone());
+
 		std::vector<IMatrix<float>*> discriminated(out_features);
 		for (int i = 0; i < out_features; ++i)
 			discriminated[i] = new Matrix2D<float, (rows - kernel_size) / stride + 1, (cols - kernel_size) / stride + 1>();
@@ -333,36 +351,42 @@ public:
 		for (int i = 0; i < out_features; ++i)
 			reconstructed[i] = new Matrix2D<float, (rows - kernel_size) / stride + 1, (cols - kernel_size) / stride + 1>();
 
+		//Sample, but don't "normalize" second time
 		this->feed_forwards(discriminated);
+		stochastic_rounding(discriminated);
 		this->feed_backwards(discriminated, true);
+		stochastic_rounding(feature_maps);
 		this->feed_forwards(reconstructed);
 
+		int N = (kernel_size - 1) / 2;
+
 		//adjust weights
-		for (int f_0 = 0; f_0 < reconstructed.size(); ++f_0)
+		for (int f_0 = 0; f_0 < out_features; ++f_0)
 		{
-			int N = (generative_weights[f_0]->rows() - 1) / 2;
-			int times_down = 0;
-			int times_across = 0;
-
-			for (int i = N; i < (rows - generative_weights[f_0]->rows()) + stride; i += stride)
+			for (int f = 0; f < features; ++f)
 			{
-				for (int j = N; j < (cols - generative_weights[f_0]->rows()) + stride; j += stride)
-				{
-					float delta_w = -learning_rate * //[hessian_weights[]->at(I,J)]
-						(discriminated[f_0]->at(times_across, times_down) - reconstructed[f_0]->at(times_across, times_down));
+				int i = N;
+				int j = N;
 
-					for (int n = N; n >= -N; --n)
+				for (int i_0 = 0; i_0 < reconstructed[f_0]->rows(); ++i_0)
+				{
+					for (int j_0 = 0; j_0 < reconstructed[f_0]->cols(); ++j_0)
 					{
-						for (int m = N; m >= -N; --m)
+						for (int n = N; n >= -N; --n)
 						{
-							recognition_weights[f_0]->at(N - n, N - m) += delta_w;
-							generative_weights[f_0]->at(N - n, N - m) -= delta_w;
+							for (int m = N; m >= -N; --m)
+							{
+								recognition_weights[f_0 * features + f]->at(N - n, N - m) +=
+									-learning_rate * feature_maps[f]->at(i - n, j - m) * (discriminated[f_0]->at(i_0, j_0) - reconstructed[f_0]->at(i_0, j_0));
+								generative_weights[f_0 * features + f]->at(N - n, N - m) +=
+									learning_rate * reconstructed[f_0]->at(i_0, j_0) * (original[f]->at(i - n, j - m) - feature_maps[f]->at(i - n, j - m));
+							}
 						}
+						j += stride;
 					}
-					++times_across;
+					j = N;
+					i += stride;
 				}
-				times_across = 0;
-				++times_down;
 			}
 		}
 
@@ -597,9 +621,8 @@ public:
 			for (int j = 0; j < rows * cols * features; ++j)
 			{
 				//gaussian distributed
-				float x = sqrt(-2 * log(1.0f * (rand() + 1) / (RAND_MAX + 1))) * sin(2 * 3.14152f * rand() / RAND_MAX);
-				recognition_weights[0]->at(i, j) = x * .1f;
-				generative_weights[0]->at(i, j) = recognition_weights[0]->at(i, j);
+				recognition_weights[0]->at(i, j) = sqrt(-2 * log(1.0f * (rand() + 1) / (RAND_MAX + 1))) * sin(2 * 3.14152f * rand() / RAND_MAX) *.1f;
+				generative_weights[0]->at(i, j) = sqrt(-2 * log(1.0f * (rand() + 1) / (RAND_MAX + 1))) * sin(2 * 3.14152f * rand() / RAND_MAX) *.1f;
 			}
 		}
 	}
@@ -669,7 +692,7 @@ public:
 									* input[f_0]->at(i_0, j_0);
 							}
 						}
-						feature_maps[f]->at(i, j) = sum;
+						feature_maps[f]->at(i, j) = activate(sum, activation);
 					}
 				}
 			}
@@ -679,7 +702,13 @@ public:
 	//todo: fix
 	void wake_sleep(float &learning_rate, bool &use_dropout)
 	{
+		stochastic_rounding(feature_maps);
+
 		//find difference via gibbs sampling
+		std::vector<IMatrix<float>*> original;
+		for (int i = 0; i < features; ++i)
+			original.push_back(feature_maps[i]->clone());
+		
 		std::vector<IMatrix<float>*> discriminated(out_features);
 		for (int i = 0; i < out_features; ++i)
 			discriminated[i] = new Matrix2D<float, out_rows, out_cols>();
@@ -688,8 +717,11 @@ public:
 		for (int i = 0; i < out_features; ++i)
 			reconstructed[i] = new Matrix2D<float, out_rows, out_cols>();
 
+		//Sample, but don't "normalize" second time
 		this->feed_forwards(discriminated);
+		stochastic_rounding(discriminated);
 		this->feed_backwards(discriminated, true);
+		stochastic_rounding(feature_maps);
 		this->feed_forwards(reconstructed);
 
 		//adjust weights
@@ -699,15 +731,16 @@ public:
 			{
 				for (int j_0 = 0; j_0 < reconstructed[f_0]->cols(); ++j_0)
 				{
-					float delta_weight = -learning_rate * (discriminated[f_0]->at(i_0, 0) - reconstructed[f_0]->at(i_0, 0));
 					for (int f = 0; f < feature_maps.size(); ++f)
 					{
 						for (int i = 0; i < feature_maps[f]->rows(); ++i)
 						{
 							for (int j = 0; j < feature_maps[f]->cols(); ++j)
 							{
-								recognition_weights[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) += delta_weight;
-								generative_weights[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) -= delta_weight;
+								recognition_weights[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) +=
+									-learning_rate * feature_maps[f]->at(i, j) * (discriminated[f_0]->at(i_0, j_0) - reconstructed[f_0]->at(i_0, j_0));
+								generative_weights[0]->at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) +=
+									learning_rate * reconstructed[f_0]->at(i_0, j_0) * (original[f]->at(i, j) - feature_maps[f]->at(i, j));
 							}
 						}
 					}
@@ -1579,6 +1612,8 @@ public:
 			feature_maps[i] = new Matrix2D<float, rows, cols>();
 			switches[i] = new Matrix2D<std::pair<int, int>, out_rows, out_cols>();
 		}
+		biases = std::vector<IMatrix<float>*>(1);
+		biases[0] = new Matrix2D<float, 0, 0>();
 		recognition_weights = std::vector<IMatrix<float>*>(1);
 		recognition_weights[0] = new Matrix2D<float, 0, 0>();
 		generative_weights = std::vector<IMatrix<float>*>(1);
@@ -1746,6 +1781,8 @@ public:
 		feature_maps = std::vector<IMatrix<float>*>(features);
 		for (int i = 0; i < features; ++i)
 			feature_maps[i] = new Matrix2D<float, rows, cols>();
+		biases = std::vector<IMatrix<float>*>(1);
+		biases[0] = new Matrix2D<float, 0, 0>();
 		recognition_weights = std::vector<IMatrix<float>*>(1);
 		recognition_weights[0] = new Matrix2D<float, 0, 0>();
 		generative_weights = std::vector<IMatrix<float>*>(1);
@@ -1860,6 +1897,8 @@ public:
 		feature_maps = std::vector<IMatrix<float>*>(features);
 		for (int i = 0; i < features; ++i)
 			feature_maps[i] = new Matrix2D<float, rows, cols>();
+		biases = std::vector<IMatrix<float>*>(1);
+		biases[0] = new Matrix2D<float, 0, 0>();
 		recognition_weights = std::vector<IMatrix<float>*>(1);
 		recognition_weights[0] = new Matrix2D<float, 0, 0>();
 		generative_weights = std::vector<IMatrix<float>*>(1);
@@ -1888,6 +1927,11 @@ public:
 
 	void feed_backwards(std::vector<IMatrix<float>*> &input, const bool &use_g_weights)
 	{
+		//just output
+		for (int f = 0; f < features; ++f)
+			for (int i = 0; i < rows; ++i)
+				for (int j = 0; j < cols; ++j)
+					feature_maps[f]->at(i, j) = input[f]->at(i, j);
 	}
 
 	void wake_sleep(float &learning_rate, bool &use_dropout)
@@ -1928,6 +1972,8 @@ public:
 		feature_maps = std::vector<IMatrix<float>*>(features);
 		for (int i = 0; i < features; ++i)
 			feature_maps[i] = new Matrix2D<float, rows, cols>();
+		biases = std::vector<IMatrix<float>*>(1);
+		biases[0] = new Matrix2D<float, 0, 0>();
 		recognition_weights = std::vector<IMatrix<float>*>(1);
 		recognition_weights[0] = new Matrix2D<float, 0, 0>();
 		generative_weights = std::vector<IMatrix<float>*>(1);

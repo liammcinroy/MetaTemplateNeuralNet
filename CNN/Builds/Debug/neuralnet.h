@@ -25,6 +25,8 @@ public:
 	void load_data(std::string path);
 	//feed forwards
 	void discriminate();
+	//feed backwards
+	std::vector<IMatrix<float>*> generate();
 	//set input (batch will not be generated)
 	void set_input(std::vector<IMatrix<float>*> &input);
 	//set labels for batch

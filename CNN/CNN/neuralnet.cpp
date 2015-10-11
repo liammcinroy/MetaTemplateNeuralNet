@@ -135,7 +135,7 @@ void NeuralNet::save_data(std::string path)
 		for (int f = 0; f < layers[l]->generative_weights.size(); ++f)
 			for (int i = 0; i < layers[l]->generative_weights[f]->rows(); ++i)
 				for (int j = 0; j < layers[l]->generative_weights[f]->cols(); ++j)
-					file << std::to_string(layers[l]->generative_weights[f]->at(i, j)) << ',';//recognition_weights values
+					file << std::to_string(layers[l]->generative_weights[f]->at(i, j)) << ',';//generative_weights values
 		//end generative_weights values
 	}
 
@@ -145,7 +145,7 @@ void NeuralNet::save_data(std::string path)
 		for (int f = 0; f < layers[l]->biases.size(); ++f)
 			for (int i = 0; i < layers[l]->biases[f]->rows(); ++i)
 				for (int j = 0; j < layers[l]->biases[f]->cols(); ++j)
-					file << std::to_string(layers[l]->biases[f]->at(i, j)) << ',';//recognition_weights values
+					file << std::to_string(layers[l]->biases[f]->at(i, j)) << ',';//bias values
 		//end biases values
 	}
 	file.flush();
@@ -258,15 +258,33 @@ void NeuralNet::discriminate()
 	}
 }
 
+std::vector<IMatrix<float>*> NeuralNet::generate()
+{
+	//clear output
+	for (int f = 0; f < input.size(); ++f)
+		for (int i = 0; i < input[f]->rows(); ++i)
+			for (int j = 0; j < input[f]->cols(); ++j)
+				layers[0]->feature_maps[f]->at(i, j) = 0;
+	for (int l = layers.size() - 2; l >= 0; --l)
+		layers[l]->feed_backwards(layers[l + 1]->feature_maps, true);
+	return layers[0]->feature_maps;
+}
+
 void NeuralNet::pretrain(int iterations)
 {
 	for (int e = 0; e < iterations; ++e)
 	{
+		//reset input
+		for (int f = 0; f < input.size(); ++f)
+			for (int i = 0; i < input[f]->rows(); ++i)
+				for (int j = 0; j < input[f]->cols(); ++j)
+					layers[0]->feature_maps[f]->at(i, j) = input[f]->at(i, j);
+
 		for (int i = 0; i < layers.size() - 1; ++i)
 		{
 			layers[i]->feed_forwards(layers[i + 1]->feature_maps);
 
-			if (layers[i]->type == CNN_CONVOLUTION)
+			if (layers[i]->type == CNN_CONVOLUTION || layers[i]->type == CNN_PERCEPTRON_FULL_CONNECTIVITY)
 				layers[i]->wake_sleep(learning_rate, use_dropout);
 		}
 	}
