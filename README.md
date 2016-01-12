@@ -33,11 +33,13 @@ This API is based off of template meta-programming to optimize efficiency. There
 ###Macros
 ===============================
 
-These macros are used to signify layer types and activation functions. They are prefixed with `CNN_*`. Their name should explain their use. The available layers can be found below.
+These macros are used to signify layer types, optimization methods, cost functions, and activation functions. They are prefixed with `CNN_FUNC_*` for activation functions, `CNN_LAYER_*` for layers, `CNN_OPT_*` for optimization methods, and `CNN_COST_*` for cost functions. Their name should explain their use. The available layers can be found below.
 
 Available activation functions are linear (y = x), sigmoid (y = 1/(1 + exp(-x)), bipolar sigmoid (y = 2/(1 + exp(-x)) - 1), tanh (y = tanh), and rectified linear (y = max(0, x)).
 
-Available cost functions are quadratic, cross entropy, and log loss.
+Available cost functions are quadratic, cross entropy, log likelihood, and custom targets.
+
+Available optimization methods are vanilla backprop (with momentum/levenberg marquardt as desired), Adam, and Adagrad.
 
 ###IMatrix
 ===============================
@@ -74,53 +76,27 @@ This is the interface for all of the various layer types used in the network.
 | `wake_sleep(bool binary_net)` | `void` | Performs the wake-sleep (up-down) algorithm with the specified activation method |
 | `back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, std::vector<IMatrix<float>*> &weight_momentum, std::vector<IMatrix<float>*> &bias_momentum, float learning_rate, bool use_hessian, float mu, bool use_momentum, float momentum_term)` | `void` | Performs vanilla backpropagation with the specified activation method |
 
-###PerceptronFullConnectivityLayer<int features, int rows, int cols, int out_rows, int out_cols, int out_features, int activation_function>
+###PerceptronFullConnectivityLayer<int features, int rows, int cols, int out_features, int out_cols, int out_rows, int activation_function>
 ===============================
 
 Basic perceptron layer. Interprets architecture as a single dimension array.
-
-Overloaded Methods
-
-| Method | Difference |
-|----------|-------------|
-| `feed_forwards` | Uses standard sums for feeding forwards |
-| `feed_backwards` | Uses standard sums for feeding backwards |
 
 ###ConvolutionLayer<int features, int rows, int cols, int recognition_data_size, int stride, int out_features, int activation_function>
 ===============================
 
 Basic convolutional layer, masks or kernels must be square and odd.
 
-Overloaded Methods
-
-| Method | Difference |
-|----------|-------------|
-| `feed_forwards` | Uses convolution for feeding forwards |
-| `feed_backwards` | Uses convolution for feeding backwards |
 
 ###MaxpoolLayer<int features, int rows, int cols, int out_rows, int out_cols>
 ===================================
 
 Basic maxpooling layer.
 
-Overloaded Methods
-
-| Method | Difference |
-|----------|-------------|
-| `feed_forwards` | Uses maxpooling for feeding forwards |
-| `feed_backwards` | N/A |
 
 ###SoftMaxLayer<int features, int rows, int cols>
 =====================================
 
 Basic softmax layer. This will compute derivatives for any cost function, not just log-likelihood. Softmax is performed on each feature map independently.
-
-Overloaded Methods
-
-| Method | Difference |
-|----------|-------------|
-| `feed_forwards` | N/A |
-| `feed_backwards` | N/A |
 
 
 ###OutputLayer<int features, int rows, int cols>
@@ -128,24 +104,18 @@ Overloaded Methods
 
 Basic output layer just to signify the end of the network.
 
-Overloaded Methods
-
-| Method | Difference |
-|----------|-------------|
-| `feed_forwards` | N/A |
-| `feed_backwards` | N/A |
-
 ###NeuralNetwork
 ===============================
 
-This is the class that encapsulates all of the rest. Has all required methods. Will add support for other error functions later.
+This is the class that encapsulates all of the rest. Has all required methods. Will add support for other error functions and optimization methods later.
 
 | Member/Method | Type | Details |
 |--------|------|----------|
 | `learning_rate` | `float` | The learning term of the network. Default value is 0 |
 | `momentum_term` | `float` | The momentum term (proportion of learning rate when applied to momentum) of the network. Normally between 0 and 1. Default value is 0 |
 | `minimum_divisor` | `float` | The minimum divisor of the learning rate when using the hessian. Default value is 1 |
-| `cost_function` | `int` | The cost function to be used |
+| `cost_function` | `int` | The cost function to be used. Default mean square|
+| `optimization_method` | `int` | Optimization method to be used. Default backprop |
 | `use_batch_learning` | `bool` | Whether you will apply gradient manually |
 | `use_dropout` | `bool` | Whether to train the network with dropout |
 | `use_momentum` | `bool` | Whether to train the network with momentums |

@@ -13,7 +13,7 @@ public:
 
 	virtual ~IMatrix<T>() = default;
 
-	virtual inline T& at(int i, int j) = 0;
+	virtual T& at(int i, int j) = 0;
 
 	virtual IMatrix<T>* clone() = 0;
 
@@ -49,10 +49,10 @@ public:
 
 	Matrix2D<T, r, c>(std::initializer_list<std::initializer_list<T>> arr)
 	{
-		std::initializer_list<std::initializer_list<T>>::iterator it = arr.begin();
+		typename std::initializer_list<std::initializer_list<T>>::iterator it = arr.begin();
 		for (int i = 0; i < r; ++i)
 		{
-			std::initializer_list<T>::iterator it2 = it->begin();
+			typename std::initializer_list<T>::iterator it2 = it->begin();
 			for (int j = 0; j < c; ++j)
 			{
 				data[(c * i) + j] = *it2;
@@ -64,7 +64,7 @@ public:
 
 	Matrix2D<T, r, c>(std::initializer_list<T> arr)
 	{
-		std::initializer_list<T>::iterator it = arr.begin();
+		typename std::initializer_list<T>::iterator it = arr.begin();
 		for (int i = 0; i < r; ++i)
 		{
 			data[(c * i)] = *it;
@@ -74,7 +74,7 @@ public:
 
 	~Matrix2D<T, r, c>() = default;
 
-	inline T& at(int i, int j)
+	T& at(int i, int j)
 	{
 		return data[(c * i) + j];
 	}
@@ -174,7 +174,7 @@ template<typename T, int rows1, int cols1, int rows2, int cols2> Matrix2D<T, row
 			for (int j = 0; j < cols2; ++j)
 			{
 				T sum();
-				for (int i2 = 0; i2 < rows; ++i2)
+				for (int i2 = 0; i2 < rows2; ++i2)
 					sum += lhs.at(i, i2) * rhs.at(i2, j);
 				result.at(i, j) = sum;
 			}

@@ -35,7 +35,7 @@ std::vector<std::vector<IMatrix<float>*>> NeuralNetAnalyzer::approximate_weight_
 					//evaluate network with adjusted weight and approximate derivative
 					net.discriminate();
 					float adjusted_error = net.global_error();
-					output[l][d]->at(i, j) = -net.learning_rate * (adjusted_error - original_error) / .001f;
+					output[l][d]->at(i, j) = (adjusted_error - original_error) / .001f;
 
 					//reset weight
 					net.layers[l]->recognition_weights[d]->at(i, j) -= .001f;
@@ -77,7 +77,7 @@ std::vector<std::vector<IMatrix<float>*>> NeuralNetAnalyzer::approximate_bias_gr
 					//evaluate network with adjusted weight and approximate derivative
 					net.discriminate();
 					float adjusted_error = net.global_error();
-					float diff = -net.learning_rate * (adjusted_error - original_error) / .001f;
+					float diff = (adjusted_error - original_error) / .001f;
 					output[l][f]->at(i, j) = diff;
 
 					//reset weight
@@ -233,7 +233,6 @@ std::pair<float, float> NeuralNetAnalyzer::mean_gradient_error(NeuralNet &net, s
 			}
 		}
 	}
-
 	for (int l = 0; l < expected_weights.size(); ++l)
 		for (int d = 0; d < expected_weights[l].size(); ++d)
 			delete expected_weights[l][d];
