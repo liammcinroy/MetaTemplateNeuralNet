@@ -287,6 +287,38 @@ public:
 		}
 	}
 
+	ConvolutionLayer<features, rows, cols, kernel_size, stride, out_features, activation_function>(float rand_max, float rand_min)
+	{
+		activation = activation_function;
+		type = CNN_LAYER_CONVOLUTION;
+		feature_maps = std::vector<IMatrix<float>*>(features);
+		for (int f = 0; f < features; ++f)
+			feature_maps[f] = new Matrix2D<float, rows, cols>();
+
+		biases = std::vector<IMatrix<float>*>(out_features * features);
+		recognition_weights = std::vector<IMatrix<float>*>(out_features * features);
+		generative_weights = std::vector<IMatrix<float>*>(out_features * features);
+		hessian_weights = std::vector<IMatrix<float>*>(out_features * features);
+		hessian_biases = std::vector<IMatrix<float>*>(out_features * features);
+		for (int k = 0; k < out_features * features; ++k)
+		{
+			biases[k] = new Matrix2D<float, 1, 1>({ 0 });
+			hessian_biases[k] = new Matrix2D<float, 1, 1>({ 0 });
+			hessian_weights[k] = new Matrix2D<float, kernel_size, kernel_size>();
+			recognition_weights[k] = new Matrix2D<float, kernel_size, kernel_size>();
+			generative_weights[k] = new Matrix2D<float, kernel_size, kernel_size>();
+			for (int i = 0; i < kernel_size; ++i)
+			{
+				for (int j = 0; j < kernel_size; ++j)
+				{
+					//purely random works best
+					recognition_weights[k]->at(i, j) = (rand_max - rand_min) * (rand() + 1) / RAND_MAX + rand_min;
+					generative_weights[k]->at(i, j) = (rand_max - rand_min) * (rand() + 1) / RAND_MAX + rand_min;
+				}
+			}
+		}
+	}
+
 	~ConvolutionLayer<features, rows, cols, kernel_size, stride, out_features, activation_function>()
 	{
 		for (int i = 0; i < features; ++i)
@@ -346,7 +378,6 @@ public:
 		}
 	}
 
-	//todo: fix
 	void wake_sleep(float &learning_rate, bool &use_dropout)
 	{
 		stochastic_rounding(feature_maps);
@@ -640,6 +671,40 @@ public:
 		}
 	}
 
+	PerceptronFullConnectivityLayer<features, rows, cols, out_features, out_rows, out_cols, activation_function>(float rand_max, float rand_min)
+	{
+		activation = activation_function;
+		type = CNN_LAYER_PERCEPTRONFULLCONNECTIVITY;
+		feature_maps = std::vector<IMatrix<float>*>(features);
+		biases = std::vector<IMatrix<float>*>(out_features);
+		recognition_weights = std::vector<IMatrix<float>*>(1);
+		generative_weights = std::vector<IMatrix<float>*>(1);
+		hessian_weights = std::vector<IMatrix<float>*>(1);
+		hessian_biases = std::vector<IMatrix<float>*>(out_features);
+
+		for (int k = 0; k < features; ++k)
+			feature_maps[k] = new Matrix2D<float, rows, cols>();
+
+		for (int k = 0; k < out_features; ++k)
+		{
+			biases[k] = new Matrix2D<float, out_rows, out_cols>();
+			hessian_biases[k] = new Matrix2D<float, out_rows, out_cols>();
+		}
+
+		recognition_weights[0] = new Matrix2D<float, out_rows * out_cols * out_features, rows * cols * features>();
+		generative_weights[0] = new Matrix2D<float, out_rows * out_cols * out_features, rows * cols * features>();
+		hessian_weights[0] = new Matrix2D<float, out_rows * out_cols * out_features, rows * cols * features>();
+		for (int i = 0; i < out_rows * out_cols * out_features; ++i)
+		{
+			for (int j = 0; j < rows * cols * features; ++j)
+			{
+				//uniform
+				recognition_weights[0]->at(i, j) = (rand_max - rand_min) * (rand() + 1) / RAND_MAX + rand_min;
+				generative_weights[0]->at(i, j) = (rand_max - rand_min) * (rand() + 1) / RAND_MAX + rand_min;
+			}
+		}
+	}
+
 	~PerceptronFullConnectivityLayer<features, rows, cols, out_features, out_rows, out_cols, activation_function>()
 	{
 		delete recognition_weights[0];
@@ -713,7 +778,6 @@ public:
 		}
 	}
 
-	//todo: fix
 	void wake_sleep(float &learning_rate, bool &use_dropout)
 	{
 		stochastic_rounding(feature_maps);
