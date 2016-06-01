@@ -22,6 +22,8 @@ class NeuralNet
 public:
 	NeuralNet() = default;
 	~NeuralNet();
+	//create an exact deep copy of network
+	NeuralNet copy_network();
 	//setup gradient
 	void setup_gradient();
 	//save learned net
@@ -31,17 +33,17 @@ public:
 	//feed forwards
 	void discriminate();
 	//feed backwards
-	std::vector<IMatrix<float>*> generate();
+	FeatureMap generate();
 	//set input (batch will not be generated)
-	void set_input(const std::vector<IMatrix<float>*> &input);
+	void set_input(const FeatureMap &input);
 	//set labels for batch
-	void set_labels(const std::vector<IMatrix<float>*> &batch_labels);
+	void set_labels(const FeatureMap &batch_labels);
 	//wake-sleep algorithm
 	void pretrain(int iterations);
 	//backpropogate with levenbourg-marquardt
 	float train(int iterations, float mse);
 	//backprop with custom gradients
-	float train(int iterations, std::vector<std::vector<IMatrix<float>*>> weights, std::vector<std::vector<IMatrix<float>*>> biases, float mse);
+	float train(int iterations, std::vector<FeatureMap> weights, std::vector<FeatureMap> biases, float mse);
 	//update second derivatives
 	void calculate_hessian(bool use_first_deriv, float gamma);
 	//add a layer to the end of the network
@@ -49,7 +51,7 @@ public:
 	//reset and apply gradient
 	void apply_gradient();
 	//apply custom gradient
-	void apply_gradient(std::vector<std::vector<IMatrix<float>*>> weights, std::vector<std::vector<IMatrix<float>*>> biases);
+	void apply_gradient(std::vector<FeatureMap> weights, std::vector<FeatureMap> biases);
 	//get current error
 	float global_error();
 	
@@ -70,13 +72,13 @@ public:
 	
 	int t = 0;
 	std::vector<ILayer*> layers;
-	std::vector<IMatrix<float>*> input;
-	std::vector<IMatrix<float>*> labels;
-	std::vector<std::vector<IMatrix<float>*>> weight_gradient;
-	std::vector<std::vector<IMatrix<float>*>> biases_gradient;
+	FeatureMap input;
+	FeatureMap labels;
+	std::vector<FeatureMap> weight_gradient;
+	std::vector<FeatureMap> biases_gradient;
 private:
-	std::vector<std::vector<IMatrix<float>*>> weight_momentum;
-	std::vector<std::vector<IMatrix<float>*>> biases_momentum;
+	std::vector<FeatureMap> weight_momentum;
+	std::vector<FeatureMap> biases_momentum;
 	Matrix2D<int, 4, 1>* coords(int &l, int &k, int &i, int &j);
 	void dropout(ILayer* &layer);
 	//TODO: FIX

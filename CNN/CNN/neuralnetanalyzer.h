@@ -10,21 +10,21 @@ class NeuralNetAnalyzer
 {
 public:
 	//approximates the weight gradient numerically
-	static std::vector<std::vector<IMatrix<float>*>> approximate_weight_gradient(NeuralNet &net);
+	static std::vector<FeatureMap> approximate_weight_gradient(NeuralNet &net);
 	//approximates the bias gradient numerically
-	static std::vector<std::vector<IMatrix<float>*>> approximate_bias_gradient(NeuralNet &net);
+	static std::vector<FeatureMap> approximate_bias_gradient(NeuralNet &net);
 	//approximates the weight hessian numerically
-	static std::vector<std::vector<IMatrix<float>*>> approximate_weight_hessian(NeuralNet &net);
+	static std::vector<FeatureMap> approximate_weight_hessian(NeuralNet &net);
 	//approximates the bias hessian numerically
-	static std::vector<std::vector<IMatrix<float>*>> approximate_bias_hessian(NeuralNet &net);
+	static std::vector<FeatureMap> approximate_bias_hessian(NeuralNet &net);
 	//find mean gradient error
-	static std::pair<float, float> mean_gradient_error(NeuralNet &net, std::vector<std::vector<IMatrix<float>*>> observed_weights,
-													std::vector<std::vector<IMatrix<float>*>> observed_biases);
+	static std::pair<float, float> mean_gradient_error(NeuralNet &net, std::vector<FeatureMap> observed_weights,
+													std::vector<FeatureMap> observed_biases);
 	//find mean hessian error WARNING NOT NECESSARILY ACCURATE
 	static std::pair<float, float> mean_hessian_error(NeuralNet &net);
 	//find mean proportional gradient error
-	static std::pair<float, float> proportional_gradient_error(NeuralNet &net, std::vector<std::vector<IMatrix<float>*>> observed_weights,
-		std::vector<std::vector<IMatrix<float>*>> observed_biases);
+	static std::pair<float, float> proportional_gradient_error(NeuralNet &net, std::vector<FeatureMap> observed_weights,
+		std::vector<FeatureMap> observed_biases);
 	//find mean proportional hessian error WARNING NOT NECESSARILY ACCURATE
 	static std::pair<float, float> proportional_hessian_error(NeuralNet &net);
 	//update sample

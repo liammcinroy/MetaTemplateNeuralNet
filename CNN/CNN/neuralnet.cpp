@@ -48,6 +48,23 @@ NeuralNet::~NeuralNet()
 			delete biases_gradient[i][j];
 }
 
+NeuralNet NeuralNet::copy_network()
+{
+	NeuralNet* out = new NeuralNet();
+	for (int l = 0; l < this->layers.size(); ++l)
+		out->add_layer(this->layers[l]->clone());
+	out->learning_rate = this->learning_rate;
+	out->momentum_term = this->momentum_term;
+	out->minimum_divisor = this->minimum_divisor;
+	out->cost_function = this->cost_function;
+	out->use_dropout = this->use_dropout;
+	out->use_batch_learning = this->use_batch_learning;
+	out->use_momentum = this->use_momentum;
+	out->use_hessian = this->use_hessian;
+	//out->setup_gradient();
+	return *out;
+}
+
 void NeuralNet::setup_gradient()
 {
     //conditions
@@ -64,42 +81,42 @@ void NeuralNet::setup_gradient()
     }
     
 	//labels and input
-	input = std::vector<IMatrix<float>*>(layers[0]->feature_maps.size());
+	input = FeatureMap(layers[0]->feature_maps.size());
 	for (int f = 0; f < input.size(); ++f)
 		input[f] = layers[0]->feature_maps[f]->clone();
-	labels = std::vector<IMatrix<float>*>(layers[layers.size() - 1]->feature_maps.size());
+	labels = FeatureMap(layers[layers.size() - 1]->feature_maps.size());
 	for (int f = 0; f < labels.size(); ++f)
 		labels[f] = layers[layers.size() - 1]->feature_maps[f]->clone();
 
 	//gradients setup for weights and biases
-	weight_gradient = std::vector<std::vector<IMatrix<float>*>>(layers.size());
-	biases_gradient = std::vector<std::vector<IMatrix<float>*>>(layers.size());
+	weight_gradient = std::vector<FeatureMap>(layers.size());
+	biases_gradient = std::vector<FeatureMap>(layers.size());
 
-	weight_momentum = std::vector<std::vector<IMatrix<float>*>>(layers.size());
-	biases_momentum = std::vector<std::vector<IMatrix<float>*>>(layers.size());
+	weight_momentum = std::vector<FeatureMap>(layers.size());
+	biases_momentum = std::vector<FeatureMap>(layers.size());
 
 	for (int l = 0; l < layers.size(); ++l)
 	{
-		weight_gradient[l] = std::vector<IMatrix<float>*>(layers[l]->recognition_weights.size());
+		weight_gradient[l] = FeatureMap(layers[l]->recognition_weights.size());
 		for (int d = 0; d < layers[l]->recognition_weights.size(); ++d)
 			weight_gradient[l][d] = layers[l]->recognition_weights[d]->clone();
 
 		if (layers[l]->use_biases)
 		{
-			biases_gradient[l] = std::vector<IMatrix<float>*>(layers[l]->biases.size());
+			biases_gradient[l] = FeatureMap(layers[l]->biases.size());
 			for (int f_0 = 0; f_0 < layers[l]->biases.size(); ++f_0)
 				biases_gradient[l][f_0] = layers[l]->biases[f_0]->clone();
 		}
 
 		if (use_momentum || optimization_method == CNN_OPT_ADAM)
 		{
-			weight_momentum[l] = std::vector<IMatrix<float>*>(layers[l]->recognition_weights.size());
+			weight_momentum[l] = FeatureMap(layers[l]->recognition_weights.size());
 			for (int d = 0; d < layers[l]->recognition_weights.size(); ++d)
 				weight_momentum[l][d] = layers[l]->recognition_weights[d]->clone();
 
 			if (layers[l]->use_biases)
 			{
-				biases_momentum[l] = std::vector<IMatrix<float>*>(layers[l]->biases.size());
+				biases_momentum[l] = FeatureMap(layers[l]->biases.size());
 				for (int f_0 = 0; f_0 < layers[l]->biases.size(); ++f_0)
 					biases_momentum[l][f_0] = layers[l]->biases[f_0]->clone();
 			}
@@ -178,7 +195,7 @@ void NeuralNet::load_data(std::string path)
 	while (std::getline(file, data, ','))
 	{
 		float value = std::stof(data);
-		std::vector<IMatrix<float>*>* ref;
+		FeatureMap* ref;
 	conditions:
 		if (!greater)
 			ref = &layers[l]->recognition_weights;
@@ -232,7 +249,7 @@ void NeuralNet::load_data(std::string path)
 	}
 }
 
-void NeuralNet::set_input(const std::vector<IMatrix<float>*> &in)
+void NeuralNet::set_input(const FeatureMap &in)
 {
 	for (int f = 0; f < input.size(); ++f)
 	{
@@ -247,7 +264,7 @@ void NeuralNet::set_input(const std::vector<IMatrix<float>*> &in)
 	}
 }
 
-void NeuralNet::set_labels(const std::vector<IMatrix<float>*> &batch_labels)
+void NeuralNet::set_labels(const FeatureMap &batch_labels)
 {
 	for (int f = 0; f < labels.size(); ++f)
 		for (int i = 0; i < labels[f]->rows(); ++i)
@@ -271,7 +288,7 @@ void NeuralNet::discriminate()
 	}
 }
 
-std::vector<IMatrix<float>*> NeuralNet::generate()
+FeatureMap NeuralNet::generate()
 {
 	//clear output
 	for (int f = 0; f < input.size(); ++f)
@@ -320,10 +337,10 @@ float NeuralNet::train(int iterations, float mse = 0.0f)
 		//values of the network when fed forward
 		if (error > mse / 10)
 		{
-			std::vector<std::vector<IMatrix<float>*>> temp(layers.size());
+			std::vector<FeatureMap> temp(layers.size());
 			for (int l = 0; l < layers.size(); ++l)
 			{
-				temp[l] = std::vector<IMatrix<float>*>(layers[l]->feature_maps.size());
+				temp[l] = FeatureMap(layers[l]->feature_maps.size());
 				for (int f = 0; f < layers[l]->feature_maps.size(); ++f)
 					temp[l][f] = layers[l]->feature_maps[f]->clone();
 			}
@@ -335,7 +352,7 @@ float NeuralNet::train(int iterations, float mse = 0.0f)
 			if (use_batch_learning || optimization_method == CNN_OPT_ADAM || optimization_method == CNN_OPT_ADAGRAD)
 			    for (int l = layers.size() - 2 - off; l > 0; --l)
 					layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, weight_gradient[l], 
-						biases_gradient[l], std::vector<IMatrix<float>*>(), std::vector<IMatrix<float>*>(),
+						biases_gradient[l], FeatureMap(), FeatureMap(),
 						use_hessian, minimum_divisor, false, 0.0f);
 			else if (use_momentum)
 				for (int l = layers.size() - 2 - off; l > 0; --l)
@@ -345,7 +362,7 @@ float NeuralNet::train(int iterations, float mse = 0.0f)
 			else
 				for (int l = layers.size() - 2 - off; l > 0; --l)
 					layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, layers[l]->recognition_weights,
-						layers[l]->biases, std::vector<IMatrix<float>*>(), std::vector<IMatrix<float>*>(),
+						layers[l]->biases, FeatureMap(), FeatureMap(),
 						use_hessian, minimum_divisor, false, 0.0f);
 
 
@@ -357,7 +374,7 @@ float NeuralNet::train(int iterations, float mse = 0.0f)
 	return error;
 }
 
-float NeuralNet::train(int iterations, std::vector<std::vector<IMatrix<float>*>> weights, std::vector<std::vector<IMatrix<float>*>> biases, float mse = 0.0)
+float NeuralNet::train(int iterations, std::vector<FeatureMap> weights, std::vector<FeatureMap> biases, float mse = 0.0)
 {
 	float error;
 	for (int e = 0; e < iterations; ++e)
@@ -374,10 +391,10 @@ float NeuralNet::train(int iterations, std::vector<std::vector<IMatrix<float>*>>
 		if (error > mse / 10)
 		{
 			//values of the network when fed forward
-			std::vector<std::vector<IMatrix<float>*>> temp(layers.size());
+			std::vector<FeatureMap> temp(layers.size());
 			for (int l = 0; l < layers.size(); ++l)
 			{
-				temp[l] = std::vector<IMatrix<float>*>(layers[l]->feature_maps.size());
+				temp[l] = FeatureMap(layers[l]->feature_maps.size());
 				for (int f = 0; f < layers[l]->feature_maps.size(); ++f)
 					temp[l][f] = layers[l]->feature_maps[f]->clone();
 			}
@@ -389,7 +406,7 @@ float NeuralNet::train(int iterations, std::vector<std::vector<IMatrix<float>*>>
 			if (use_batch_learning || optimization_method == CNN_OPT_ADAM || optimization_method == CNN_OPT_ADAGRAD)
 				for (int l = layers.size() - 2 - off; l > 0; --l)
 					layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps,
-						weights[l], biases[l], std::vector<IMatrix<float>*>(), std::vector<IMatrix<float>*>(),
+						weights[l], biases[l], FeatureMap(), FeatureMap(),
 						use_hessian, minimum_divisor, false, 0.0f);
 			else
 				for (int l = layers.size() - 2 - off; l > 0; --l)
@@ -415,19 +432,19 @@ void NeuralNet::calculate_hessian(bool use_first_deriv, float gamma)
 	discriminate();
 
 	//values of the network when fed forward
-	std::vector<std::vector<IMatrix<float>*>> temp(layers.size());
+	std::vector<FeatureMap> temp(layers.size());
 	for (int l = 0; l < layers.size(); ++l)
 	{
-		temp[l] = std::vector<IMatrix<float>*>(layers[l]->feature_maps.size());
+		temp[l] = FeatureMap(layers[l]->feature_maps.size());
 		for (int f = 0; f < layers[l]->feature_maps.size(); ++f)
 			temp[l][f] = layers[l]->feature_maps[f]->clone();
 	}
 
 	//first derivatives
-	std::vector<std::vector<IMatrix<float>*>> deriv_first(layers.size());
+	std::vector<FeatureMap> deriv_first(layers.size());
 	for (int l = 0; l < layers.size() && use_first_deriv; ++l)
 	{
-		deriv_first[l] = std::vector<IMatrix<float>*>(layers[l]->feature_maps.size());
+		deriv_first[l] = FeatureMap(layers[l]->feature_maps.size());
 		for (int f = 0; f < layers[l]->feature_maps.size(); ++f)
 		{
 			deriv_first[l][f] = layers[l]->feature_maps[f]->clone();
@@ -657,7 +674,7 @@ void NeuralNet::apply_gradient()
 	}
 }
 
-void NeuralNet::apply_gradient(std::vector<std::vector<IMatrix<float>*>> weights, std::vector<std::vector<IMatrix<float>*>> biases)
+void NeuralNet::apply_gradient(std::vector<FeatureMap> weights, std::vector<FeatureMap> biases)
 {
 	if (use_momentum)
 	{
