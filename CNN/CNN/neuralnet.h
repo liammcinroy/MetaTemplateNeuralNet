@@ -8,10 +8,10 @@
 #include "imatrix.h"
 #include "ilayer.h"
 
-#define CNN_COST_QUADRATIC 0
-#define CNN_COST_CROSSENTROPY 1
-#define CNN_COST_LOGLIKELIHOOD 2
-#define CNN_COST_TARGETS 3
+#define CNN_LOSS_QUADRATIC 0
+#define CNN_LOSS_CROSSENTROPY 1
+#define CNN_LOSS_LOGLIKELIHOOD 2
+#define CNN_LOSS_TARGETS 3
 
 #define CNN_OPT_BACKPROP 0
 #define CNN_OPT_ADAM 1
@@ -22,9 +22,9 @@ class NeuralNet
 public:
 	NeuralNet() = default;
 	~NeuralNet();
-	//create an exact deep copy of network
+	//create an exact deep copy of network; still must call setup_gradient() on copy network
 	NeuralNet copy_network();
-	//setup gradient
+	//setup gradient, must do
 	void setup_gradient();
 	//save learned net
 	void save_data(std::string path);
@@ -32,7 +32,7 @@ public:
 	void load_data(std::string path);
 	//feed forwards
 	void discriminate();
-	//feed backwards
+	//feed backwards, returns a copy of the first layer (must be deallocated)
 	FeatureMap generate();
 	//set input (batch will not be generated)
 	void set_input(const FeatureMap &input);
@@ -40,10 +40,10 @@ public:
 	void set_labels(const FeatureMap &batch_labels);
 	//wake-sleep algorithm
 	void pretrain(int iterations);
-	//backpropogate with levenbourg-marquardt
-	float train(int iterations, float mse);
-	//backprop with custom gradients
-	float train(int iterations, std::vector<FeatureMap> weights, std::vector<FeatureMap> biases, float mse);
+	//backpropogate with selected method, returns error by loss function
+	float train();
+	//backprop with custom gradients, returns error by loss function
+	float train(std::vector<FeatureMap> weights, std::vector<FeatureMap> biases);
 	//update second derivatives
 	void calculate_hessian(bool use_first_deriv, float gamma);
 	//add a layer to the end of the network
@@ -52,34 +52,48 @@ public:
 	void apply_gradient();
 	//apply custom gradient
 	void apply_gradient(std::vector<FeatureMap> weights, std::vector<FeatureMap> biases);
-	//get current error
+	//get current error according to loss function
 	float global_error();
 	
 	//Parameters
 	
-	float learning_rate = .1f;
+	//learning rate (should be positive)
+	float learning_rate = .001f;
+	//only set if using hessian
 	float minimum_divisor = .1f;
+	//only set if using momentum 
 	float momentum_term = .8f;
+	//only set if using dropout. This proportion of neurons will be "dropped"
+	float dropout_probability = .5f;
+	//must be set if using Adam
 	float beta1 = .9f;
+	//must be set if using Adam
 	float beta2 = .99f;
+	//must be set if using Adam
 	float epsilon = .0000001f;
-	int cost_function = CNN_COST_QUADRATIC;
+	//must be set
+	int loss_function = CNN_LOSS_QUADRATIC;
+	//must be set; Adam and Adagrad set use_momentum and use_hessian
 	int optimization_method = CNN_OPT_BACKPROP;
+	//must be set
 	bool use_dropout = false;
+	//must be set
 	bool use_batch_learning = false;
+	//cannot be true if using Adam or Adagrad
 	bool use_momentum = false;
+	//cannot be true if using Adam or Adagrad
 	bool use_hessian = false;
-	
-	int t = 0;
+
 	std::vector<ILayer*> layers;
 	FeatureMap input;
 	FeatureMap labels;
 	std::vector<FeatureMap> weight_gradient;
 	std::vector<FeatureMap> biases_gradient;
 private:
+	int t = 0;
+
 	std::vector<FeatureMap> weight_momentum;
 	std::vector<FeatureMap> biases_momentum;
-	Matrix2D<int, 4, 1>* coords(int &l, int &k, int &i, int &j);
 	void dropout(ILayer* &layer);
 	//TODO: FIX
 	int error_signals();

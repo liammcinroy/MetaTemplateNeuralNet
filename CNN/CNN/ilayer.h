@@ -24,8 +24,8 @@ typedef std::vector<IMatrix<float>*> FeatureMap;
 template<int rows, int cols, int kernel_rows, int kernel_cols, int stride> IMatrix<float>*
 convolve(IMatrix<float>* &input, IMatrix<float>* &kernel)
 {
-	const int N = (kernel_rows - 1) / 2;
-	const int M = (kernel_cols - 1) / 2;
+	int N = (kernel_rows - 1) / 2;
+	int M = (kernel_cols - 1) / 2;
 	const int out_rows = (rows - kernel_rows) / stride + 1;
 	const int out_cols = (cols - kernel_cols) / stride + 1;
 	Matrix2D<float, out_rows, out_cols>* output = new Matrix2D<float, out_rows, out_cols>();
@@ -47,10 +47,10 @@ convolve(IMatrix<float>* &input, IMatrix<float>* &kernel)
 }
 
 template<int rows, int cols, int kernel_rows, int kernel_cols, int stride> void
-back_prop_kernel(IMatrix<float>* &input, IMatrix<float>* &output, IMatrix<float>* &kernel_gradient)
+back_prop_kernel(IMatrix<float>* input, IMatrix<float>* output, IMatrix<float>* kernel_gradient)
 {
-	const int N = (kernel_rows - 1) / 2;
-	const int M = (kernel_cols - 1) / 2;
+	int N = (kernel_rows - 1) / 2;
+	int M = (kernel_cols - 1) / 2;
 	const int out_rows = (rows - kernel_rows) / stride + 1;
 	const int out_cols = (cols - kernel_cols) / stride + 1;
 
@@ -78,8 +78,8 @@ back_prop_kernel(IMatrix<float>* &input, IMatrix<float>* &output, IMatrix<float>
 template<int rows, int cols, int kernel_rows, int kernel_cols, int stride> void
 back_prop_kernel_hessian(IMatrix<float>* &input, IMatrix<float>* &output, IMatrix<float>* &kernel_hessian, float gamma)
 {
-	const int N = (kernel_rows - 1) / 2;
-	const int M = (kernel_cols - 1) / 2;
+	int N = (kernel_rows - 1) / 2;
+	int M = (kernel_cols - 1) / 2;
 	const int out_rows = (rows - kernel_rows) / stride + 1;
 	const int out_cols = (cols - kernel_cols) / stride + 1;
 
@@ -105,10 +105,10 @@ back_prop_kernel_hessian(IMatrix<float>* &input, IMatrix<float>* &output, IMatri
 }
 
 template<int rows, int cols, int kernel_rows, int kernel_cols, int stride> IMatrix<float>*
-convolve_back(IMatrix<float>* &input, IMatrix<float>* &kernel)
+convolve_back(IMatrix<float>* input, IMatrix<float>* kernel)
 {
-	const int N = (kernel_rows - 1) / 2;
-	const int M = (kernel_cols - 1) / 2;
+	int N = (kernel_rows - 1) / 2;
+	int M = (kernel_cols - 1) / 2;
 	Matrix2D<float, rows, cols>* output = new Matrix2D<float, rows, cols>();
 
 	int times_across = 0;
@@ -133,8 +133,8 @@ convolve_back(IMatrix<float>* &input, IMatrix<float>* &kernel)
 template<int rows, int cols, int kernel_rows, int kernel_cols, int stride> IMatrix<float>*
 convolve_back_hessian_weights(IMatrix<float>* &input, IMatrix<float>* &kernel)
 {
-	const int N = (kernel_rows - 1) / 2;
-	const int M = (kernel_cols - 1) / 2;
+	int N = (kernel_rows - 1) / 2;
+	int M = (kernel_cols - 1) / 2;
 	Matrix2D<float, rows, cols>* output = new Matrix2D<float, rows, cols>();
 
 	int times_across = 0;
@@ -165,13 +165,13 @@ public:
 
 	virtual void feed_forwards(FeatureMap &output) = 0;
 
-	virtual void feed_backwards(const FeatureMap &input, const bool &use_g_weights) = 0;
+	virtual void feed_backwards(FeatureMap &input, bool use_g_weights) = 0;
 
-	virtual void wake_sleep(float &learning_rate, bool &use_dropout) = 0;
+	virtual void wake_sleep(float &learning_rate, bool use_dropout) = 0;
 
-	virtual void back_prop(const FeatureMap &data, const FeatureMap &deriv, const FeatureMap &weight_gradient, const FeatureMap &biases_gradient, const FeatureMap &weight_momentum,const FeatureMap &bias_momentum, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term) = 0;
+	virtual void back_prop(FeatureMap &data, FeatureMap &deriv, FeatureMap &weight_gradient, FeatureMap &biases_gradient, FeatureMap &weight_momentum,FeatureMap &bias_momentum, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term) = 0;
 
-	virtual void back_prop_second(const FeatureMap &data, const FeatureMap &deriv, const FeatureMap &deriv_first_in, const FeatureMap &deriv_first_out, bool use_first_deriv, float gamma) = 0;
+	virtual void back_prop_second(FeatureMap &data, FeatureMap &deriv, FeatureMap &deriv_first_in, FeatureMap &deriv_first_out, bool use_first_deriv, float gamma) = 0;
 
 	virtual ILayer* clone() = 0;
 
@@ -253,7 +253,7 @@ public:
 };
 
 template<int features, int rows, int cols,
-	int kernel_size, int stride, int out_features, int activation_function>
+	int kernel_size, int stride, const int out_features, int activation_function>
 class ConvolutionLayer : public ILayer
 {
 public:
@@ -287,6 +287,13 @@ public:
 				}
 			}
 		}
+
+		const int out_rows = (rows - kernel_size) / stride + 1;
+		const int out_cols = (cols - kernel_size) / stride + 1;
+		for (int f_0 = 0; f_0 < out_features; ++f_0)
+			for (int i_0 = 0; i_0 < out_rows; ++i_0)
+				for (int j_0 = 0; j_0 < out_cols; ++j_0)
+					biases[f_0]->at(i_0, j_0) = .1f * rand() / RAND_MAX; //use positive values
 	}
 
 	ConvolutionLayer<features, rows, cols, kernel_size, stride, out_features, activation_function>(float rand_max, float rand_min)
@@ -319,17 +326,30 @@ public:
 				}
 			}
 		}
+
+		const int out_rows = (rows - kernel_size) / stride + 1;
+		const int out_cols = (cols - kernel_size) / stride + 1;
+		for (int f_0 = 0; f_0 < out_features; ++f_0)
+			for (int i_0 = 0; i_0 < out_rows; ++i_0)
+				for (int j_0 = 0; j_0 < out_cols; ++j_0)
+					biases[f_0]->at(i_0, j_0) = .1f * rand() / RAND_MAX; //use positive values
 	}
 
 	~ConvolutionLayer<features, rows, cols, kernel_size, stride, out_features, activation_function>()
 	{
 		for (int i = 0; i < features; ++i)
 			delete feature_maps[i];
-		for (int i = 0; i < out_features; ++i)
+		for (int f_0 = 0; f_0 < out_features; ++f_0)
 		{
-			delete recognition_weights[i];
-			delete generative_weights[i];
+			delete recognition_weights[f_0];
+			delete generative_weights[f_0];
+			if (use_biases)
+				delete biases[f_0];
 		}
+		for (int d = 0; d < hessian_weights.size(); ++d)
+			delete hessian_weights[d];
+		for (int f_0 = 0; f_0 < hessian_biases.size(); ++f_0)
+			delete hessian_biases[f_0];
 	}
 
 	void feed_forwards(FeatureMap &output)
@@ -359,7 +379,7 @@ public:
 		}
 	}
 
-	void feed_backwards(const FeatureMap &input, const bool &use_g_weights)
+	void feed_backwards(FeatureMap &input, bool use_g_weights)
 	{
 		for (int f = 0; f < features; ++f)
 		{
@@ -380,7 +400,7 @@ public:
 		}
 	}
 
-	void wake_sleep(float &learning_rate, bool &use_dropout)
+	void wake_sleep(float &learning_rate, bool use_dropout)
 	{
 		stochastic_rounding(feature_maps);
 
@@ -443,7 +463,7 @@ public:
 		}
 	}
 
-	void back_prop(const FeatureMap &data, const FeatureMap &deriv, const FeatureMap &weight_gradient, const FeatureMap &biases_gradient, const FeatureMap &weight_momentum,const FeatureMap &bias_momentum, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
+	void back_prop(FeatureMap &data, FeatureMap &deriv, FeatureMap &weight_gradient, FeatureMap &biases_gradient, FeatureMap &weight_momentum,FeatureMap &bias_momentum, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
 	{
 		FeatureMap temp = FeatureMap(features);
 		for (int f = 0; f < features; ++f)
@@ -522,7 +542,7 @@ public:
 			delete temp[f];
 	}
 
-	void back_prop_second(const FeatureMap &data, const FeatureMap &deriv, const FeatureMap &deriv_first_in, const FeatureMap &deriv_first_out, bool use_first_deriv, float gamma)
+	void back_prop_second(FeatureMap &data, FeatureMap &deriv, FeatureMap &deriv_first_in, FeatureMap &deriv_first_out, bool use_first_deriv, float gamma)
 	{
 		FeatureMap temp = FeatureMap(features);
 		for (int f = 0; f < features; ++f)
@@ -634,7 +654,7 @@ public:
 	}
 };
 
-template<int features, int rows, int cols, int out_features, int out_rows, int out_cols, int activation_function>
+template<int features, int rows, int cols, const int out_features, const int out_rows, const int out_cols, int activation_function>
 class PerceptronFullConnectivityLayer : public ILayer
 {
 public:
@@ -658,7 +678,7 @@ public:
 			hessian_biases[k] = new Matrix2D<float, out_rows, out_cols>();
 		}
 
-		//const float s_d = 1.0f / (rows * cols * features);
+		//float s_d = 1.0f / (rows * cols * features);
 		recognition_weights[0] = new Matrix2D<float, out_rows * out_cols * out_features, rows * cols * features>();
 		generative_weights[0] = new Matrix2D<float, out_rows * out_cols * out_features, rows * cols * features>();
 		hessian_weights[0] = new Matrix2D<float, out_rows * out_cols * out_features, rows * cols * features>();
@@ -671,6 +691,11 @@ public:
 				generative_weights[0]->at(i, j) = sqrt(-2 * log(1.0f * (rand() + 1) / (RAND_MAX))) * sin(2 * 3.14152f * rand() / RAND_MAX) *.1f;
 			}
 		}
+
+		for (int f_0 = 0; f_0 < out_features; ++f_0)
+			for (int i_0 = 0; i_0 < out_rows; ++i_0)
+				for (int j_0 = 0; j_0 < out_cols; ++j_0)
+					biases[f_0]->at(i_0, j_0) = .1f * rand() / RAND_MAX; //use positive values
 	}
 
 	PerceptronFullConnectivityLayer<features, rows, cols, out_features, out_rows, out_cols, activation_function>(float rand_max, float rand_min)
@@ -705,17 +730,25 @@ public:
 				generative_weights[0]->at(i, j) = (rand_max - rand_min) * (rand() + 1) / RAND_MAX + rand_min;
 			}
 		}
+
+		for (int f_0 = 0; f_0 < out_features; ++f_0)
+			for (int i_0 = 0; i_0 < out_rows; ++i_0)
+				for (int j_0 = 0; j_0 < out_cols; ++j_0)
+					biases[f_0]->at(i_0, j_0) = .1f * rand() / RAND_MAX; //use positive values
 	}
 
 	~PerceptronFullConnectivityLayer<features, rows, cols, out_features, out_rows, out_cols, activation_function>()
 	{
 		delete recognition_weights[0];
 		delete generative_weights[0];
-		delete hessian_weights[0];
+		if (hessian_weights.size() > 0)
+			delete hessian_weights[0];
 		for (int i = 0; i < features; ++i)
 			delete feature_maps[i];
-		for (int i = 0; i < out_features; ++i)
-			delete biases[i];
+		for (int f_0 = 0; f_0 < out_features && use_biases; ++f_0)
+			delete biases[f_0];
+		for (int f_0 = 0; f_0 < hessian_biases.size(); ++f_0)
+			delete hessian_biases[f_0];
 	}
 
 	void feed_forwards(FeatureMap &output)
@@ -747,7 +780,7 @@ public:
 		}
 	}
 
-	void feed_backwards(const FeatureMap &input, const bool &use_g_weights)
+	void feed_backwards(FeatureMap &input, bool use_g_weights)
 	{
 		//go through every neuron in this layer
 		for (int f_0 = 0; f_0 < out_features; ++f_0)
@@ -780,7 +813,7 @@ public:
 		}
 	}
 
-	void wake_sleep(float &learning_rate, bool &use_dropout)
+	void wake_sleep(float &learning_rate, bool use_dropout)
 	{
 		stochastic_rounding(feature_maps);
 
@@ -834,7 +867,7 @@ public:
 			delete discriminated[i];
 	}
 
-	void back_prop(const FeatureMap &data, const FeatureMap &deriv, const FeatureMap &weight_gradient, const FeatureMap &biases_gradient, const FeatureMap &weight_momentum,const FeatureMap &bias_momentum, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
+	void back_prop(FeatureMap &data, FeatureMap &deriv, FeatureMap &weight_gradient, FeatureMap &biases_gradient, FeatureMap &weight_momentum,FeatureMap &bias_momentum, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
 	{
 		FeatureMap temp = FeatureMap(features);
 		for (int f = 0; f < features; ++f)
@@ -903,7 +936,7 @@ public:
 			delete temp[f];
 	}
 
-	void back_prop_second(const FeatureMap &data, const FeatureMap &deriv, const FeatureMap &deriv_first_in, const FeatureMap &deriv_first_out, bool use_first_deriv, float gamma)
+	void back_prop_second(FeatureMap &data, FeatureMap &deriv, FeatureMap &deriv_first_in, FeatureMap &deriv_first_out, bool use_first_deriv, float gamma)
 	{
 		FeatureMap temp = FeatureMap(features);
 		for (int f = 0; f < features; ++f)
@@ -970,7 +1003,7 @@ public:
 	ILayer* clone()
 	{
 		//create intial copy
-		ILayer* copy = new PerceptronFullConnectivityLayer<features, rows, cols, out_rows, out_cols, out_features, activation_function>();
+		ILayer* copy = new PerceptronFullConnectivityLayer<features, rows, cols, out_features, out_rows, out_cols, activation_function>();
 
 		//copy data over
 		for (int f = 0; f < feature_maps.size(); ++f)
@@ -1029,7 +1062,7 @@ public:
 		for (int k = 0; k < out_features; ++k)
 			biases[k] = new Matrix2D<float, out_rows, out_cols>();
 
-		const float s_d = 1.0f / connections;
+		float s_d = 1.0f / connections;
 
 		recognition_weights[0] = new Matrix2D<float, connections, rows * cols * features>();
 		generative_weights[0] = new Matrix2D<float, connections, rows * cols * features>();
@@ -1066,7 +1099,7 @@ public:
 				for (int j_0 = 0; j_0 < out_cols; ++j_0)
 					output[f_0]->at(i_0, j_0) = 0;
 
-		const int offset_o = (out_features * out_rows * out_cols - features * rows * cols) / 2;
+		int offset_o = (out_features * out_rows * out_cols - features * rows * cols) / 2;
 		int offset = offset_o;
 
 		bool middle = false;
@@ -1198,7 +1231,7 @@ public:
 						output[f_0]->at(i_0, j_0) += biases[f_0]->at(i_0, j_0);
 	}
 
-	void feed_backwards(const FeatureMap &input, const bool &use_g_weights)
+	void feed_backwards(FeatureMap &input, bool use_g_weights)
 	{
 		//reset layers
 		for (int f = 0; f < features; ++f)
@@ -1207,7 +1240,7 @@ public:
 					feature_maps[f]->at(i, j) = 0;
 
 		//Think of as "leftover neuron" count divided by two
-		const int offset_o = (out_features * out_rows * out_cols - features * rows * cols) / 2;
+		int offset_o = (out_features * out_rows * out_cols - features * rows * cols) / 2;
 		int offset = offset_o;
 
 		bool middle = false;
@@ -1352,7 +1385,7 @@ public:
 				for (int j_0 = 0; j_0 < out_cols; ++j_0)
 					output[f_0]->at(i_0, j_0) = 0;
 
-		const int offset_o = (out_features * out_rows * out_cols - features * rows * cols) / 2;
+		int offset_o = (out_features * out_rows * out_cols - features * rows * cols) / 2;
 		int offset = offset_o;
 
 		bool middle = false;
@@ -1487,7 +1520,7 @@ public:
 						output[f_0]->at(i_0, j_0) = 1 / (1 + exp(-output[f_0]->at(i_0, j_0)));
 	}
 
-	void feed_backwards_prob(FeatureMap &input, const bool &use_g_weights)
+	void feed_backwards_prob(FeatureMap &input, bool use_g_weights)
 	{
 		//reset layers
 		for (int f = 0; f < features; ++f)
@@ -1495,7 +1528,7 @@ public:
 				for (int j = 0; j < cols; ++j)
 					feature_maps[f]->at(i, j) = 0;
 
-		const int offset_o = (out_features * out_rows * out_cols - features * rows * cols) / 2;
+		int offset_o = (out_features * out_rows * out_cols - features * rows * cols) / 2;
 		int offset = offset_o;
 
 		bool middle = false;
@@ -1631,12 +1664,12 @@ public:
 					feature_maps[f]->at(i, j) = 1 / (1 + exp(-feature_maps[f]->at(i, j)));
 	}
 
-	void wake_sleep(float &learning_rate, bool &use_dropout)
+	void wake_sleep(float &learning_rate, bool use_dropout)
 	{
 		//TODO
 	}
 
-	void back_prop(const FeatureMap &data, const FeatureMap &deriv, const FeatureMap &weight_gradient, const FeatureMap &biases_gradient, const FeatureMap &weight_momentum,const FeatureMap &bias_momentum, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
+	void back_prop(FeatureMap &data, FeatureMap &deriv, FeatureMap &weight_gradient, FeatureMap &biases_gradient, FeatureMap &weight_momentum,FeatureMap &bias_momentum, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
 	{
 	}
 
@@ -1761,23 +1794,23 @@ public:
 		}
 	}
 
-	void feed_backwards(const FeatureMap &input, const bool &use_g_weights)
+	void feed_backwards(FeatureMap &input, bool use_g_weights)
 	{
 		FeatureMap();
 	}
 
-	void wake_sleep(float &learning_rate, bool &use_dropout)
+	void wake_sleep(float &learning_rate, bool use_dropout)
 	{
 		//not applicable
 	}
 
-	void back_prop(const FeatureMap &data, const FeatureMap &deriv, const FeatureMap &weight_gradient, const FeatureMap &biases_gradient, const FeatureMap &weight_momentum,const FeatureMap &bias_momentum, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
+	void back_prop(FeatureMap &data, FeatureMap &deriv, FeatureMap &weight_gradient, FeatureMap &biases_gradient, FeatureMap &weight_momentum,FeatureMap &bias_momentum, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
 	{
 		//just move the values back to which ones were passed on
 		for (int f = 0; f < features; ++f)
 		{
-			const int down = rows / out_rows;
-			const int across = cols / out_cols;
+			int down = rows / out_rows;
+			int across = cols / out_cols;
 
 			//search each sample
 			for (int i_0 = 0; i_0 < out_rows; ++i_0)
@@ -1800,13 +1833,13 @@ public:
 		}
 	}
 
-	void back_prop_second(const FeatureMap &data, const FeatureMap &deriv, const FeatureMap &deriv_first_in, const FeatureMap &deriv_first_out, bool use_first_deriv, float gamma)
+	void back_prop_second(FeatureMap &data, FeatureMap &deriv, FeatureMap &deriv_first_in, FeatureMap &deriv_first_out, bool use_first_deriv, float gamma)
 	{
 		//just move the values back to which ones were passed on
 		for (int f = 0; f < features; ++f)
 		{
-			const int down = rows / out_rows;
-			const int across = cols / out_cols;
+			int down = rows / out_rows;
+			int across = cols / out_cols;
 
 			//search each sample
 			for (int i_0 = 0; i_0 < out_rows; ++i_0)
@@ -1895,15 +1928,15 @@ public:
 		}
 	}
 
-	void feed_backwards(const FeatureMap &input, const bool &use_g_weights)
+	void feed_backwards(FeatureMap &input, bool use_g_weights)
 	{
 	}
 
-	void wake_sleep(float &learning_rate, bool &use_dropout)
+	void wake_sleep(float &learning_rate, bool use_dropout)
 	{
 	}
 
-	void back_prop(const FeatureMap &data, const FeatureMap &deriv, const FeatureMap &weight_gradient, const FeatureMap &biases_gradient, const FeatureMap &weight_momentum,const FeatureMap &bias_momentum, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
+	void back_prop(FeatureMap &data, FeatureMap &deriv, FeatureMap &weight_gradient, FeatureMap &biases_gradient, FeatureMap &weight_momentum,FeatureMap &bias_momentum, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
 	{
 		for (int f = 0; f < features; ++f)
 		{
@@ -1926,7 +1959,7 @@ public:
 		}
 	}
 
-	void back_prop_second(const FeatureMap &data, const FeatureMap &deriv, const FeatureMap &deriv_first_in, const FeatureMap &deriv_first_out, bool use_first_deriv, float gamma)
+	void back_prop_second(FeatureMap &data, FeatureMap &deriv, FeatureMap &deriv_first_in, FeatureMap &deriv_first_out, bool use_first_deriv, float gamma)
 	{
 		for (int f = 0; f < features; ++f)
 		{
@@ -2003,7 +2036,7 @@ public:
 					output[f]->at(i, j) = feature_maps[f]->at(i, j);
 	}
 
-	void feed_backwards(const FeatureMap &input, const bool &use_g_weights)
+	void feed_backwards(FeatureMap &input, bool use_g_weights)
 	{
 		//just output
 		for (int f = 0; f < features; ++f)
@@ -2012,15 +2045,15 @@ public:
 					feature_maps[f]->at(i, j) = input[f]->at(i, j);
 	}
 
-	void wake_sleep(float &learning_rate, bool &use_dropout)
+	void wake_sleep(float &learning_rate, bool use_dropout)
 	{
 	}
 
-	void back_prop(const FeatureMap &data, const FeatureMap &deriv, const FeatureMap &weight_gradient, const FeatureMap &biases_gradient, const FeatureMap &weight_momentum,const FeatureMap &bias_momentum, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
+	void back_prop(FeatureMap &data, FeatureMap &deriv, FeatureMap &weight_gradient, FeatureMap &biases_gradient, FeatureMap &weight_momentum,FeatureMap &bias_momentum, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
 	{
 	}
 
-	void back_prop_second(const FeatureMap &data, const FeatureMap &deriv, const FeatureMap &deriv_first_in, const FeatureMap &deriv_first_out, bool use_first_deriv, float gamma)
+	void back_prop_second(FeatureMap &data, FeatureMap &deriv, FeatureMap &deriv_first_in, FeatureMap &deriv_first_out, bool use_first_deriv, float gamma)
 	{
 	}
 
@@ -2073,19 +2106,19 @@ public:
 	{
 	}
 
-	void feed_backwards(const FeatureMap &input, const bool &use_g_weights)
+	void feed_backwards(FeatureMap &input, bool use_g_weights)
 	{
 	}
 
-	void wake_sleep(float &learning_rate, bool &use_dropout)
+	void wake_sleep(float &learning_rate, bool use_dropout)
 	{
 	}
 
-	void back_prop(const FeatureMap &data, const FeatureMap &deriv, const FeatureMap &weight_gradient, const FeatureMap &biases_gradient, const FeatureMap &weight_momentum,const FeatureMap &bias_momentum, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
+	void back_prop(FeatureMap &data, FeatureMap &deriv, FeatureMap &weight_gradient, FeatureMap &biases_gradient, FeatureMap &weight_momentum,FeatureMap &bias_momentum, bool use_hessian_weights, float mu, bool use_momentum, float momentum_term)
 	{
 	}
 
-	void back_prop_second(const FeatureMap &data, const FeatureMap &deriv, const FeatureMap &deriv_first_in, const FeatureMap &deriv_first_out, bool use_first_deriv, float gamma)
+	void back_prop_second(FeatureMap &data, FeatureMap &deriv, FeatureMap &deriv_first_in, FeatureMap &deriv_first_out, bool use_first_deriv, float gamma)
 	{
 	}
 

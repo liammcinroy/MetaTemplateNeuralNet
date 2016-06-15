@@ -1,37 +1,5 @@
 #include "neuralnet.h"
 
-std::string inbetween(std::string &input, const std::string &start, const std::string &end)
-{
-	int i = input.find(start) + start.size();
-	return input.substr(i, input.substr(i, input.size()).find(end));
-}
-
-std::vector<std::string> split(std::string &input, const std::string &delim)
-{
-	std::vector<std::string> result;
-	int last = input.find(delim);
-	std::string item = input.substr(0, last);
-	if (item == "")
-		return result;
-	result.push_back(item);
-
-	while (last != std::string::npos && last < input.size())
-	{
-		try
-		{
-			item = input.substr(last + delim.size(), input.substr(last + delim.size(), input.size()).find(delim));
-		}
-		catch (int e)
-		{
-			item = input.substr(last + delim.size(), input.size());
-		}
-		if (item != "")
-			result.push_back(item);
-		last += delim.size() + item.size();
-	}
-	return result;
-}
-
 NeuralNet::~NeuralNet()
 {
 	for (int i = 0; i < layers.size(); ++i)
@@ -56,12 +24,11 @@ NeuralNet NeuralNet::copy_network()
 	out->learning_rate = this->learning_rate;
 	out->momentum_term = this->momentum_term;
 	out->minimum_divisor = this->minimum_divisor;
-	out->cost_function = this->cost_function;
+	out->loss_function = this->loss_function;
 	out->use_dropout = this->use_dropout;
 	out->use_batch_learning = this->use_batch_learning;
 	out->use_momentum = this->use_momentum;
 	out->use_hessian = this->use_hessian;
-	//out->setup_gradient();
 	return *out;
 }
 
@@ -80,6 +47,29 @@ void NeuralNet::setup_gradient()
         use_hessian = false;
     }
     
+	//free all unnecessary memory
+	if (!use_hessian && optimization_method != CNN_OPT_ADAM && optimization_method != CNN_OPT_ADAGRAD)
+	{
+		for (int l = 0; l < layers.size(); ++l)
+		{
+			for (int d = 0; d < layers[l]->hessian_weights.size(); ++d)
+				delete layers[l]->hessian_weights[d];
+			for (int f_0 = 0; f_0 < layers[l]->hessian_biases.size(); ++f_0)
+				delete layers[l]->hessian_biases[f_0];
+			layers[l]->hessian_weights = FeatureMap();
+			layers[l]->hessian_biases = FeatureMap();
+		}
+	}
+	for (int l = 0; l < layers.size(); ++l)
+	{
+		if (!layers[l]->use_biases)
+		{
+			for (int f_0 = 0; f_0 < layers[l]->biases.size(); ++f_0)
+				delete layers[l]->biases[f_0];
+			layers[l]->biases = FeatureMap();
+		}
+	}
+
 	//labels and input
 	input = FeatureMap(layers[0]->feature_maps.size());
 	for (int f = 0; f < input.size(); ++f)
@@ -297,7 +287,7 @@ FeatureMap NeuralNet::generate()
 				layers[0]->feature_maps[f]->at(i, j) = 0;
 	for (int l = layers.size() - 2; l >= 0; --l)
 		layers[l]->feed_backwards(layers[l + 1]->feature_maps, true);
-	return layers[0]->feature_maps;
+	return layers[0]->clone()->feature_maps;
 }
 
 void NeuralNet::pretrain(int iterations)
@@ -320,105 +310,98 @@ void NeuralNet::pretrain(int iterations)
 	}
 }
 
-float NeuralNet::train(int iterations, float mse = 0.0f)
+float NeuralNet::train()
 {
 	float error;
-	for (int e = 0; e < iterations; ++e)
+
+	//reset input
+	for (int f = 0; f < input.size(); ++f)
+		for (int i = 0; i < input[f]->rows(); ++i)
+			for (int j = 0; j < input[f]->cols(); ++j)
+				layers[0]->feature_maps[f]->at(i, j) = input[f]->at(i, j);
+
+	discriminate();
+	error = global_error();
+
+	//values of the network when fed forward
+	std::vector<FeatureMap> temp(layers.size());
+	for (int l = 0; l < layers.size(); ++l)
 	{
-		//reset input
-		for (int f = 0; f < input.size(); ++f)
-			for (int i = 0; i < input[f]->rows(); ++i)
-				for (int j = 0; j < input[f]->cols(); ++j)
-					layers[0]->feature_maps[f]->at(i, j) = input[f]->at(i, j);
-
-		discriminate();
-		error = global_error();
-
-		//values of the network when fed forward
-		if (error > mse / 10)
-		{
-			std::vector<FeatureMap> temp(layers.size());
-			for (int l = 0; l < layers.size(); ++l)
-			{
-				temp[l] = FeatureMap(layers[l]->feature_maps.size());
-				for (int f = 0; f < layers[l]->feature_maps.size(); ++f)
-					temp[l][f] = layers[l]->feature_maps[f]->clone();
-			}
-
-			//get error signals for output and returns any layers to be skipped
-			int off = error_signals();
-
-			//backprop for each layer
-			if (use_batch_learning || optimization_method == CNN_OPT_ADAM || optimization_method == CNN_OPT_ADAGRAD)
-			    for (int l = layers.size() - 2 - off; l > 0; --l)
-					layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, weight_gradient[l], 
-						biases_gradient[l], FeatureMap(), FeatureMap(),
-						use_hessian, minimum_divisor, false, 0.0f);
-			else if (use_momentum)
-				for (int l = layers.size() - 2 - off; l > 0; --l)
-					layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, weight_gradient[l],
-					biases_gradient[l], weight_momentum[l], biases_momentum[l],
-					use_hessian, minimum_divisor, true, momentum_term);
-			else
-				for (int l = layers.size() - 2 - off; l > 0; --l)
-					layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, layers[l]->recognition_weights,
-						layers[l]->biases, FeatureMap(), FeatureMap(),
-						use_hessian, minimum_divisor, false, 0.0f);
-
-
-			for (int i = 0; i < temp.size(); ++i)
-				for (int j = 0; j < temp[i].size(); ++j)
-					delete temp[i][j];
-		}
+		temp[l] = FeatureMap(layers[l]->feature_maps.size());
+		for (int f = 0; f < layers[l]->feature_maps.size(); ++f)
+			temp[l][f] = layers[l]->feature_maps[f]->clone();
 	}
+
+	//get error signals for output and returns any layers to be skipped
+	int off = error_signals();
+
+	//backprop for each layer
+	if (use_batch_learning || optimization_method == CNN_OPT_ADAM || optimization_method == CNN_OPT_ADAGRAD)
+		for (int l = layers.size() - 2 - off; l > 0; --l)
+			layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, weight_gradient[l],
+			biases_gradient[l], FeatureMap(), FeatureMap(),
+			false, 0.0f, false, 0.0f);
+	else if (use_momentum)
+		for (int l = layers.size() - 2 - off; l > 0; --l)
+			layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, weight_gradient[l],
+			biases_gradient[l], weight_momentum[l], biases_momentum[l],
+			use_hessian, minimum_divisor, true, momentum_term);
+	else
+		for (int l = layers.size() - 2 - off; l > 0; --l)
+			layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, layers[l]->recognition_weights,
+			layers[l]->biases, FeatureMap(), FeatureMap(),
+			use_hessian, minimum_divisor, false, 0.0f);
+
+
+	for (int i = 0; i < temp.size(); ++i)
+		for (int j = 0; j < temp[i].size(); ++j)
+			delete temp[i][j];
+
 	return error;
 }
 
-float NeuralNet::train(int iterations, std::vector<FeatureMap> weights, std::vector<FeatureMap> biases, float mse = 0.0)
+float NeuralNet::train(std::vector<FeatureMap> weights, std::vector<FeatureMap> biases)
 {
 	float error;
-	for (int e = 0; e < iterations; ++e)
+	//reset input
+	for (int f = 0; f < input.size(); ++f)
+		for (int i = 0; i < input[f]->rows(); ++i)
+			for (int j = 0; j < input[f]->cols(); ++j)
+				layers[0]->feature_maps[f]->at(i, j) = input[f]->at(i, j);
+
+	discriminate();
+	error = global_error();
+
+
+	//values of the network when fed forward
+	std::vector<FeatureMap> temp(layers.size());
+	for (int l = 0; l < layers.size(); ++l)
 	{
-		//reset input
-		for (int f = 0; f < input.size(); ++f)
-			for (int i = 0; i < input[f]->rows(); ++i)
-				for (int j = 0; j < input[f]->cols(); ++j)
-					layers[0]->feature_maps[f]->at(i, j) = input[f]->at(i, j);
-
-		discriminate();
-		error = global_error();
-
-		if (error > mse / 10)
-		{
-			//values of the network when fed forward
-			std::vector<FeatureMap> temp(layers.size());
-			for (int l = 0; l < layers.size(); ++l)
-			{
-				temp[l] = FeatureMap(layers[l]->feature_maps.size());
-				for (int f = 0; f < layers[l]->feature_maps.size(); ++f)
-					temp[l][f] = layers[l]->feature_maps[f]->clone();
-			}
-
-			//get error signals for output and returns any layers to be skipped
-			int off = error_signals();
-
-			//backprop for each layer
-			if (use_batch_learning || optimization_method == CNN_OPT_ADAM || optimization_method == CNN_OPT_ADAGRAD)
-				for (int l = layers.size() - 2 - off; l > 0; --l)
-					layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps,
-						weights[l], biases[l], FeatureMap(), FeatureMap(),
-						use_hessian, minimum_divisor, false, 0.0f);
-			else
-				for (int l = layers.size() - 2 - off; l > 0; --l)
-					layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps,
-						weights[l], biases[l], weight_momentum[l], biases_momentum[l],
-						use_hessian, minimum_divisor, use_momentum, momentum_term);
-
-			for (int i = 0; i < temp.size(); ++i)
-				for (int j = 0; j < temp[i].size(); ++j)
-					delete temp[i][j];
-		}
+		temp[l] = FeatureMap(layers[l]->feature_maps.size());
+		for (int f = 0; f < layers[l]->feature_maps.size(); ++f)
+			temp[l][f] = layers[l]->feature_maps[f]->clone();
 	}
+
+	//get error signals for output and returns any layers to be skipped
+	int off = error_signals();
+
+	//backprop for each layer
+	if (use_batch_learning || optimization_method == CNN_OPT_ADAM || optimization_method == CNN_OPT_ADAGRAD)
+		for (int l = layers.size() - 2 - off; l > 0; --l)
+			layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps,
+			weights[l], biases[l], FeatureMap(), FeatureMap(),
+			false, 0.0f, false, 0.0f);
+	else
+		for (int l = layers.size() - 2 - off; l > 0; --l)
+			layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps,
+			weights[l], biases[l], weight_momentum[l], biases_momentum[l],
+			use_hessian, minimum_divisor, use_momentum, momentum_term);
+
+	for (int i = 0; i < temp.size(); ++i)
+		for (int j = 0; j < temp[i].size(); ++j)
+			delete temp[i][j];
+
+
 	return error;
 }
 
@@ -457,12 +440,12 @@ void NeuralNet::calculate_hessian(bool use_first_deriv, float gamma)
 	//get error signals for output for first derivatives
 	if (use_first_deriv)
 	{
-		if (cost_function == CNN_COST_QUADRATIC)
+		if (loss_function == CNN_LOSS_QUADRATIC)
 			for (int k = 0; k < labels.size(); ++k)
 				for (int i = 0; i < labels[k]->rows(); ++i)
 					for (int j = 0; j < labels[k]->cols(); ++j)
 						deriv_first[deriv_first.size() - 1][k]->at(i, j) = layers[layers.size() - 1]->feature_maps[k]->at(i, j) - labels[k]->at(i, j);
-		if (cost_function == CNN_COST_CROSSENTROPY)
+		if (loss_function == CNN_LOSS_CROSSENTROPY)
 		{
 			for (int k = 0; k < labels.size(); ++k)
 			{
@@ -478,7 +461,7 @@ void NeuralNet::calculate_hessian(bool use_first_deriv, float gamma)
 				}
 			}
 		}
-		if (cost_function == CNN_COST_LOGLIKELIHOOD)
+		if (loss_function == CNN_LOSS_LOGLIKELIHOOD)
 		{
 			if (layers[layers.size() - 2]->type == CNN_LAYER_SOFTMAX)
 				for (int k = 0; k < labels.size(); ++k)
@@ -832,7 +815,7 @@ void NeuralNet::apply_gradient(std::vector<FeatureMap> weights, std::vector<Feat
 
 float NeuralNet::global_error()
 {
-	if (cost_function == CNN_COST_QUADRATIC)
+	if (loss_function == CNN_LOSS_QUADRATIC)
 	{
 		float sum = 0.0f;
 		for (int k = 0; k < labels.size(); ++k)
@@ -842,7 +825,7 @@ float NeuralNet::global_error()
 		return sum / 2;
 	}
 
-	else if (cost_function == CNN_COST_CROSSENTROPY)
+	else if (loss_function == CNN_LOSS_CROSSENTROPY)
 	{
 		float sum = 0.0f;
 		for (int k = 0; k < labels.size(); ++k)
@@ -861,7 +844,7 @@ float NeuralNet::global_error()
 		return sum;
 	}
 
-	else if (cost_function == CNN_COST_LOGLIKELIHOOD)
+	else if (loss_function == CNN_LOSS_LOGLIKELIHOOD)
 	{
 		for (int k = 0; k < labels.size(); ++k)
 			for (int i = 0; i < labels[k]->rows(); ++i)
@@ -874,12 +857,12 @@ float NeuralNet::global_error()
 //todo: check
 int NeuralNet::error_signals()
 {
-	if (cost_function == CNN_COST_QUADRATIC)
+	if (loss_function == CNN_LOSS_QUADRATIC)
 		for (int k = 0; k < labels.size(); ++k)
 			for (int i = 0; i < labels[k]->rows(); ++i)
 				for (int j = 0; j < labels[k]->cols(); ++j)
 					layers[layers.size() - 1]->feature_maps[k]->at(i, j) -= labels[k]->at(i, j);
-	if (cost_function == CNN_COST_CROSSENTROPY)
+	if (loss_function == CNN_LOSS_CROSSENTROPY)
 	{
 		for (int k = 0; k < labels.size(); ++k)
 		{
@@ -895,7 +878,7 @@ int NeuralNet::error_signals()
 			}
 		}
 	}
-	if (cost_function == CNN_COST_LOGLIKELIHOOD)
+	if (loss_function == CNN_LOSS_LOGLIKELIHOOD)
 	{
 		if (layers[layers.size() - 2]->type == CNN_LAYER_SOFTMAX)
 		{
@@ -911,7 +894,7 @@ int NeuralNet::error_signals()
 					for (int j = 0; j < labels[k]->cols(); ++j)
 						layers[layers.size() - 1]->feature_maps[k]->at(i, j) = (labels[k]->at(i, j) > 0) ? -1 / layers[layers.size() - 1]->feature_maps[k]->at(i, j) : 0;
 	}
-	if (cost_function == CNN_COST_TARGETS)
+	if (loss_function == CNN_LOSS_TARGETS)
 		for (int k = 0; k < labels.size(); ++k)
 			for (int i = 0; i < labels[k]->rows(); ++i)
 				for (int j = 0; j < labels[k]->cols(); ++j)
@@ -922,12 +905,12 @@ int NeuralNet::error_signals()
 //todo: check
 int NeuralNet::hessian_error_signals()
 {
-	if (cost_function == CNN_COST_QUADRATIC)
+	if (loss_function == CNN_LOSS_QUADRATIC)
 		for (int k = 0; k < labels.size(); ++k)
 			for (int i = 0; i < labels[k]->rows(); ++i)
 				for (int j = 0; j < labels[k]->cols(); ++j)
 					layers[layers.size() - 1]->feature_maps[k]->at(i, j) = 1;
-	if (cost_function == CNN_COST_CROSSENTROPY)
+	if (loss_function == CNN_LOSS_CROSSENTROPY)
 	{
 		for (int k = 0; k < labels.size(); ++k)
 		{
@@ -943,7 +926,7 @@ int NeuralNet::hessian_error_signals()
 			}
 		}
 	}
-	if (cost_function == CNN_COST_LOGLIKELIHOOD)
+	if (loss_function == CNN_LOSS_LOGLIKELIHOOD)
 	{
 		if (layers[layers.size() - 2]->type == CNN_LAYER_SOFTMAX)
 		{
@@ -962,21 +945,11 @@ int NeuralNet::hessian_error_signals()
 	return 0;
 }
 
-Matrix2D<int, 4, 1>* NeuralNet::coords(int &l, int &k, int &i, int &j)
-{
-	Matrix2D<int, 4, 1>* out = new Matrix2D<int, 4, 1>();
-	out->at(0, 0) = l;
-	out->at(1, 0) = k;
-	out->at(2, 0) = i;
-	out->at(3, 0) = j;
-	return out;
-}
-
 void NeuralNet::dropout(ILayer* &layer)
 {
 	for (int f = 0; f < layer->feature_maps.size(); ++f)
 		for (int i = 0; i < layer->feature_maps[f]->rows(); ++i)
 			for (int j = 0; j < layer->feature_maps[f]->cols(); ++j)
-				if ((1.0f * rand()) / RAND_MAX >= .5f)
+				if ((1.0f * rand()) / RAND_MAX <= dropout_probability)
 					layer->feature_maps[f]->at(i, j) = 0;
 }

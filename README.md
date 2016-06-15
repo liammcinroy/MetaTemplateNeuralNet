@@ -1,15 +1,15 @@
 #ConvolutionalNeuralNetwork
 ==========================
 
-An API for a convolutional neural network implemented in C++ with the intent to increase and assist research on architectures of neural nets
+An API for neural networks implemented in C++ with the intent to increase and assist research on architectures of neural nets
 
 ##Static Library
 ==========================
 
-The build and .h files for referencing as an external static library can be found in the Builds folder.
+The build and .h files for referencing as an external static library can be found in the appropriate folders.
 
 
-##What a Convolutional Neural Network is
+##What a Neural Network is
 ==========================
 
 Our brains work by a large web of connected neurons, or simple binary states. These neurons are connected by synapses, which have a strength associated with them. When a neuron fires, it's signal is sent through all of it's connecting synapses to other neurons to determine their value. When we learn, our brain adjusts the strengths of the associated synapses to limit the amount of activated neurons.
@@ -25,7 +25,7 @@ Networks learn through different algorithms, although the two implemented here a
 ##How this API is implemented
 =================================
 
-This API is based off of template meta-programming to optimize efficiency. Therefore, much of this API is based on the assumption that a network architecture will be defined at compile time rather than runtime. 
+This API is based off of template meta-programming to optimize efficiency. Therefore, much of this API is based on the assumption that a network architecture will be defined at compile time rather than runtime. <b>All hyperparameters should be specified before `setup_gradient()` or `load_data(...)`.</b>
 
 ##Documentation
 ===============================
@@ -33,11 +33,11 @@ This API is based off of template meta-programming to optimize efficiency. There
 ###Macros
 ===============================
 
-These macros are used to signify layer types, optimization methods, cost functions, and activation functions. They are prefixed with `CNN_FUNC_*` for activation functions, `CNN_LAYER_*` for layers, `CNN_OPT_*` for optimization methods, and `CNN_COST_*` for cost functions. Their name should explain their use. The available layers can be found below.
+These macros are used to signify layer types, optimization methods, loss functions, and activation functions. They are prefixed with `CNN_FUNC_*` for activation functions, `CNN_LAYER_*` for layers, `CNN_OPT_*` for optimization methods, and `CNN_COST_*` for cost functions. Their name should explain their use. The available layers can be found below.
 
 Available activation functions are linear (y = x), sigmoid (y = 1/(1 + exp(-x)), bipolar sigmoid (y = 2/(1 + exp(-x)) - 1), tanh (y = tanh), and rectified linear (y = max(0, x)).
 
-Available cost functions are quadratic, cross entropy, log likelihood, and custom targets.
+Available loss functions are quadratic, cross entropy, log likelihood, and custom targets.
 
 Available optimization methods are vanilla backprop (with momentum/levenberg marquardt as desired), Adam, and Adagrad.
 
@@ -64,7 +64,7 @@ This class is a simple matrix implementation, with some extra methods that can b
 ###ILayer
 ===============================
 
-This is the interface for all of the various layer types used in the network.
+This is the interface for all of the various layer types used in the network. When initializing weighted layers, weights are initialized by default or from a uniform range if specified. All biases are initialized in [0, .1].
 
 | Member/Method | Type | Details |
 |--------|------|----------|
@@ -79,7 +79,7 @@ This is the interface for all of the various layer types used in the network.
 ###PerceptronFullConnectivityLayer<int features, int rows, int cols, int out_features, int out_cols, int out_rows, int activation_function>
 ===============================
 
-Basic perceptron layer. Interprets architecture as a single dimension array.
+Basic fully connected perceptron layer.
 
 ###ConvolutionLayer<int features, int rows, int cols, int recognition_data_size, int stride, int out_features, int activation_function>
 ===============================
@@ -98,35 +98,40 @@ Basic maxpooling layer.
 
 Basic softmax layer. This will compute derivatives for any cost function, not just log-likelihood. Softmax is performed on each feature map independently.
 
+###InputLayer<int features, int rows, int cols>
+=====================================
+
+Basic input layer just to signify the beginning of the network. Required
 
 ###OutputLayer<int features, int rows, int cols>
 =====================================
 
-Basic output layer just to signify the end of the network.
+Basic output layer just to signify the end of the network. Required
 
 ###NeuralNetwork
 ===============================
 
-This is the class that encapsulates all of the rest. Has all required methods. Will add support for other error functions and optimization methods later.
+This is the class that encapsulates all of the rest. Has all required methods. Will add support for more loss functions and optimization methods later.
 
 | Member/Method | Type | Details |
 |--------|------|----------|
-| `learning_rate` | `float` | The learning term of the network. Default value is 0 |
-| `momentum_term` | `float` | The momentum term (proportion of learning rate when applied to momentum) of the network. Normally between 0 and 1. Default value is 0 |
-| `minimum_divisor` | `float` | The minimum divisor of the learning rate when using the hessian. Default value is 1 |
-| `cost_function` | `int` | The cost function to be used. Default mean square|
+| `learning_rate` | `float` | The learning term of the network. Default value is 0.01 |
+| `momentum_term` | `float` | The momentum term (proportion of learning rate when applied to momentum) of the network. Between 0 and 1. Default value is 0 |
+| `minimum_divisor` | `float` | The minimum divisor of the learning rate when using the hessian. Default value is .1 |
+| `dropout_probability` | `float` | The probability that a given neuron will be "dropped". Default value is .5 |
+| `loss_function` | `int` | The loss function to be used. Default mean square |
 | `optimization_method` | `int` | Optimization method to be used. Default backprop |
-| `use_batch_learning` | `bool` | Whether you will apply gradient manually |
+| `use_batch_learning` | `bool` | Whether you will apply gradient manually with minibatches |
 | `use_dropout` | `bool` | Whether to train the network with dropout |
-| `use_momentum` | `bool` | Whether to train the network with momentums |
-| `use_hessian` | `bool` | Whether to train the network with the hessian |
+| `use_momentum` | `bool` | Whether to train the network with momentums. Cannot be used with Adam or Adagrad |
+| `use_hessian` | `bool` | Whether to train the network with the hessian. Cannot be used with Adam or Adagrad |
 | `weight_gradient` | `std::vector<std::vector<IMatrix<float>*>>` | The gradient for the weights |
 | `bias_gradient` | `std::vector<std::vector<IMatrix<float>*>>` | The gradient for the biases |
 | `layers` | `std::vector<ILayer*>` | All of the network's layers |
 | `labels` | `std::vector<IMatrix<float>*>` | The current labels |
 | `input` | `std::vector<IMatrix<float>*>` | The current input |
 | `add_layer(ILayer* layer)` | `void` | Adds another layer to the network |
-| `setup_gradient()` | `void` | Initializes the network to learn. Must call if learning |
+| `setup_gradient()` | `void` | Initializes the network to learn. Must call if learning. Must set the hyperparameters before calling |
 | `apply_gradient()` | `void` | Updates weights |
 | `apply_gradient(std::vector<std::vector<IMatrix<float>*>> &weights, &biases)` | `void` | Updates weights with custom gradients (use in parallelization) |
 | `save_data(std::string path)` | `void` | Saves the data |
@@ -135,23 +140,23 @@ This is the class that encapsulates all of the rest. Has all required methods. W
 | `set_labels(std::vector<IMatrix<float>*> labels)` | `void` | Sets the current labels |
 | `discriminate()` | `void` | Feeds the network forward |
 | `pretrain()` | `void` | Pretrains the network using the wake-sleep algorithm |
-| `train(int iterations, float mse)` | `void` | Trains the network using backpropogation, skips if error is less than a tenth of the current MSE |
-| `train(int iterations, std::vector<std::vector<IMatrix<float>*>> &weights, &biases, float mse)` | `void` | Trains the network using backpropogation with custom gradients (use in parallelization) |
+| `train()` | `void` | Trains the network using backpropogation |
+| `train(std::vector<std::vector<IMatrix<float>*>> &weights, &biases)` | `void` | Trains the network using backpropogation with custom gradients (use in parallelization) |
 
 
 ###NeuralNetAnalyzer
 
-This is a singleton static class. This class helps with network analysis, such as the mean squared error (MSE), and finite difference backprop checking.
+This is a singleton static class. This class helps with network analysis, such as the expected error, and finite difference backprop checking.
 
 | Member/Method | Type | Details |
 |--------|------|----------|
-| `sample_size` | `static int` | The sample size used to calculate the MSE |
+| `sample_size` | `static int` | The sample size used to calculate the expected error |
 | `approximate_weight_gradient(NeuralNet &net)` | `static std::vector<std::vector<IMatrix<float>*>>` | Uses finite differences for backprop checking |
 | `approximate_bias_gradient(NeuralNet &net)` | `static std::vector<std::vector<IMatrix<float>*>>` | Uses finite differences for backprop checking |
 | `mean_gradient_error(NeuralNet &net, std::vector<std::vector<IMatrix<float>*>> &observed_weight_gradient, &observed_bias_gradient)` | `static std::pair<float, float>` | Uses finite differences for backprop checking, returns mean difference in ordered pair (weights, biases) |
-| `add_point(float value)` | `static void` | Adds a point for the running calculation of the MSE |
-| `mean_squared_error()` | `static float` | Returns the running MSE |
-| `save_mean_square_error(std::string path)` | `static void` | Saves all calculated MSEs |
+| `add_point(float value)` | `static void` | Adds a point for the running calculation of the expected error |
+| `mean_error()` | `static float` | Returns the running estimate of expected error |
+| `save_error(std::string path)` | `static void` | Saves all calculated expected errors |
 
 
 #Usage

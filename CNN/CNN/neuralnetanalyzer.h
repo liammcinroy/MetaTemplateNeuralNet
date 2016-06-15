@@ -29,12 +29,12 @@ public:
 	static std::pair<float, float> proportional_hessian_error(NeuralNet &net);
 	//update sample
 	static void add_point(float value);
-	//calculate the mean squared error
-	static float mean_squared_error();
-	//save mse data
-	static void save_mean_square_error(std::string path);
+	//calculate the expected error
+	static float mean_error();
+	//save error data
+	static void save_mean_error(std::string path);
 	static int sample_size;
 private:
 	static std::vector<float> sample;
-	static std::vector<float> mses;
+	static std::vector<float> errors;
 };

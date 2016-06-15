@@ -2,7 +2,7 @@
 
 int NeuralNetAnalyzer::sample_size = 0;
 std::vector<float> NeuralNetAnalyzer::sample = std::vector<float>();
-std::vector<float> NeuralNetAnalyzer::mses = std::vector<float>();
+std::vector<float> NeuralNetAnalyzer::errors = std::vector<float>();
 
 
 std::vector<std::vector<IMatrix<float>*>> NeuralNetAnalyzer::approximate_weight_gradient(NeuralNet &net)
@@ -401,11 +401,11 @@ std::pair<float, float> NeuralNetAnalyzer::proportional_hessian_error(NeuralNet 
 	return std::make_pair(weight_sum / weight_n, bias_sum / bias_n);
 }
 
-void NeuralNetAnalyzer::save_mean_square_error(std::string path)
+void NeuralNetAnalyzer::save_mean_error(std::string path)
 {
 	std::ofstream file(path);
-	for (int i = 0; i < mses.size(); ++i)
-		file << std::to_string(mses[i]) << ',';
+	for (int i = 0; i < errors.size(); ++i)
+		file << std::to_string(errors[i]) << ',';
 	file.flush();
 }
 
@@ -416,11 +416,11 @@ void NeuralNetAnalyzer::add_point(float value)
 	sample.push_back(value);
 }
 
-float NeuralNetAnalyzer::mean_squared_error()
+float NeuralNetAnalyzer::mean_error()
 {
 	float sum = 0.0f;
 	for (int i = 0; i < sample.size(); ++i)
 		sum += sample[i];
-	mses.push_back(sum / sample.size());
+	errors.push_back(sum / sample.size());
 	return sum / sample.size();
 }
