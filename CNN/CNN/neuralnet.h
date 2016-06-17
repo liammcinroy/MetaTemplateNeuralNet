@@ -55,7 +55,7 @@ public:
 	//get current error according to loss function
 	float global_error();
 	
-	//Parameters
+	//Hyperparameters
 	
 	//learning rate (should be positive)
 	float learning_rate = .001f;
@@ -83,17 +83,34 @@ public:
 	bool use_momentum = false;
 	//cannot be true if using Adam or Adagrad
 	bool use_hessian = false;
+	//must add a sample with calculate_batch_statistics() before training with the minibatch. Resets statistics after apply_gradient() call
+	bool use_batch_normalization = false;
+	//if enabled with batch normalization, then every call to discriminate() will be sampled and the statistics will never be reset
+	bool keep_running_activation_statistics = false;
+	//if enabled with batch normalization, then every call to train() and discrimate() will be sampled
+	bool collect_data_while_training = false;
 
 	std::vector<ILayer*> layers;
 	FeatureMap input;
 	FeatureMap labels;
-	std::vector<FeatureMap> weight_gradient;
+	std::vector<FeatureMap> weights_gradient;
 	std::vector<FeatureMap> biases_gradient;
 private:
+	//used for adam
 	int t = 0;
+	//used for batch normalization
+	int n = 0;
+	//used for keeping running statistics
+	bool currently_training = false;
 
-	std::vector<FeatureMap> weight_momentum;
+	//momentum data and used for adam
+	std::vector<FeatureMap> weights_momentum;
 	std::vector<FeatureMap> biases_momentum;
+
+	//batch normalization data
+	std::vector<FeatureMap> activations_mean;
+	std::vector<FeatureMap> activations_variance;
+
 	void dropout(ILayer* &layer);
 	//TODO: FIX
 	int error_signals();

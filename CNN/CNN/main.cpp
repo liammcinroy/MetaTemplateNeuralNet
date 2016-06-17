@@ -15,7 +15,7 @@ int main(int argc, char** argv)
 	//setup the structure of the network
 	NeuralNet net = NeuralNet();
 	net.add_layer(new InputLayer<1, 1, 1>());
-	net.add_layer(new PerceptronFullConnectivityLayer<1, 1, 1, 1, 1, 1, CNN_FUNC_RELU>(10, -5));
+	net.add_layer(new PerceptronFullConnectivityLayer<1, 1, 1, 1, 1, 1, CNN_FUNC_RELU>());
 	net.add_layer(new ConvolutionLayer<1, 1, 1, 1, 1, 2, CNN_FUNC_RELU>(3, -3));
 	net.add_layer(new MaxpoolLayer<2, 1, 1, 1, 1>());
 	net.add_layer(new PerceptronFullConnectivityLayer<2, 1, 1, 1, 1, 1, CNN_FUNC_RELU>());
@@ -25,6 +25,9 @@ int main(int argc, char** argv)
 	net.learning_rate = 0.01f;
 	net.use_dropout = false;
 	net.use_batch_learning = true;
+	net.use_batch_normalization = true;
+	net.keep_running_activation_statistics = false;
+	net.collect_data_while_training = false;
 	net.optimization_method = CNN_OPT_ADAM;
 	net.loss_function = CNN_LOSS_QUADRATIC;
 
@@ -39,7 +42,7 @@ int main(int argc, char** argv)
 
 	//don't forget to free later! Initialization lists 
 	std::vector<IMatrix<float>*> input = { new Matrix2D<float, 1, 1>({ 1 }) }; //basic input/output
-	std::vector<IMatrix<float>*> labels = { new Matrix2D<float, 1, 1>({ 16 }) };
+	std::vector<IMatrix<float>*> labels = { new Matrix2D<float, 1, 1>({ 1 }) };
 
 	//set up
 	net.set_input(input);
@@ -52,12 +55,29 @@ int main(int argc, char** argv)
 	net.save_data("example.cnn");
 
 	float error = INFINITY;
-	for (int batch = 0; error > .001f; ++batch)
+	for (int batch = 0; error > 1; ++batch)
 	{
 		for (int i = 0; i < 100; ++i)
 		{
+			//since we are using minibatch normalization and NOT keeping a running total of the statistics,
+			//then we must run each sample from the minibatch through the network to collect the data
+			input[0]->at(0, 0) = rand() % 20;
+			labels[0]->at(0, 0) = input[0]->at(0, 0);
+			net.set_input(input);
+			net.set_labels(labels);
+
+			net.discriminate();
+		}
+		for (int i = 0; i < 100; ++i)
+		{
 			//actual backprop (note that gradient is not applied (batch learning)
-			NeuralNetAnalyzer::add_point(net.train());
+			input[0]->at(0, 0) = rand() % 20;
+			labels[0]->at(0, 0) = 16 * input[0]->at(0, 0);
+			net.set_input(input);
+			net.set_labels(labels);
+
+			NeuralNetAnalyzer::add_point(net.train()); //if we were using all learning examples for batch normalization, then we would want to set the 
+			                                           //collect_data_while_training flag to true, since we never call discriminate()
 		}
 		if (net.use_batch_learning)
 			net.apply_gradient();

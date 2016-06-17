@@ -125,6 +125,9 @@ This is the class that encapsulates all of the rest. Has all required methods. W
 | `use_dropout` | `bool` | Whether to train the network with dropout |
 | `use_momentum` | `bool` | Whether to train the network with momentums. Cannot be used with Adam or Adagrad |
 | `use_hessian` | `bool` | Whether to train the network with the hessian. Cannot be used with Adam or Adagrad |
+| `use_batch_normalization` | `bool` | Whether to train the network with batch normalization. The next two hyperparameters should be defined also |
+| `keep_running_activation_statistics` | `bool` | If using batch normalization, this flag will cause data to be collected for all training samples, not just the current minibatch |
+| `collect_data_while_training` | `bool` | If using batch normalization, then by default the statistics are only updated when discriminate() is called by the user. With this flag, they are update when both discriminate() and train() are called by the user |
 | `weight_gradient` | `std::vector<std::vector<IMatrix<float>*>>` | The gradient for the weights |
 | `bias_gradient` | `std::vector<std::vector<IMatrix<float>*>>` | The gradient for the biases |
 | `layers` | `std::vector<ILayer*>` | All of the network's layers |

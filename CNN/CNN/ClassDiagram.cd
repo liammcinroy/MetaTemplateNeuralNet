@@ -26,70 +26,135 @@
     <Position X="9.25" Y="0.5" Width="1.5" />
     <Members>
       <Method Name="~NeuralNet" Hidden="true" />
-      <Method Name="coords" Hidden="true" />
+      <Field Name="activations_mean" Hidden="true" />
+      <Field Name="activations_variance" Hidden="true" />
+      <Field Name="beta1" Hidden="true" />
+      <Field Name="beta2" Hidden="true" />
+      <Field Name="biases_gradient" Hidden="true" />
+      <Field Name="biases_momentum" Hidden="true" />
+      <Field Name="currently_training" Hidden="true" />
       <Method Name="dropout" Hidden="true" />
+      <Field Name="epsilon" Hidden="true" />
+      <Method Name="error_signals" Hidden="true" />
+      <Method Name="hessian_error_signals" Hidden="true" />
       <Field Name="input" Hidden="true" />
       <Field Name="labels" Hidden="true" />
+      <Field Name="layers" Hidden="true" />
+      <Field Name="learning_rate" Hidden="true" />
+      <Field Name="minimum_divisor" Hidden="true" />
+      <Field Name="momentum_term" Hidden="true" />
+      <Field Name="n" Hidden="true" />
       <Method Name="NeuralNet" Hidden="true" />
+      <Field Name="t" Hidden="true" />
+      <Field Name="weights_gradient" Hidden="true" />
+      <Field Name="weights_momentum" Hidden="true" />
     </Members>
     <TypeIdentifier>
-      <HashCode>ACAAIBAAIAAAEBAAIAACAAgAwIJABBAAIMgABAgCwCA=</HashCode>
+      <HashCode>AGAAsgAQIkABEJBBIAADABgEwIGABJAAcIwADEgGgCA=</HashCode>
       <FileName>neuralnet.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="ILayer">
     <Position X="6.5" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAQAAQIIAAAgAAAAAAAQAkAAAIBAAAAAoAAGAAAAJA=</HashCode>
+      <HashCode>AAARAAQIIAAAgRAAgAACQAEgAAABAAAAAsAAGAAAAJA=</HashCode>
       <FileName>ilayer.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="ConvolutionLayer&lt;features, rows, cols, kernel_size, stride, out_features, activation_function&gt;" Collapsed="true">
-    <Position X="7" Y="6.5" Width="1.5" />
+    <Position X="7" Y="7" Width="1.5" />
+    <InheritanceLine Type="ILayer" ManuallyRouted="true">
+      <Path>
+        <Point X="7.25" Y="5.901" />
+        <Point X="7.25" Y="6.493" />
+        <Point X="7.75" Y="6.493" />
+        <Point X="7.75" Y="7" />
+      </Path>
+    </InheritanceLine>
     <TypeIdentifier>
-      <HashCode>AAAAAAQAIAAAAEAAAAIAAAAAAAAAAAAAAgAAGAAAAAA=</HashCode>
+      <HashCode>AAAAAAQAIAAAAEAAAAIAAAAAAAAAAAAAAkAAGAAAAAA=</HashCode>
       <FileName>ilayer.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="PerceptronFullConnectivityLayer&lt;features, rows, cols, out_rows, out_cols, out_features, activation_function&gt;" Collapsed="true">
-    <Position X="5.25" Y="6.5" Width="1.5" />
+  <Class Name="PerceptronFullConnectivityLayer&lt;features, rows, cols, out_features, out_rows, out_cols, activation_function&gt;" Collapsed="true">
+    <Position X="5.25" Y="7" Width="1.5" />
+    <InheritanceLine Type="ILayer" ManuallyRouted="true">
+      <Path>
+        <Point X="7.25" Y="5.901" />
+        <Point X="7.25" Y="6.493" />
+        <Point X="6" Y="6.493" />
+        <Point X="6" Y="7" />
+      </Path>
+    </InheritanceLine>
     <TypeIdentifier>
       <HashCode>BAAAAAQAIAAAAAAAAAAAAAAAAAAAAAAAAkAAGAAAAAA=</HashCode>
       <FileName>ilayer.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="MaxpoolLayer&lt;features, rows, cols, out_rows, out_cols&gt;" Collapsed="true">
-    <Position X="8.75" Y="6.5" Width="1.5" />
+    <Position X="8.75" Y="7" Width="1.5" />
+    <InheritanceLine Type="ILayer" ManuallyRouted="true">
+      <Path>
+        <Point X="7.25" Y="5.901" />
+        <Point X="7.25" Y="6.493" />
+        <Point X="9.5" Y="6.493" />
+        <Point X="9.5" Y="7" />
+      </Path>
+    </InheritanceLine>
     <TypeIdentifier>
-      <HashCode>AAAAAAQAIAAAAAAAAAIAAACAAAAAAAAAAgAAGAEAAAA=</HashCode>
+      <HashCode>AAAAAAQAIAAAAAAAAAIAAACAAAAAAAAAAkAAGAEAAAA=</HashCode>
       <FileName>ilayer.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="SoftMaxLayer&lt;features, rows, cols&gt;" Collapsed="true">
-    <Position X="10.5" Y="6.5" Width="1.5" />
+    <Position X="10.5" Y="7" Width="1.5" />
+    <InheritanceLine Type="ILayer" ManuallyRouted="true">
+      <Path>
+        <Point X="7.25" Y="5.901" />
+        <Point X="7.25" Y="6.493" />
+        <Point X="11.25" Y="6.493" />
+        <Point X="11.25" Y="7" />
+      </Path>
+    </InheritanceLine>
     <TypeIdentifier>
-      <HashCode>AAAAAAQAIAAAAAAAAAAAAAAAgAAEAAAAAgAAGAAAAAA=</HashCode>
+      <HashCode>AAAAAAQAIAAAAAAAAAAAAAAAgAAEAAAAAkAAGAAAAAA=</HashCode>
       <FileName>ilayer.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="InputLayer&lt;features, rows, cols&gt;" Collapsed="true">
-    <Position X="1.75" Y="6.5" Width="1.5" />
+    <Position X="1.75" Y="7" Width="1.5" />
+    <InheritanceLine Type="ILayer" ManuallyRouted="true">
+      <Path>
+        <Point X="7.25" Y="5.901" />
+        <Point X="7.25" Y="6.462" />
+        <Point X="2.5" Y="6.462" />
+        <Point X="2.5" Y="7" />
+      </Path>
+    </InheritanceLine>
     <TypeIdentifier>
-      <HashCode>AAAAAAQAMAAAAAAAAAAAAAAAAAAAAAAAAgEAGAAAAAA=</HashCode>
+      <HashCode>AAAAAAQAMAAAAAAAAAAAAAAAAAAAAAAAAkEAGAAAAAA=</HashCode>
       <FileName>ilayer.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="OutputLayer&lt;features, rows, cols&gt;" Collapsed="true">
-    <Position X="3.5" Y="6.5" Width="1.5" />
+    <Position X="3.5" Y="7" Width="1.5" />
+    <InheritanceLine Type="ILayer" ManuallyRouted="true">
+      <Path>
+        <Point X="7.25" Y="5.901" />
+        <Point X="7.25" Y="6.462" />
+        <Point X="4.25" Y="6.462" />
+        <Point X="4.25" Y="7" />
+      </Path>
+    </InheritanceLine>
     <TypeIdentifier>
-      <HashCode>AAAAAAQAIAAAAAAAAgAAAAAAAAACAAAAAgAAGAAAAAA=</HashCode>
+      <HashCode>AAAAAAQAIAAAAAAAAgAAAAAAAAACAAAAAkAAGAAAAAA=</HashCode>
       <FileName>ilayer.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="NeuralNetAnalyzer">
     <Position X="11.5" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AACgAAAAAAQAAAAAAAAAgAAAAAAAQAAAAAAAAAAACAI=</HashCode>
+      <HashCode>gAQgAAAAAAQQAAAAAAGAAAAAABAAQAABAAACAAAICAI=</HashCode>
       <FileName>neuralnetanalyzer.h</FileName>
     </TypeIdentifier>
   </Class>
