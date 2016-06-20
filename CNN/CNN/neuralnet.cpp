@@ -396,13 +396,19 @@ float NeuralNet::train()
 		temp[l] = FeatureMap(layers[l]->feature_maps.size());
 		for (int f = 0; f < layers[l]->feature_maps.size(); ++f)
 		{
-			temp[l][f] = layers[l]->feature_maps[f]->clone();
-
 			//perform transformation
 			if (use_batch_normalization)
+			{
 				for (int i = 0; i < layers[l]->feature_maps[f]->rows(); ++i)
+				{
 					for (int j = 0; j < layers[l]->feature_maps[f]->cols(); ++j)
-						temp[l][f]->at(i, j) = (temp[l][f]->at(i, j) - activations_mean[l][f]->at(i, j)) / sqrt(1e-8 + activations_variance[l][f]->at(i, j)); //TODO: add gamma and beta
+					{
+						layers[l]->feature_maps[f]->at(i, j) = (layers[l]->feature_maps[f]->at(i, j) - activations_mean[l][f]->at(i, j)) / sqrt(1e-8 + activations_variance[l][f]->at(i, j)); //TODO: add gamma and beta
+					}
+				}
+			}
+
+			temp[l][f] = layers[l]->feature_maps[f]->clone();
 		}
 	}
 
@@ -454,7 +460,21 @@ float NeuralNet::train(std::vector<FeatureMap> weights, std::vector<FeatureMap> 
 	{
 		temp[l] = FeatureMap(layers[l]->feature_maps.size());
 		for (int f = 0; f < layers[l]->feature_maps.size(); ++f)
+		{
+			//perform transformation
+			if (use_batch_normalization)
+			{
+				for (int i = 0; i < layers[l]->feature_maps[f]->rows(); ++i)
+				{
+					for (int j = 0; j < layers[l]->feature_maps[f]->cols(); ++j)
+					{
+						layers[l]->feature_maps[f]->at(i, j) = (layers[l]->feature_maps[f]->at(i, j) - activations_mean[l][f]->at(i, j)) / sqrt(1e-8 + activations_variance[l][f]->at(i, j)); //TODO: add gamma and beta
+					}
+				}
+			}
+
 			temp[l][f] = layers[l]->feature_maps[f]->clone();
+		}
 	}
 
 	//get error signals for output and returns any layers to be skipped

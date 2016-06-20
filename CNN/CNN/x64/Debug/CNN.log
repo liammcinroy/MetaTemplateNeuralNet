@@ -1,0 +1,39 @@
+﻿Build started 6/20/2016 2:19:54 PM.
+     1>Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" on node 2 (Build target(s)).
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\CL.exe /c /Zi /nologo /W3 /WX- /sdl /Od /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Debug\\" /Fd"x64\Debug\vc120.pdb" /Gd /TP /errorReport:prompt imatrix.h neuralnet.cpp neuralnet.h neuralnetanalyzer.cpp
+         neuralnetanalyzer.cpp
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(227): warning C4244: 'return' : conversion from 'int' to 'float', possible loss of data
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(251): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
+         neuralnet.h
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(227): warning C4244: 'return' : conversion from 'int' to 'float', possible loss of data
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(251): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
+         neuralnet.cpp
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(227): warning C4244: 'return' : conversion from 'int' to 'float', possible loss of data
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(251): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
+     1>neuralnet.cpp(353): warning C4267: 'initializing' : conversion from 'size_t' to 'int', possible loss of data
+     1>neuralnet.cpp(406): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>neuralnet.cpp(420): warning C4267: 'initializing' : conversion from 'size_t' to 'int', possible loss of data
+     1>neuralnet.cpp(425): warning C4267: 'initializing' : conversion from 'size_t' to 'int', possible loss of data
+     1>neuralnet.cpp(430): warning C4267: 'initializing' : conversion from 'size_t' to 'int', possible loss of data
+     1>neuralnet.cpp(471): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>neuralnet.cpp(485): warning C4267: 'initializing' : conversion from 'size_t' to 'int', possible loss of data
+     1>neuralnet.cpp(490): warning C4267: 'initializing' : conversion from 'size_t' to 'int', possible loss of data
+     1>neuralnet.cpp(578): warning C4267: 'initializing' : conversion from 'size_t' to 'int', possible loss of data
+         imatrix.h
+         Generating Code...
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\neuralnet.cpp(988): warning C4715: 'NeuralNet::global_error' : not all control paths return a value
+       Lib:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\Lib.exe /OUT:"C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\x64\Debug\CNN.lib" /NOLOGO /MACHINE:X64 x64\Debug\imatrix.obj
+         x64\Debug\neuralnet.obj
+         x64\Debug\neuralnet.obj
+         x64\Debug\neuralnetanalyzer.obj
+     1>x64\Debug\neuralnet.obj : warning LNK4042: object specified more than once; extras ignored
+     1>neuralnet.obj : warning LNK4221: This object file does not define any previously undefined public symbols, so it will not be used by any link operation that consumes this library
+     1>imatrix.obj : warning LNK4221: This object file does not define any previously undefined public symbols, so it will not be used by any link operation that consumes this library
+         CNN.vcxproj -> C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\x64\Debug\CNN.lib
+     1>Done Building Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:02.71
