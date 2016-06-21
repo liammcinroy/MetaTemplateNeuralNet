@@ -609,7 +609,7 @@ void NeuralNet::apply_gradient()
 					{
 						layers[l]->recognition_weights[d]->at(i, j) += -learning_rate * weights_gradient[l][d]->at(i, j) 
 																	+ momentum_term * weights_momentum[l][d]->at(i, j);
-						weights_momentum[l][d]->at(i, j) = momentum_term * weights_momentum[l][d]->at(i, j) + weights_gradient[l][d]->at(i, j);
+						weights_momentum[l][d]->at(i, j) = momentum_term * weights_momentum[l][d]->at(i, j) + -learning_rate * weights_gradient[l][d]->at(i, j);
     					weights_gradient[l][d]->at(i, j) = 0;
 					}
 				}
@@ -627,7 +627,7 @@ void NeuralNet::apply_gradient()
 					{
 						layers[l]->biases[f_0]->at(i_0, j_0) += -learning_rate * biases_gradient[l][f_0]->at(i_0, j_0)
 																+ momentum_term * biases_momentum[l][f_0]->at(i_0, j_0);
-						biases_momentum[l][f_0]->at(i_0, j_0) = momentum_term * biases_momentum[l][f_0]->at(i_0, j_0) + biases_gradient[l][f_0]->at(i_0, j_0);
+						biases_momentum[l][f_0]->at(i_0, j_0) = momentum_term * biases_momentum[l][f_0]->at(i_0, j_0) + -learning_rate * biases_gradient[l][f_0]->at(i_0, j_0);
     					biases_gradient[l][f_0]->at(i_0, j_0) = 0;
 					}
 				}
@@ -689,7 +689,7 @@ void NeuralNet::apply_gradient()
 					for (int j = 0; j < weights_gradient[l][d]->cols(); ++j)
 					{
 					    float g = weights_gradient[l][d]->at(i, j);
-						layers[l]->recognition_weights[d]->at(i, j) += learning_rate / sqrt(layers[l]->hessian_weights[d]->at(i, j)) * g;
+						layers[l]->recognition_weights[d]->at(i, j) += -learning_rate / sqrt(layers[l]->hessian_weights[d]->at(i, j)) * g;
 						layers[l]->hessian_weights[d]->at(i, j) += g * g;
 						weights_gradient[l][d]->at(i, j) = 0;
 					}
@@ -707,7 +707,7 @@ void NeuralNet::apply_gradient()
 					for (int j_0 = 0; j_0 < biases_gradient[l][f_0]->cols(); ++j_0)
 					{
 					    float g = biases_gradient[l][f_0]->at(i_0, j_0);
-						layers[l]->biases[f_0]->at(i_0, j_0) += learning_rate / sqrt(layers[l]->hessian_biases[f_0]->at(i_0, j_0)) * g;
+						layers[l]->biases[f_0]->at(i_0, j_0) += -learning_rate / sqrt(layers[l]->hessian_biases[f_0]->at(i_0, j_0)) * g;
 						layers[l]->hessian_biases[f_0]->at(i_0, j_0) += g * g;
 						biases_gradient[l][f_0]->at(i_0, j_0) = 0;
 					}
@@ -785,7 +785,7 @@ void NeuralNet::apply_gradient(std::vector<FeatureMap> weights, std::vector<Feat
 					for (int j = 0; j < weights[l][d]->cols(); ++j)
 					{
 						layers[l]->recognition_weights[d]->at(i, j) += -learning_rate * weights[l][d]->at(i, j) + momentum_term * weights_momentum[l][d]->at(i, j);
-						weights_momentum[l][d]->at(i, j) = momentum_term * weights_momentum[l][d]->at(i, j) + weights[l][d]->at(i, j);
+						weights_momentum[l][d]->at(i, j) = momentum_term * weights_momentum[l][d]->at(i, j) + -learning_rate * weights[l][d]->at(i, j);
     					weights[l][d]->at(i, j) = 0;
 					}
 				}
@@ -802,7 +802,7 @@ void NeuralNet::apply_gradient(std::vector<FeatureMap> weights, std::vector<Feat
 					for (int j_0 = 0; j_0 < biases[l][f_0]->cols(); ++j_0)
 					{
 						layers[l]->biases[f_0]->at(i_0, j_0) += -learning_rate * biases[l][f_0]->at(i_0, j_0) + momentum_term * biases_momentum[l][f_0]->at(i_0, j_0);
-						biases_momentum[l][f_0]->at(i_0, j_0) = momentum_term * biases_momentum[l][f_0]->at(i_0, j_0) + biases[l][f_0]->at(i_0, j_0);
+						biases_momentum[l][f_0]->at(i_0, j_0) = momentum_term * biases_momentum[l][f_0]->at(i_0, j_0) + -learning_rate * biases[l][f_0]->at(i_0, j_0);
     					biases[l][f_0]->at(i_0, j_0) = 0;
 					}
 				}
@@ -864,7 +864,7 @@ void NeuralNet::apply_gradient(std::vector<FeatureMap> weights, std::vector<Feat
 					for (int j = 0; j < weights[l][d]->cols(); ++j)
 					{
 					    float g = weights[l][d]->at(i, j);
-						layers[l]->recognition_weights[d]->at(i, j) += learning_rate / sqrt(layers[l]->hessian_weights[d]->at(i, j)) * g;
+						layers[l]->recognition_weights[d]->at(i, j) += -learning_rate / sqrt(layers[l]->hessian_weights[d]->at(i, j)) * g;
 						layers[l]->hessian_weights[d]->at(i, j) += g * g;
 						weights[l][d]->at(i, j) = 0;
 					}
@@ -882,7 +882,7 @@ void NeuralNet::apply_gradient(std::vector<FeatureMap> weights, std::vector<Feat
 					for (int j_0 = 0; j_0 < biases[l][f_0]->cols(); ++j_0)
 					{
 					    float g = biases[l][f_0]->at(i_0, j_0);
-						layers[l]->biases[f_0]->at(i_0, j_0) += learning_rate / sqrt(layers[l]->hessian_biases[f_0]->at(i_0, j_0)) * g;
+						layers[l]->biases[f_0]->at(i_0, j_0) += -learning_rate / sqrt(layers[l]->hessian_biases[f_0]->at(i_0, j_0)) * g;
 						layers[l]->hessian_biases[f_0]->at(i_0, j_0) += g * g;
 						biases[l][f_0]->at(i_0, j_0) = 0;
 					}

@@ -83,7 +83,7 @@ public:
 	bool use_momentum = false;
 	//cannot be true if using Adam or Adagrad
 	bool use_hessian = false;
-	//must add a sample with calculate_batch_statistics() before training with the minibatch. Resets statistics after apply_gradient() call
+	//must add a sample with discriminate() before training with the minibatch. Resets statistics after apply_gradient() call
 	bool use_batch_normalization = false;
 	//if enabled with batch normalization, then every call to discriminate() will be sampled and the statistics will never be reset
 	bool keep_running_activation_statistics = false;
