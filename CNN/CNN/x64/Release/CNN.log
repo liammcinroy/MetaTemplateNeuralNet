@@ -1,12 +1,15 @@
-﻿Build started 6/21/2016 4:23:21 PM.
+﻿Build started 6/24/2016 3:45:53 PM.
      1>Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\CL.exe /c /Zi /nologo /W3 /WX- /sdl /O2 /Oi /GL /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Release\\" /Fd"x64\Release\vc120.pdb" /Gd /TP /errorReport:prompt neuralnet.h
-         neuralnet.h
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\CL.exe /c /Zi /nologo /W3 /WX- /sdl /O2 /Oi /GL /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Release\\" /Fd"x64\Release\vc120.pdb" /Gd /TP /errorReport:prompt main.cpp
+         main.cpp
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(227): warning C4244: 'return' : conversion from 'int' to 'float', possible loss of data
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(251): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
+     1>main.cpp(61): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
+     1>main.cpp(71): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
        Lib:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\Lib.exe /OUT:"C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\x64\Release\CNN.lib" /NOLOGO /MACHINE:X64 /LTCG x64\Release\imatrix.obj
+         x64\Release\main.obj
          x64\Release\neuralnet.obj
          x64\Release\neuralnet.obj
          x64\Release\neuralnetanalyzer.obj
@@ -16,4 +19,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:00.71
+Time Elapsed 00:00:01.04

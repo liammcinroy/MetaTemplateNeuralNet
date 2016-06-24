@@ -1,21 +1,39 @@
-﻿Build started 6/21/2016 4:23:23 PM.
+﻿Build started 6/24/2016 3:45:57 PM.
      1>Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\CL.exe /c /Zi /nologo /W3 /WX- /sdl /Od /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Debug\\" /Fd"x64\Debug\vc120.pdb" /Gd /TP /errorReport:prompt neuralnet.h
-         neuralnet.h
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\CL.exe /c /Zi /nologo /W3 /WX- /sdl /Od /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Debug\\" /Fd"x64\Debug\vc120.pdb" /Gd /TP /errorReport:prompt main.cpp neuralnet.cpp
+         neuralnet.cpp
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(227): warning C4244: 'return' : conversion from 'int' to 'float', possible loss of data
      1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(251): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
+     1>neuralnet.cpp(353): warning C4267: 'initializing' : conversion from 'size_t' to 'int', possible loss of data
+     1>neuralnet.cpp(406): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>neuralnet.cpp(419): warning C4267: 'initializing' : conversion from 'size_t' to 'int', possible loss of data
+     1>neuralnet.cpp(476): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>neuralnet.cpp(489): warning C4267: 'initializing' : conversion from 'size_t' to 'int', possible loss of data
+     1>neuralnet.cpp(593): warning C4267: 'initializing' : conversion from 'size_t' to 'int', possible loss of data
+         main.cpp
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(227): warning C4244: 'return' : conversion from 'int' to 'float', possible loss of data
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(251): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
+     1>main.cpp(61): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
+     1>main.cpp(71): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
+         Generating Code...
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(54): warning C4756: overflow in constant arithmetic
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\main.cpp(54): warning C4756: overflow in constant arithmetic
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(212): warning C4715: 'ILayer::activate' : not all control paths return a value
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(228): warning C4715: 'ILayer::activation_derivative' : not all control paths return a value
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\ilayer.h(244): warning C4715: 'ILayer::activation_second_derivative' : not all control paths return a value
+     1>c:\users\liam\documents\github\convolutionalneuralnetwork\cnn\cnn\neuralnet.cpp(1053): warning C4715: 'NeuralNet::global_error' : not all control paths return a value
        Lib:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\Lib.exe /OUT:"C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\x64\Debug\CNN.lib" /NOLOGO /MACHINE:X64 x64\Debug\imatrix.obj
+         x64\Debug\main.obj
          x64\Debug\neuralnet.obj
          x64\Debug\neuralnet.obj
          x64\Debug\neuralnetanalyzer.obj
      1>x64\Debug\neuralnet.obj : warning LNK4042: object specified more than once; extras ignored
-     1>neuralnet.obj : warning LNK4221: This object file does not define any previously undefined public symbols, so it will not be used by any link operation that consumes this library
      1>imatrix.obj : warning LNK4221: This object file does not define any previously undefined public symbols, so it will not be used by any link operation that consumes this library
          CNN.vcxproj -> C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\x64\Debug\CNN.lib
      1>Done Building Project "C:\Users\Liam\Documents\GitHub\ConvolutionalNeuralNetwork\CNN\CNN\CNN.vcxproj" (Build target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:00.64
+Time Elapsed 00:00:01.61

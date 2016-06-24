@@ -397,7 +397,7 @@ float NeuralNet::train()
 		for (int f = 0; f < layers[l]->feature_maps.size(); ++f)
 		{
 			//perform transformation
-			if (use_batch_normalization)
+			if (use_batch_normalization && l != 0 && l != layers.size() - 1)
 			{
 				for (int i = 0; i < layers[l]->feature_maps[f]->rows(); ++i)
 				{
@@ -416,22 +416,27 @@ float NeuralNet::train()
 	int off = error_signals();
 
 	//backprop for each layer
-	if (use_batch_learning || optimization_method == CNN_OPT_ADAM || optimization_method == CNN_OPT_ADAGRAD)
-		for (int l = layers.size() - 2 - off; l > 0; --l)
-			layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, weights_gradient[l],
-			biases_gradient[l], FeatureMap(), FeatureMap(),
-			false, 0.0f, false, 0.0f);
-	else if (use_momentum)
-		for (int l = layers.size() - 2 - off; l > 0; --l)
-			layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, weights_gradient[l],
-			biases_gradient[l], weights_momentum[l], biases_momentum[l],
-			use_hessian, minimum_divisor, true, momentum_term);
-	else
-		for (int l = layers.size() - 2 - off; l > 0; --l)
-			layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, layers[l]->recognition_weights,
-			layers[l]->biases, FeatureMap(), FeatureMap(),
-			use_hessian, minimum_divisor, false, 0.0f);
+	for (int l = layers.size() - 2 - off; l > 0; --l)
+		layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps, weights_gradient[l],
+							biases_gradient[l], weights_momentum[l], biases_momentum[l],
+							use_hessian, minimum_divisor, use_momentum, momentum_term);
 
+	if (use_l2_weight_decay && !use_batch_learning)
+	{
+		for (int l = 0; l < layers.size(); ++l)
+		{
+			for (int d = 0; d < layers[l]->recognition_weights.size(); ++d)
+				for (int i = 0; i < layers[l]->recognition_weights[d]->rows(); ++i)
+					for (int j = 0; j < layers[l]->recognition_weights[d]->cols(); ++j)
+						weights_gradient[l][d]->at(i, j) += 2 * weight_decay_factor * layers[l]->recognition_weights[d]->at(i, j);
+
+			if (include_bias_decay)
+				for (int f_0 = 0; f_0 < layers[l]->biases.size(); ++f_0)
+					for (int i_0 = 0; i_0 < layers[l]->biases[f_0]->rows(); ++i_0)
+						for (int j_0 = 0; j_0 < layers[l]->biases[f_0]->cols(); ++j_0)
+							biases_gradient[l][f_0]->at(i_0, j_0) += 2 * weight_decay_factor * layers[l]->biases[f_0]->at(i_0, j_0);
+		}
+	}
 
 	for (int i = 0; i < temp.size(); ++i)
 		for (int j = 0; j < temp[i].size(); ++j)
@@ -481,21 +486,31 @@ float NeuralNet::train(std::vector<FeatureMap> weights, std::vector<FeatureMap> 
 	int off = error_signals();
 
 	//backprop for each layer
-	if (use_batch_learning || optimization_method == CNN_OPT_ADAM || optimization_method == CNN_OPT_ADAGRAD)
-		for (int l = layers.size() - 2 - off; l > 0; --l)
-			layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps,
-			weights[l], biases[l], FeatureMap(), FeatureMap(),
-			false, 0.0f, false, 0.0f);
-	else
-		for (int l = layers.size() - 2 - off; l > 0; --l)
-			layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps,
-			weights[l], biases[l], weights_momentum[l], biases_momentum[l],
-			use_hessian, minimum_divisor, use_momentum, momentum_term);
+	for (int l = layers.size() - 2 - off; l > 0; --l)
+		layers[l]->back_prop(temp[l + 1], layers[l + 1]->feature_maps,
+							weights[l], biases[l], weights_momentum[l], biases_momentum[l],
+							use_hessian, minimum_divisor, use_momentum, momentum_term);
+
+	if (use_l2_weight_decay && !use_batch_learning)
+	{
+		for (int l = 0; l < layers.size(); ++l)
+		{
+			for (int d = 0; d < layers[l]->recognition_weights.size(); ++d)
+				for (int i = 0; i < layers[l]->recognition_weights[d]->rows(); ++i)
+					for (int j = 0; j < layers[l]->recognition_weights[d]->cols(); ++j)
+						weights[l][d]->at(i, j) += 2 * weight_decay_factor * layers[l]->recognition_weights[d]->at(i, j);
+
+			if (include_bias_decay)
+				for (int f_0 = 0; f_0 < layers[l]->biases.size(); ++f_0)
+					for (int i_0 = 0; i_0 < layers[l]->biases[f_0]->rows(); ++i_0)
+						for (int j_0 = 0; j_0 < layers[l]->biases[f_0]->cols(); ++j_0)
+							biases[l][f_0]->at(i_0, j_0) += 2 * weight_decay_factor * layers[l]->biases[f_0]->at(i_0, j_0);
+		}
+	}
 
 	for (int i = 0; i < temp.size(); ++i)
 		for (int j = 0; j < temp[i].size(); ++j)
 			delete temp[i][j];
-
 
 	return error;
 }
@@ -574,7 +589,7 @@ void NeuralNet::calculate_hessian(bool use_first_deriv, float gamma)
 	//get error signals for output for second derivatives and returns any layers to be skipped
 	int off = hessian_error_signals();
 
-	//backprop for each layer
+	//backprop second derivs for each layer
 	for (int l = layers.size() - 2 - off; l > 0; --l)
 		layers[l]->back_prop_second(temp[l + 1], layers[l + 1]->feature_maps, deriv_first[l + 1], deriv_first[l], use_first_deriv, gamma);
 
@@ -596,6 +611,23 @@ void NeuralNet::add_layer(ILayer* layer)
 
 void NeuralNet::apply_gradient()
 {
+	if (use_l2_weight_decay && use_batch_learning)
+	{
+		for (int l = 0; l < layers.size(); ++l)
+		{
+			for (int d = 0; d < layers[l]->recognition_weights.size(); ++d)
+				for (int i = 0; i < layers[l]->recognition_weights[d]->rows(); ++i)
+					for (int j = 0; j < layers[l]->recognition_weights[d]->cols(); ++j)
+						weights_gradient[l][d]->at(i, j) += 2 * weight_decay_factor * layers[l]->recognition_weights[d]->at(i, j);
+
+			if (include_bias_decay)
+				for (int f_0 = 0; f_0 < layers[l]->biases.size(); ++f_0)
+					for (int i_0 = 0; i_0 < layers[l]->biases[f_0]->rows(); ++i_0)
+						for (int j_0 = 0; j_0 < layers[l]->biases[f_0]->cols(); ++j_0)
+							biases_gradient[l][f_0]->at(i_0, j_0) += 2 * weight_decay_factor * layers[l]->biases[f_0]->at(i_0, j_0);
+		}
+	}
+
 	if (use_momentum)
 	{
 		//update weights
@@ -773,6 +805,23 @@ void NeuralNet::apply_gradient()
 
 void NeuralNet::apply_gradient(std::vector<FeatureMap> weights, std::vector<FeatureMap> biases)
 {
+	if (use_l2_weight_decay && use_batch_learning)
+	{
+		for (int l = 0; l < layers.size(); ++l)
+		{
+			for (int d = 0; d < layers[l]->recognition_weights.size(); ++d)
+				for (int i = 0; i < layers[l]->recognition_weights[d]->rows(); ++i)
+					for (int j = 0; j < layers[l]->recognition_weights[d]->cols(); ++j)
+						weights[l][d]->at(i, j) += 2 * weight_decay_factor * layers[l]->recognition_weights[d]->at(i, j);
+
+			if (include_bias_decay)
+				for (int f_0 = 0; f_0 < layers[l]->biases.size(); ++f_0)
+					for (int i_0 = 0; i_0 < layers[l]->biases[f_0]->rows(); ++i_0)
+						for (int j_0 = 0; j_0 < layers[l]->biases[f_0]->cols(); ++j_0)
+							biases[l][f_0]->at(i_0, j_0) += 2 * weight_decay_factor * layers[l]->biases[f_0]->at(i_0, j_0);
+		}
+	}
+
 	if (use_momentum)
 	{
 		//update weights
@@ -948,9 +997,26 @@ void NeuralNet::apply_gradient(std::vector<FeatureMap> weights, std::vector<Feat
 
 float NeuralNet::global_error()
 {
+	float sum = 0.0f;
+	if (use_l2_weight_decay)
+	{
+		for (int l = 0; l < layers.size(); ++l)
+		{
+			for (int d = 0; d < layers[l]->recognition_weights.size(); ++d)
+				for (int i = 0; i < layers[l]->recognition_weights[d]->rows(); ++i)
+					for (int j = 0; j < layers[l]->recognition_weights[d]->cols(); ++j)
+						sum += weight_decay_factor * layers[l]->recognition_weights[d]->at(i, j) * layers[l]->recognition_weights[d]->at(i, j);
+
+			if (include_bias_decay)
+				for (int f_0 = 0; f_0 < layers[l]->biases.size(); ++f_0)
+					for (int i_0 = 0; i_0 < layers[l]->biases[f_0]->rows(); ++i_0)
+						for (int j_0 = 0; j_0 < layers[l]->biases[f_0]->cols(); ++j_0)
+							sum += weight_decay_factor * layers[l]->biases[f_0]->at(i_0, j_0) * layers[l]->biases[f_0]->at(i_0, j_0);
+		}
+	}
+
 	if (loss_function == CNN_LOSS_QUADRATIC)
 	{
-		float sum = 0.0f;
 		for (int k = 0; k < labels.size(); ++k)
 			for (int i = 0; i < labels[k]->rows(); ++i)
 				for (int j = 0; j < labels[k]->cols(); ++j)
@@ -960,7 +1026,6 @@ float NeuralNet::global_error()
 
 	else if (loss_function == CNN_LOSS_CROSSENTROPY)
 	{
-		float sum = 0.0f;
 		for (int k = 0; k < labels.size(); ++k)
 		{
 			for (int i = 0; i < labels[k]->rows(); ++i)

@@ -50,7 +50,7 @@
       <Field Name="weights_momentum" Hidden="true" />
     </Members>
     <TypeIdentifier>
-      <HashCode>AGAAsgAQIkABEJBBIAADABgEwIGABJAAcIwADEgGgCA=</HashCode>
+      <HashCode>AGAAsgAQIkABEpBBIgADABwEwIGABJAAcIwADEgGgCA=</HashCode>
       <FileName>neuralnet.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -62,13 +62,13 @@
     </TypeIdentifier>
   </Class>
   <Class Name="ConvolutionLayer&lt;features, rows, cols, kernel_size, stride, out_features, activation_function&gt;" Collapsed="true">
-    <Position X="7" Y="7" Width="1.5" />
+    <Position X="7" Y="7.5" Width="1.5" />
     <InheritanceLine Type="ILayer" ManuallyRouted="true">
       <Path>
         <Point X="7.25" Y="5.901" />
-        <Point X="7.25" Y="6.493" />
-        <Point X="7.75" Y="6.493" />
-        <Point X="7.75" Y="7" />
+        <Point X="7.25" Y="7.118" />
+        <Point X="7.75" Y="7.118" />
+        <Point X="7.75" Y="7.5" />
       </Path>
     </InheritanceLine>
     <TypeIdentifier>
@@ -77,13 +77,13 @@
     </TypeIdentifier>
   </Class>
   <Class Name="PerceptronFullConnectivityLayer&lt;features, rows, cols, out_features, out_rows, out_cols, activation_function&gt;" Collapsed="true">
-    <Position X="5.25" Y="7" Width="1.5" />
+    <Position X="5.25" Y="7.5" Width="1.5" />
     <InheritanceLine Type="ILayer" ManuallyRouted="true">
       <Path>
         <Point X="7.25" Y="5.901" />
-        <Point X="7.25" Y="6.493" />
-        <Point X="6" Y="6.493" />
-        <Point X="6" Y="7" />
+        <Point X="7.25" Y="7.024" />
+        <Point X="6" Y="7.024" />
+        <Point X="6" Y="7.5" />
       </Path>
     </InheritanceLine>
     <TypeIdentifier>
@@ -92,13 +92,13 @@
     </TypeIdentifier>
   </Class>
   <Class Name="MaxpoolLayer&lt;features, rows, cols, out_rows, out_cols&gt;" Collapsed="true">
-    <Position X="8.75" Y="7" Width="1.5" />
+    <Position X="8.75" Y="7.5" Width="1.5" />
     <InheritanceLine Type="ILayer" ManuallyRouted="true">
       <Path>
         <Point X="7.25" Y="5.901" />
-        <Point X="7.25" Y="6.493" />
-        <Point X="9.5" Y="6.493" />
-        <Point X="9.5" Y="7" />
+        <Point X="7.25" Y="7.087" />
+        <Point X="9.5" Y="7.087" />
+        <Point X="9.5" Y="7.5" />
       </Path>
     </InheritanceLine>
     <TypeIdentifier>
@@ -107,13 +107,13 @@
     </TypeIdentifier>
   </Class>
   <Class Name="SoftMaxLayer&lt;features, rows, cols&gt;" Collapsed="true">
-    <Position X="10.5" Y="7" Width="1.5" />
+    <Position X="10.5" Y="7.5" Width="1.5" />
     <InheritanceLine Type="ILayer" ManuallyRouted="true">
       <Path>
         <Point X="7.25" Y="5.901" />
-        <Point X="7.25" Y="6.493" />
-        <Point X="11.25" Y="6.493" />
-        <Point X="11.25" Y="7" />
+        <Point X="7.25" Y="7.118" />
+        <Point X="11.25" Y="7.118" />
+        <Point X="11.25" Y="7.5" />
       </Path>
     </InheritanceLine>
     <TypeIdentifier>
@@ -122,13 +122,13 @@
     </TypeIdentifier>
   </Class>
   <Class Name="InputLayer&lt;features, rows, cols&gt;" Collapsed="true">
-    <Position X="1.75" Y="7" Width="1.5" />
+    <Position X="1.75" Y="7.5" Width="1.5" />
     <InheritanceLine Type="ILayer" ManuallyRouted="true">
       <Path>
         <Point X="7.25" Y="5.901" />
-        <Point X="7.25" Y="6.462" />
-        <Point X="2.5" Y="6.462" />
-        <Point X="2.5" Y="7" />
+        <Point X="7.25" Y="7.045" />
+        <Point X="2.5" Y="7.045" />
+        <Point X="2.5" Y="7.5" />
       </Path>
     </InheritanceLine>
     <TypeIdentifier>
@@ -137,13 +137,13 @@
     </TypeIdentifier>
   </Class>
   <Class Name="OutputLayer&lt;features, rows, cols&gt;" Collapsed="true">
-    <Position X="3.5" Y="7" Width="1.5" />
+    <Position X="3.5" Y="7.5" Width="1.5" />
     <InheritanceLine Type="ILayer" ManuallyRouted="true">
       <Path>
         <Point X="7.25" Y="5.901" />
-        <Point X="7.25" Y="6.462" />
-        <Point X="4.25" Y="6.462" />
-        <Point X="4.25" Y="7" />
+        <Point X="7.25" Y="7.045" />
+        <Point X="4.25" Y="7.045" />
+        <Point X="4.25" Y="7.5" />
       </Path>
     </InheritanceLine>
     <TypeIdentifier>

@@ -9,7 +9,9 @@
 #include "ilayer.h"
 
 #define CNN_LOSS_QUADRATIC 0
+//todo: update cross entropy
 #define CNN_LOSS_CROSSENTROPY 1
+//todo: update log likelihood
 #define CNN_LOSS_LOGLIKELIHOOD 2
 #define CNN_LOSS_TARGETS 3
 
@@ -71,6 +73,8 @@ public:
 	float beta2 = .99f;
 	//must be set if using Adam
 	float epsilon = .0000001f;
+	//must be set if using L2 weight decay
+	float weight_decay_factor = .001f;
 	//must be set
 	int loss_function = CNN_LOSS_QUADRATIC;
 	//must be set; Adam and Adagrad set use_momentum and use_hessian
@@ -83,6 +87,10 @@ public:
 	bool use_momentum = false;
 	//cannot be true if using Adam or Adagrad
 	bool use_hessian = false;
+	//set with weight_decay_factor and include bias 
+	bool use_l2_weight_decay = false;
+	//must be set with l2 decay. if true, then biases are discouraged to grow large (not ideal in many circumstances)
+	bool include_bias_decay = false;
 	//must add a sample with discriminate() before training with the minibatch. Resets statistics after apply_gradient() call
 	bool use_batch_normalization = false;
 	//if enabled with batch normalization, then every call to discriminate() will be sampled and the statistics will never be reset
