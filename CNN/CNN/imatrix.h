@@ -40,11 +40,11 @@ public:
 			data[i] = T();
 	}
 
-	Matrix2D<T, r, c>(int min, int max)
+	Matrix2D<T, r, c>(T min, T max)
 	{
-		int diff = max - min;
+		T diff = max - min;
 		for (int i = 0; i < data.size(); ++i)
-			data[i] = (rand() % diff) + min;
+			data[i] = (2 * diff * rand()) / RAND_MAX + min;
 	}
 
 	Matrix2D<T, r, c>(std::initializer_list<std::initializer_list<T>> arr)

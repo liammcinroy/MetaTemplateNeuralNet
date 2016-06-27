@@ -24,7 +24,7 @@ int main(int argc, char** argv)
 	//choose parameters, must be done before setup_gradient() or memory could be deallocated or uninitialized
 	net.learning_rate = 0.001f;
 	net.use_dropout = false;
-	net.use_l2_weight_decay = true; //because this flag is set, error will be much larger (adjust training benchmarks as necessary)
+	net.use_l2_weight_decay = false; //because this flag is set, error will be much larger (adjust training benchmarks as necessary)
 	net.include_bias_decay = true; //we want to discourage large biases
 	net.weight_decay_factor = 0.001f;
 	net.use_batch_learning = true;
@@ -47,6 +47,11 @@ int main(int argc, char** argv)
 	//set up
 	net.set_input(input);
 	net.set_labels(labels);
+
+	//get gradient error
+	net.train();
+	std::pair<float, float> errors = NeuralNetAnalyzer::mean_gradient_error(net, net.weights_gradient, net.biases_gradient);
+	std::cout << "Approximate gradient errors: " << errors.first << ',' << errors.second << std::endl; //errors will be enormous if using batch normalization since it modifies the data
 
 	//save data
 	net.save_data("example.cnn");
