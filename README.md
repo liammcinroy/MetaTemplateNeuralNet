@@ -1,12 +1,12 @@
-#ConvolutionalNeuralNetwork
+#MetaTemplateNeuralNet
 ==========================
 
-An API for neural networks implemented in C++ with the intent to increase and assist research on architectures of neural nets
+An API for neural networks implemented in C++ with template meta-programming. Perhaps the first of its kind.
 
-##Static Library
+##Include
 ==========================
 
-The build and .h files for referencing as an external static library can be found in the appropriate folders.
+All the necessary components are in header files (yay templates!) So just add what you need from the include folder.
 
 
 ##What a Neural Network is
@@ -25,7 +25,9 @@ Networks learn through different algorithms, although the two implemented here a
 ##How this API is implemented
 =================================
 
-This API is based off of template meta-programming to optimize efficiency. Therefore, much of this API is based on the assumption that a network architecture will be defined at compile time rather than runtime. <b>All hyperparameters should be specified before `setup_gradient()` or `load_data(...)`.</b>
+This API is based off of template meta-programming to optimize efficiency. Therefore, much of this API is based on the assumption that a network architecture will be defined at compile time rather than runtime. This has caused most of the class to become static, therefore you may want to `typedef NeuralNet<...> Net;` in your source file for clarity. More details on accessing a `NeuralNet` can be found in it's section.
+
+Note that because this is a template based approach, then almost all errors will be indescript compiler errors. Generally it is because a particular layer does not "connect" to the next.
 
 ##Documentation
 ===============================
@@ -41,10 +43,6 @@ Available loss functions are quadratic, cross entropy, log likelihood, and custo
 
 Available optimization methods are vanilla backprop (with momentum/levenberg marquardt as desired), Adam, and Adagrad.
 
-###IMatrix
-===============================
-
-This class is merely a container for `Matrix2D<T, int, int>` so that matrix sizes "unknown" at compile time can be computed at runtime.
 
 ###Matrix2D<T, int, int>
 ===============================
@@ -56,59 +54,69 @@ This class is a simple matrix implementation, with some extra methods that can b
 | `data` | `std::array<T, rows * cols>` | holds the matrice's data in column major format |
 | `at(int i, int j)` | `T` | returns the value of the matrix at i, j |
 | `clone()` | `Matrix2D<T, rows, cols>` | creates a deep copy of the matrix |
-| `rows()` | `int` | returns the amount of rows |
-| `cols()` | `int` | returns the amount of cols |
+| `rows()` | `static constexpr int` | returns the amount of rows |
+| `cols()` | `static constexpr int` | returns the amount of cols |
 
 <small>This table contains methods used only in the source code of the network</small>
 
-###ILayer
+###Layer
 ===============================
 
-This is the interface for all of the various layer types used in the network. When initializing weighted layers, weights are initialized by default or from a uniform range if specified. All biases are initialized in [0, .1].
+There is no `Layer` class, but all of the "`*Layer`" classes are implemented similarily. Note that only members that are used will be used as this API uses implicit static initialization.
+
+Use the `index` parameter to create different instances if using the same type of layer multiple times (eg. if using a `InputLayer` taking 1 input on multiple networks, add a distinct `index` to prevent them from modifying each other's data) 
 
 | Member/Method | Type | Details |
 |--------|------|----------|
-| `feature_maps` | `std::vector<IMatrix<float>*>` | Holds the data of the network |
-| `recognition_weights` | `std::vector<IMatrix<float>*>` | The feed forwards weights |
-| `generation_weights` | `std::vector<IMatrix<float>*>` | The feed backwards weights |
-| `feed_forwards(std::vector<IMatrix<float>*> &output)` | `virtual void` | Feeds the layer forward |
-| `feed_backwards(std::vector<IMatrix<float>*> &input, bool use_g_weights)` | `virtual std::vector<IMatrix<float>*>` | Feeds the layer backwards using generative or recognition weights |
-| `wake_sleep(bool binary_net)` | `void` | Performs the wake-sleep (up-down) algorithm with the specified activation method |
-| `back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, std::vector<IMatrix<float>*> &weight_momentum, std::vector<IMatrix<float>*> &bias_momentum, float learning_rate, bool use_hessian, float mu, bool use_momentum, float momentum_term)` | `void` | Performs vanilla backpropagation with the specified activation method |
+| `feed_forwards(FeatureMaps<> &output)` | `virtual void` | Feeds the layer forward |
+| `feed_backwards(FeatureMaps<> &input)` | `virtual FeatureMaps<>` | Feeds the layer backwards using generative or recognition weights |
+| `wake_sleep(...)` | `void` | Performs the wake-sleep (up-down) algorithm with the specified activation method |
+| `back_prop(...)` | `void` | Performs vanilla backpropagation with the specified activation method |
+| `feature_maps` | `FeatureMaps<>` | Holds current activations |
+| `activations_mean` | `FeatureMaps<>` | Holds current activations' means |
+| `activations_variance` | `FeatureMaps<>` | Holds current activations' variance |
+| `weights` | `FeatureMaps<>` | Holds the weights |
+| `biases` | `FeatureMaps<>` | Holds the biases (if used) |
+| `weights_momentum` | `FeatureMaps<>` | Holds the weights' momentum |
+| `biases_momentum` | `FeatureMaps<>` | Holds the biases' momentum |
+| `weights_hessian` | `FeatureMaps<>` | Holds the weights' hessian |
+| `biases_hessian` | `FeatureMaps<>` | Holds the biases' hessian |
 
-###PerceptronFullConnectivityLayer<int features, int rows, int cols, int out_features, int out_cols, int out_rows, int activation_function>
+###PerceptronFullConnectivityLayer<int index, int features, int rows, int cols, int out_features, int out_cols, int out_rows, int activation_function, bool use_biases>
 ===============================
 
 Basic fully connected perceptron layer.
 
-###ConvolutionLayer<int features, int rows, int cols, int recognition_data_size, int stride, int out_features, int activation_function>
+###ConvolutionLayer<int index, int features, int rows, int cols, int recognition_data_size, int stride, int out_features, int activation_function, bool use_biases, bool use_padding = true>
 ===============================
 
 Basic convolutional layer, masks or kernels must be square and odd.
 
+With padding, then output is same size. Otherwise output is reduced.
 
-###MaxpoolLayer<int features, int rows, int cols, int out_rows, int out_cols>
+
+###MaxpoolLayer<int index, int features, int rows, int cols, int out_rows, int out_cols>
 ===================================
 
-Basic maxpooling layer.
+Basic maxpooling layer. Maxpool is performed on each feature map independently.
 
 
-###SoftMaxLayer<int features, int rows, int cols>
+###SoftMaxLayer<int index, int features, int rows, int cols>
 =====================================
 
 Basic softmax layer. This will compute derivatives for any cost function, not just log-likelihood. Softmax is performed on each feature map independently.
 
-###InputLayer<int features, int rows, int cols>
+###InputLayer<int index, int features, int rows, int cols>
 =====================================
 
 Basic input layer just to signify the beginning of the network. Required
 
-###OutputLayer<int features, int rows, int cols>
+###OutputLayer<int index, int features, int rows, int cols>
 =====================================
 
 Basic output layer just to signify the end of the network. Required
 
-###NeuralNetwork
+###NeuralNetwork<typename... layers>
 ===============================
 
 This is the class that encapsulates all of the rest. Has all required methods. Will add support for more loss functions and optimization methods later.
@@ -128,35 +136,33 @@ This is the class that encapsulates all of the rest. Has all required methods. W
 | `use_batch_normalization` | `bool` | Whether to train the network with batch normalization. The next two hyperparameters should be defined also |
 | `keep_running_activation_statistics` | `bool` | If using batch normalization, this flag will cause data to be collected for all training samples, not just the current minibatch |
 | `collect_data_while_training` | `bool` | If using batch normalization, then by default the statistics are only updated when discriminate() is called by the user. With this flag, they are update when both discriminate() and train() are called by the user |
-| `weight_gradient` | `std::vector<std::vector<IMatrix<float>*>>` | The gradient for the weights |
-| `bias_gradient` | `std::vector<std::vector<IMatrix<float>*>>` | The gradient for the biases |
-| `layers` | `std::vector<ILayer*>` | All of the network's layers |
-| `labels` | `std::vector<IMatrix<float>*>` | The current labels |
-| `input` | `std::vector<IMatrix<float>*>` | The current input |
-| `add_layer(ILayer* layer)` | `void` | Adds another layer to the network |
-| `setup_gradient()` | `void` | Initializes the network to learn. Must call if learning. Must set the hyperparameters before calling |
+| `labels` | `FeatureMaps<>` | The current labels |
+| `input` | `FeatureMaps<>` | The current input |
+| `setup()` | `void` | Initializes the network to learn. Must call if learning. Must set the hyperparameters before calling |
 | `apply_gradient()` | `void` | Updates weights |
-| `apply_gradient(std::vector<std::vector<IMatrix<float>*>> &weights, &biases)` | `void` | Updates weights with custom gradients (use in parallelization) |
-| `save_data(std::string path)` | `void` | Saves the data |
-| `load_data(std::string path)` | `void` | Loads the data (<b>Must have initialized network and filled layers first!!!</b>) |
-| `set_input(std::vector<IMatrix<float>*> input)` | `void` | Sets the current input |
-| `set_labels(std::vector<IMatrix<float>*> labels)` | `void` | Sets the current labels |
+| `save_data<typename path>()` | `void` | Saves the data. Check the example to see how to supply the filename |
+| `load_data<typename path>()` | `void` | Loads the data (<b>Must have initialized network and filled layers first!!!</b>) |
+| `set_input(FeatureMaps<> input)` | `void` | Sets the current input |
+| `set_labels(FeatureMaps<> labels)` | `void` | Sets the current labels |
 | `discriminate()` | `void` | Feeds the network forward |
-| `pretrain()` | `void` | Pretrains the network using the wake-sleep algorithm |
-| `train()` | `void` | Trains the network using backpropogation |
-| `train(std::vector<std::vector<IMatrix<float>*>> &weights, &biases)` | `void` | Trains the network using backpropogation with custom gradients (use in parallelization) |
+| `generate(FeatureMaps<> input, int sampling_iterations, bool use_sampling)` | `FeatureMaps<>` | Generates an output for an rbm network. `use_sampling` means sample for each layer after the markov iterations on the final RBM layer |
+| `pretrain()` | `void` | Pretrains the network using the wake-sleep algorithm. Assumes every layer upto the last RBM layer has been trained. |
+| `train()` | `void` | Trains the network using specified optimization method |
+| `template get_layer<int l> | `type` | Returns the lth layer's type |
+| `template loop_up_layers<template<int l> class loop_body> | `type` | Initialize one of these to perform a function specified from the initialization of a `loop_body` type on each layer |
+| `template loop_down_layers<template<int l> class loop_body> | `type` | Initialize one of these to perform a function specified from the initialization of a `loop_body` type on each layer |
 
-
-###NeuralNetAnalyzer
+###NeuralNetAnalyzer<typename Net>
 
 This is a singleton static class. This class helps with network analysis, such as the expected error, and finite difference backprop checking.
 
 | Member/Method | Type | Details |
 |--------|------|----------|
 | `sample_size` | `static int` | The sample size used to calculate the expected error |
-| `approximate_weight_gradient(NeuralNet &net)` | `static std::vector<std::vector<IMatrix<float>*>>` | Uses finite differences for backprop checking |
-| `approximate_bias_gradient(NeuralNet &net)` | `static std::vector<std::vector<IMatrix<float>*>>` | Uses finite differences for backprop checking |
-| `mean_gradient_error(NeuralNet &net, std::vector<std::vector<IMatrix<float>*>> &observed_weight_gradient, &observed_bias_gradient)` | `static std::pair<float, float>` | Uses finite differences for backprop checking, returns mean difference in ordered pair (weights, biases) |
+| `mean_gradient_error()` | `static std::pair<float, float>` | Uses finite differences for backprop checking, returns mean difference in ordered pair (weights, biases) |
+| `mean_hessian_error()` | `static std::pair<float, float>` | Uses finite differences for backprop checking, returns mean difference in ordered pair (weights, biases) |
+| `proportional_gradient_error()` | `static std::pair<float, float>` | Uses finite differences for backprop checking, returns proportional difference in ordered pair (weights, biases) |
+| `proportional_hessian_error()` | `static std::pair<float, float>` | Uses finite differences for backprop checking, returns proportional difference in ordered pair (weights, biases) |
 | `add_point(float value)` | `static void` | Adds a point for the running calculation of the expected error |
 | `mean_error()` | `static float` | Returns the running estimate of expected error |
 | `save_error(std::string path)` | `static void` | Saves all calculated expected errors |
@@ -165,4 +171,4 @@ This is a singleton static class. This class helps with network analysis, such a
 #Usage
 ===============================
 
-For an example of creating and using a network, see main.cpp.
+For an example of creating and using a network, see main.cpp in the examples folder.
