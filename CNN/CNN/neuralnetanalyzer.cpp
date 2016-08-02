@@ -11,9 +11,9 @@ std::vector<std::vector<IMatrix<float>*>> NeuralNetAnalyzer::approximate_weight_
 	std::vector<std::vector<IMatrix<float>*>> output(net.layers.size());
 	for (int i = 0; i < output.size(); ++i)
 	{
-		output[i] = std::vector<IMatrix<float>*>(net.layers[i]->weights.size());
+		output[i] = std::vector<IMatrix<float>*>(net.layers[i]->recognition_weights.size());
 		for (int j = 0; j < output[i].size(); ++j)
-			output[i][j] = net.layers[i]->weights[j]->clone();
+			output[i][j] = net.layers[i]->recognition_weights[j]->clone();
 	}
 
 	//find error for current network
@@ -23,14 +23,14 @@ std::vector<std::vector<IMatrix<float>*>> NeuralNetAnalyzer::approximate_weight_
 	//begin evaluating derivatives of the error numerically for only one weight at a time, this requires the network to be ran for every single weight
 	for (int l = 0; l < net.layers.size(); ++l)
 	{
-		for (int d = 0; d < net.layers[l]->weights.size(); ++d)
+		for (int d = 0; d < net.layers[l]->recognition_weights.size(); ++d)
 		{
-			for (int i = 0; i < net.layers[l]->weights[d]->rows(); ++i)
+			for (int i = 0; i < net.layers[l]->recognition_weights[d]->rows(); ++i)
 			{
-				for (int j = 0; j < net.layers[l]->weights[d]->cols(); ++j)
+				for (int j = 0; j < net.layers[l]->recognition_weights[d]->cols(); ++j)
 				{
 					//adjust current weight
-					net.layers[l]->weights[d]->at(i, j) += .001f;
+					net.layers[l]->recognition_weights[d]->at(i, j) += .001f;
 
 					//evaluate network with adjusted weight and approximate derivative
 					net.discriminate();
@@ -38,7 +38,7 @@ std::vector<std::vector<IMatrix<float>*>> NeuralNetAnalyzer::approximate_weight_
 					output[l][d]->at(i, j) = (adjusted_error - original_error) / .001f;
 
 					//reset weight
-					net.layers[l]->weights[d]->at(i, j) -= .001f;
+					net.layers[l]->recognition_weights[d]->at(i, j) -= .001f;
 				}
 			}
 		}
@@ -96,9 +96,9 @@ std::vector<std::vector<IMatrix<float>*>> NeuralNetAnalyzer::approximate_weight_
 	std::vector<std::vector<IMatrix<float>*>> output(net.layers.size());
 	for (int i = 0; i < output.size(); ++i)
 	{
-		output[i] = std::vector<IMatrix<float>*>(net.layers[i]->weights.size());
+		output[i] = std::vector<IMatrix<float>*>(net.layers[i]->recognition_weights.size());
 		for (int j = 0; j < output[i].size(); ++j)
-			output[i][j] = net.layers[i]->weights[j]->clone();
+			output[i][j] = net.layers[i]->recognition_weights[j]->clone();
 	}
 
 	//find error for current network
@@ -108,21 +108,21 @@ std::vector<std::vector<IMatrix<float>*>> NeuralNetAnalyzer::approximate_weight_
 	//begin evaluating derivatives of the error numerically for only one weight at a time, this requires the network to be ran for every single weight
 	for (int l = 0; l < net.layers.size(); ++l)
 	{
-		for (int d = 0; d < net.layers[l]->weights.size(); ++d)
+		for (int d = 0; d < net.layers[l]->recognition_weights.size(); ++d)
 		{
-			for (int i = 0; i < net.layers[l]->weights[d]->rows(); ++i)
+			for (int i = 0; i < net.layers[l]->recognition_weights[d]->rows(); ++i)
 			{
-				for (int j = 0; j < net.layers[l]->weights[d]->cols(); ++j)
+				for (int j = 0; j < net.layers[l]->recognition_weights[d]->cols(); ++j)
 				{
 					//adjust current weight
-					net.layers[l]->weights[d]->at(i, j) -= .001f;
+					net.layers[l]->recognition_weights[d]->at(i, j) -= .001f;
 
 					//evaluate network with adjusted weight
 					net.discriminate();
 					float h_minus = net.global_error();
 
 					//adjust current weight
-					net.layers[l]->weights[d]->at(i, j) += .002f;
+					net.layers[l]->recognition_weights[d]->at(i, j) += .002f;
 
 					//evaluate network with adjusted weight
 					net.discriminate();
@@ -132,7 +132,7 @@ std::vector<std::vector<IMatrix<float>*>> NeuralNetAnalyzer::approximate_weight_
 					output[l][d]->at(i, j) = (h - 2 * original_error + h_minus) / (.001f * .001f);
 
 					//reset weight
-					net.layers[l]->weights[d]->at(i, j) -= .001f;
+					net.layers[l]->recognition_weights[d]->at(i, j) -= .001f;
 				}
 			}
 		}

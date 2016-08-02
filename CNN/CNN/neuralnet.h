@@ -40,8 +40,8 @@ public:
 	void set_input(const FeatureMap &input);
 	//set labels for batch
 	void set_labels(const FeatureMap &batch_labels);
-	//wake-sleep algorithm, only trains target layer with assumption that layers up to it have been trained
-	void pretrain(int markov_iterations, int target_layer);
+	//wake-sleep algorithm
+	void pretrain(int iterations);
 	//backpropogate with selected method, returns error by loss function
 	float train();
 	//backprop with custom gradients, returns error by loss function

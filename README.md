@@ -37,8 +37,6 @@ These macros are used to signify layer types, optimization methods, loss functio
 
 Available activation functions are linear (y = x), sigmoid (y = 1/(1 + exp(-x)), bipolar sigmoid (y = 2/(1 + exp(-x)) - 1), tanh (y = tanh), and rectified linear (y = max(0, x)).
 
-<small>Note that `CNN_FUNC_RBM` is equivelant to sigmoid, but will cause sampling and enable the use of `generative_biases` and other RBM constructs</small>
-
 Available loss functions are quadratic, cross entropy, log likelihood, and custom targets.
 
 Available optimization methods are vanilla backprop (with momentum/levenberg marquardt as desired), Adam, and Adagrad.
@@ -74,11 +72,9 @@ This is the interface for all of the various layer types used in the network. Wh
 | `recognition_weights` | `std::vector<IMatrix<float>*>` | The feed forwards weights |
 | `generation_weights` | `std::vector<IMatrix<float>*>` | The feed backwards weights |
 | `feed_forwards(std::vector<IMatrix<float>*> &output)` | `virtual void` | Feeds the layer forward |
-| `feed_backwards(std::vector<IMatrix<float>*> &input)` | `virtual std::vector<IMatrix<float>*>` | Feeds the layer backwards |
-| `wake_sleep(int iterations)` | `void` | Performs contrastive divergence |
+| `feed_backwards(std::vector<IMatrix<float>*> &input, bool use_g_weights)` | `virtual std::vector<IMatrix<float>*>` | Feeds the layer backwards using generative or recognition weights |
+| `wake_sleep(bool binary_net)` | `void` | Performs the wake-sleep (up-down) algorithm with the specified activation method |
 | `back_prop(std::vector<IMatrix<float>*> &data, std::vector<IMatrix<float>*> &deriv, std::vector<IMatrix<float>*> &weight_gradient, std::vector<IMatrix<float>*> &bias_gradient, std::vector<IMatrix<float>*> &weight_momentum, std::vector<IMatrix<float>*> &bias_momentum, float learning_rate, bool use_hessian, float mu, bool use_momentum, float momentum_term)` | `void` | Performs vanilla backpropagation with the specified activation method |
-| `use_biases` | `bool` | Set before reading/writing/setting up the gradient. |
-| `mean_field` | `bool` | Used with RBMs during CD training to determine the frequency of sampling |
 
 ###PerceptronFullConnectivityLayer<int features, int rows, int cols, int out_features, int out_cols, int out_rows, int activation_function>
 ===============================
@@ -146,7 +142,7 @@ This is the class that encapsulates all of the rest. Has all required methods. W
 | `set_input(std::vector<IMatrix<float>*> input)` | `void` | Sets the current input |
 | `set_labels(std::vector<IMatrix<float>*> labels)` | `void` | Sets the current labels |
 | `discriminate()` | `void` | Feeds the network forward |
-| `pretrain(int markov_iteration, int target_layer)` | `void` | Pretrains the target layer using contrastive divergence. Assumes earlier layers have been pretrained |
+| `pretrain()` | `void` | Pretrains the network using the wake-sleep algorithm |
 | `train()` | `void` | Trains the network using backpropogation |
 | `train(std::vector<std::vector<IMatrix<float>*>> &weights, &biases)` | `void` | Trains the network using backpropogation with custom gradients (use in parallelization) |
 

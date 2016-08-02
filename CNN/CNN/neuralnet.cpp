@@ -70,13 +70,7 @@ void NeuralNet::setup_gradient()
 			for (int f_0 = 0; f_0 < layers[l]->biases.size(); ++f_0)
 				delete layers[l]->biases[f_0];
 			layers[l]->biases = FeatureMap();
-			if (layers[l]->activation == CNN_FUNC_RBM)
-				for (int f = 0; f < layers[l]->generative_biases.size(); ++f)
-					delete layers[l]->generative_biases[f];
 		}
-		else if (layers[l]->activation != CNN_FUNC_RBM)
-			for (int f = 0; f < layers[l]->generative_biases.size(); ++f)
-				delete layers[l]->generative_biases[f];
 	}
 
 	//labels and input
@@ -105,9 +99,9 @@ void NeuralNet::setup_gradient()
 
 	for (int l = 0; l < layers.size(); ++l)
 	{
-		weights_gradient[l] = FeatureMap(layers[l]->weights.size());
-		for (int d = 0; d < layers[l]->weights.size(); ++d)
-			weights_gradient[l][d] = layers[l]->weights[d]->clone();
+		weights_gradient[l] = FeatureMap(layers[l]->recognition_weights.size());
+		for (int d = 0; d < layers[l]->recognition_weights.size(); ++d)
+			weights_gradient[l][d] = layers[l]->recognition_weights[d]->clone();
 
 		if (layers[l]->use_biases)
 		{
@@ -118,9 +112,9 @@ void NeuralNet::setup_gradient()
 
 		if (use_momentum || optimization_method == CNN_OPT_ADAM)
 		{
-			weights_momentum[l] = FeatureMap(layers[l]->weights.size());
-			for (int d = 0; d < layers[l]->weights.size(); ++d)
-				weights_momentum[l][d] = layers[l]->weights[d]->clone();
+			weights_momentum[l] = FeatureMap(layers[l]->recognition_weights.size());
+			for (int d = 0; d < layers[l]->recognition_weights.size(); ++d)
+				weights_momentum[l][d] = layers[l]->recognition_weights[d]->clone();
 
 			if (layers[l]->use_biases)
 			{
@@ -185,12 +179,22 @@ void NeuralNet::save_data(std::string path)
 	std::ofstream file(path);
 	for (int l = 0; l < layers.size(); ++l)
 	{
-		//begin weights values
-		for (int f = 0; f < layers[l]->weights.size(); ++f)
-			for (int i = 0; i < layers[l]->weights[f]->rows(); ++i)
-				for (int j = 0; j < layers[l]->weights[f]->cols(); ++j)
-					file << std::to_string(layers[l]->weights[f]->at(i, j)) << ',';//weights values
-		//end weights values
+		//begin recognition_weights values
+		for (int f = 0; f < layers[l]->recognition_weights.size(); ++f)
+			for (int i = 0; i < layers[l]->recognition_weights[f]->rows(); ++i)
+				for (int j = 0; j < layers[l]->recognition_weights[f]->cols(); ++j)
+					file << std::to_string(layers[l]->recognition_weights[f]->at(i, j)) << ',';//recognition_weights values
+		//end recognition_weights values
+	}
+
+	for (int l = 0; l < layers.size(); ++l)
+	{
+		//begin generative_weights values
+		for (int f = 0; f < layers[l]->generative_weights.size(); ++f)
+			for (int i = 0; i < layers[l]->generative_weights[f]->rows(); ++i)
+				for (int j = 0; j < layers[l]->generative_weights[f]->cols(); ++j)
+					file << std::to_string(layers[l]->generative_weights[f]->at(i, j)) << ',';//generative_weights values
+		//end generative_weights values
 	}
 
 	for (int l = 0; l < layers.size(); ++l)
@@ -214,14 +218,17 @@ void NeuralNet::load_data(std::string path)
 	int c = 0;
 	int i = 0;
 	int j = 0;
+	bool greater = false;
 	bool biases = false;
 	while (std::getline(file, data, ','))
 	{
 		float value = std::stof(data);
 		FeatureMap* ref;
 	conditions:
-		if (!biases)
-			ref = &layers[l]->weights;
+		if (!greater)
+			ref = &layers[l]->recognition_weights;
+		else if (!biases)
+			ref = &layers[l]->generative_weights;
 		else
 			ref = &layers[l]->biases;
 
@@ -255,7 +262,9 @@ void NeuralNet::load_data(std::string path)
 				j = 0;
 				c = 0;
 				l = 0;
-				if (!biases)
+				if (!greater)
+					greater = true;
+				else if (!biases)
 					biases = true;
 				else
 					return;
@@ -336,39 +345,33 @@ void NeuralNet::discriminate()
 
 FeatureMap NeuralNet::generate()
 {
-	//reset all but output (or inputs?)
-	for (int l = 0; l < layers.size() - 1; ++l)
-		for (int f = 0; f < layers[l]->feature_maps.size() && layers[l]->type != CNN_LAYER_INPUT; ++f)
-			for (int i = 0; i < layers[l]->feature_maps[f]->rows(); ++i)
-				for (int j = 0; j < layers[l]->feature_maps[f]->cols(); ++j)
-					layers[l]->feature_maps[f]->at(i, j) = 0;
-	for (int l = layers.size() - 2; l >= 0; --l)
-		layers[l]->feed_backwards(layers[l + 1]->feature_maps);
-	FeatureMap output(input.size());
-	for (int f = 0; f < input.size(); ++f)
-		output[f] = layers[0]->feature_maps[0]->clone();
-	return output;
-}
-
-void NeuralNet::pretrain(int markov_iterations, int target_layer)
-{
-	//reset input
+	//clear output
 	for (int f = 0; f < input.size(); ++f)
 		for (int i = 0; i < input[f]->rows(); ++i)
 			for (int j = 0; j < input[f]->cols(); ++j)
-				layers[0]->feature_maps[f]->at(i, j) = input[f]->at(i, j);
-	for (int l = 1; l < layers.size() && l < target_layer; ++l)
-		for (int f = 0; f < layers[l]->feature_maps.size() && layers[l]->type != CNN_LAYER_INPUT; ++f)
-			for (int i = 0; i < layers[l]->feature_maps[f]->rows(); ++i)
-				for (int j = 0; j < layers[l]->feature_maps[f]->cols(); ++j)
-					layers[l]->feature_maps[f]->at(i, j) = 0;
+				layers[0]->feature_maps[f]->at(i, j) = 0;
+	for (int l = layers.size() - 2; l >= 0; --l)
+		layers[l]->feed_backwards(layers[l + 1]->feature_maps, true);
+	return layers[0]->clone()->feature_maps;
+}
 
-	for (int i = 0; i <= target_layer; ++i)
+void NeuralNet::pretrain(int iterations)
+{
+	for (int e = 0; e < iterations; ++e)
 	{
-		layers[i]->feed_forwards(layers[i + 1]->feature_maps);
+		//reset input
+		for (int f = 0; f < input.size(); ++f)
+			for (int i = 0; i < input[f]->rows(); ++i)
+				for (int j = 0; j < input[f]->cols(); ++j)
+					layers[0]->feature_maps[f]->at(i, j) = input[f]->at(i, j);
 
-		if (i == target_layer && (layers[i]->type == CNN_LAYER_CONVOLUTION || layers[i]->type == CNN_LAYER_PERCEPTRONFULLCONNECTIVITY))
-			layers[i]->wake_sleep(learning_rate, use_dropout, markov_iterations);
+		for (int i = 0; i < layers.size() - 1; ++i)
+		{
+			layers[i]->feed_forwards(layers[i + 1]->feature_maps);
+
+			if (layers[i]->type == CNN_LAYER_CONVOLUTION || layers[i]->type == CNN_LAYER_PERCEPTRONFULLCONNECTIVITY)
+				layers[i]->wake_sleep(learning_rate, use_dropout);
+		}
 	}
 }
 
@@ -422,10 +425,10 @@ float NeuralNet::train()
 	{
 		for (int l = 0; l < layers.size(); ++l)
 		{
-			for (int d = 0; d < layers[l]->weights.size(); ++d)
-				for (int i = 0; i < layers[l]->weights[d]->rows(); ++i)
-					for (int j = 0; j < layers[l]->weights[d]->cols(); ++j)
-						weights_gradient[l][d]->at(i, j) += 2 * weight_decay_factor * layers[l]->weights[d]->at(i, j);
+			for (int d = 0; d < layers[l]->recognition_weights.size(); ++d)
+				for (int i = 0; i < layers[l]->recognition_weights[d]->rows(); ++i)
+					for (int j = 0; j < layers[l]->recognition_weights[d]->cols(); ++j)
+						weights_gradient[l][d]->at(i, j) += 2 * weight_decay_factor * layers[l]->recognition_weights[d]->at(i, j);
 
 			if (include_bias_decay)
 				for (int f_0 = 0; f_0 < layers[l]->biases.size(); ++f_0)
@@ -492,10 +495,10 @@ float NeuralNet::train(std::vector<FeatureMap> weights, std::vector<FeatureMap> 
 	{
 		for (int l = 0; l < layers.size(); ++l)
 		{
-			for (int d = 0; d < layers[l]->weights.size(); ++d)
-				for (int i = 0; i < layers[l]->weights[d]->rows(); ++i)
-					for (int j = 0; j < layers[l]->weights[d]->cols(); ++j)
-						weights[l][d]->at(i, j) += 2 * weight_decay_factor * layers[l]->weights[d]->at(i, j);
+			for (int d = 0; d < layers[l]->recognition_weights.size(); ++d)
+				for (int i = 0; i < layers[l]->recognition_weights[d]->rows(); ++i)
+					for (int j = 0; j < layers[l]->recognition_weights[d]->cols(); ++j)
+						weights[l][d]->at(i, j) += 2 * weight_decay_factor * layers[l]->recognition_weights[d]->at(i, j);
 
 			if (include_bias_decay)
 				for (int f_0 = 0; f_0 < layers[l]->biases.size(); ++f_0)
@@ -612,10 +615,10 @@ void NeuralNet::apply_gradient()
 	{
 		for (int l = 0; l < layers.size(); ++l)
 		{
-			for (int d = 0; d < layers[l]->weights.size(); ++d)
-				for (int i = 0; i < layers[l]->weights[d]->rows(); ++i)
-					for (int j = 0; j < layers[l]->weights[d]->cols(); ++j)
-						weights_gradient[l][d]->at(i, j) += 2 * weight_decay_factor * layers[l]->weights[d]->at(i, j);
+			for (int d = 0; d < layers[l]->recognition_weights.size(); ++d)
+				for (int i = 0; i < layers[l]->recognition_weights[d]->rows(); ++i)
+					for (int j = 0; j < layers[l]->recognition_weights[d]->cols(); ++j)
+						weights_gradient[l][d]->at(i, j) += 2 * weight_decay_factor * layers[l]->recognition_weights[d]->at(i, j);
 
 			if (include_bias_decay)
 				for (int f_0 = 0; f_0 < layers[l]->biases.size(); ++f_0)
@@ -636,7 +639,7 @@ void NeuralNet::apply_gradient()
 				{
 					for (int j = 0; j < weights_gradient[l][d]->cols(); ++j)
 					{
-						layers[l]->weights[d]->at(i, j) += -learning_rate * weights_gradient[l][d]->at(i, j) 
+						layers[l]->recognition_weights[d]->at(i, j) += -learning_rate * weights_gradient[l][d]->at(i, j) 
 																	+ momentum_term * weights_momentum[l][d]->at(i, j);
 						weights_momentum[l][d]->at(i, j) = momentum_term * weights_momentum[l][d]->at(i, j) + -learning_rate * weights_gradient[l][d]->at(i, j);
     					weights_gradient[l][d]->at(i, j) = 0;
@@ -679,7 +682,7 @@ void NeuralNet::apply_gradient()
 					    float g = weights_gradient[l][d]->at(i, j);
 					    weights_momentum[l][d]->at(i, j) = beta1 * weights_momentum[l][d]->at(i, j) + (1 - beta1) * g;
 					    layers[l]->hessian_weights[d]->at(i, j) = beta2 * layers[l]->hessian_weights[d]->at(i, j) + (1 - beta2) * g * g;
-					    layers[l]->weights[d]->at(i, j) += -learning_rate * sqrt(1 - pow(beta2, t)) / (1 - pow(beta1, t)) * weights_momentum[l][d]->at(i, j) / (sqrt(layers[l]->hessian_weights[d]->at(i, j)) + epsilon); 
+					    layers[l]->recognition_weights[d]->at(i, j) += -learning_rate * sqrt(1 - pow(beta2, t)) / (1 - pow(beta1, t)) * weights_momentum[l][d]->at(i, j) / (sqrt(layers[l]->hessian_weights[d]->at(i, j)) + epsilon); 
 						weights_gradient[l][d]->at(i, j) = 0;
 					}
 				}
@@ -718,7 +721,7 @@ void NeuralNet::apply_gradient()
 					for (int j = 0; j < weights_gradient[l][d]->cols(); ++j)
 					{
 					    float g = weights_gradient[l][d]->at(i, j);
-						layers[l]->weights[d]->at(i, j) += -learning_rate / sqrt(layers[l]->hessian_weights[d]->at(i, j)) * g;
+						layers[l]->recognition_weights[d]->at(i, j) += -learning_rate / sqrt(layers[l]->hessian_weights[d]->at(i, j)) * g;
 						layers[l]->hessian_weights[d]->at(i, j) += g * g;
 						weights_gradient[l][d]->at(i, j) = 0;
 					}
@@ -756,7 +759,7 @@ void NeuralNet::apply_gradient()
 				{
 					for (int j = 0; j < weights_gradient[l][d]->cols(); ++j)
 					{
-						layers[l]->weights[d]->at(i, j) += -learning_rate * weights_gradient[l][d]->at(i, j);
+						layers[l]->recognition_weights[d]->at(i, j) += -learning_rate * weights_gradient[l][d]->at(i, j);
 						weights_gradient[l][d]->at(i, j) = 0;
 					}
 				}
@@ -806,10 +809,10 @@ void NeuralNet::apply_gradient(std::vector<FeatureMap> weights, std::vector<Feat
 	{
 		for (int l = 0; l < layers.size(); ++l)
 		{
-			for (int d = 0; d < layers[l]->weights.size(); ++d)
-				for (int i = 0; i < layers[l]->weights[d]->rows(); ++i)
-					for (int j = 0; j < layers[l]->weights[d]->cols(); ++j)
-						weights[l][d]->at(i, j) += 2 * weight_decay_factor * layers[l]->weights[d]->at(i, j);
+			for (int d = 0; d < layers[l]->recognition_weights.size(); ++d)
+				for (int i = 0; i < layers[l]->recognition_weights[d]->rows(); ++i)
+					for (int j = 0; j < layers[l]->recognition_weights[d]->cols(); ++j)
+						weights[l][d]->at(i, j) += 2 * weight_decay_factor * layers[l]->recognition_weights[d]->at(i, j);
 
 			if (include_bias_decay)
 				for (int f_0 = 0; f_0 < layers[l]->biases.size(); ++f_0)
@@ -830,7 +833,7 @@ void NeuralNet::apply_gradient(std::vector<FeatureMap> weights, std::vector<Feat
 				{
 					for (int j = 0; j < weights[l][d]->cols(); ++j)
 					{
-						layers[l]->weights[d]->at(i, j) += -learning_rate * weights[l][d]->at(i, j) + momentum_term * weights_momentum[l][d]->at(i, j);
+						layers[l]->recognition_weights[d]->at(i, j) += -learning_rate * weights[l][d]->at(i, j) + momentum_term * weights_momentum[l][d]->at(i, j);
 						weights_momentum[l][d]->at(i, j) = momentum_term * weights_momentum[l][d]->at(i, j) + -learning_rate * weights[l][d]->at(i, j);
     					weights[l][d]->at(i, j) = 0;
 					}
@@ -871,7 +874,7 @@ void NeuralNet::apply_gradient(std::vector<FeatureMap> weights, std::vector<Feat
 					    float g = weights[l][d]->at(i, j);
 					    weights_momentum[l][d]->at(i, j) = beta1 * weights_momentum[l][d]->at(i, j) + (1 - beta1) * g;
 					    layers[l]->hessian_weights[d]->at(i, j) = beta2 * layers[l]->hessian_weights[d]->at(i, j) + (1 - beta2) * g * g;
-					    layers[l]->weights[d]->at(i, j) += -learning_rate * sqrt(1 - pow(beta2, t)) / (1 - pow(beta1, t)) * weights_momentum[l][d]->at(i, j) / (sqrt(layers[l]->hessian_weights[d]->at(i, j)) + epsilon); 
+					    layers[l]->recognition_weights[d]->at(i, j) += -learning_rate * sqrt(1 - pow(beta2, t)) / (1 - pow(beta1, t)) * weights_momentum[l][d]->at(i, j) / (sqrt(layers[l]->hessian_weights[d]->at(i, j)) + epsilon); 
 						weights[l][d]->at(i, j) = 0;
 					}
 				}
@@ -910,7 +913,7 @@ void NeuralNet::apply_gradient(std::vector<FeatureMap> weights, std::vector<Feat
 					for (int j = 0; j < weights[l][d]->cols(); ++j)
 					{
 					    float g = weights[l][d]->at(i, j);
-						layers[l]->weights[d]->at(i, j) += -learning_rate / sqrt(layers[l]->hessian_weights[d]->at(i, j)) * g;
+						layers[l]->recognition_weights[d]->at(i, j) += -learning_rate / sqrt(layers[l]->hessian_weights[d]->at(i, j)) * g;
 						layers[l]->hessian_weights[d]->at(i, j) += g * g;
 						weights[l][d]->at(i, j) = 0;
 					}
@@ -948,7 +951,7 @@ void NeuralNet::apply_gradient(std::vector<FeatureMap> weights, std::vector<Feat
 				{
 					for (int j = 0; j < weights[l][d]->cols(); ++j)
 					{
-						layers[l]->weights[d]->at(i, j) += -learning_rate * weights[l][d]->at(i, j);
+						layers[l]->recognition_weights[d]->at(i, j) += -learning_rate * weights[l][d]->at(i, j);
 						weights[l][d]->at(i, j) = 0;
 					}
 				}
@@ -999,10 +1002,10 @@ float NeuralNet::global_error()
 	{
 		for (int l = 0; l < layers.size(); ++l)
 		{
-			for (int d = 0; d < layers[l]->weights.size(); ++d)
-				for (int i = 0; i < layers[l]->weights[d]->rows(); ++i)
-					for (int j = 0; j < layers[l]->weights[d]->cols(); ++j)
-						sum += weight_decay_factor * layers[l]->weights[d]->at(i, j) * layers[l]->weights[d]->at(i, j);
+			for (int d = 0; d < layers[l]->recognition_weights.size(); ++d)
+				for (int i = 0; i < layers[l]->recognition_weights[d]->rows(); ++i)
+					for (int j = 0; j < layers[l]->recognition_weights[d]->cols(); ++j)
+						sum += weight_decay_factor * layers[l]->recognition_weights[d]->at(i, j) * layers[l]->recognition_weights[d]->at(i, j);
 
 			if (include_bias_decay)
 				for (int f_0 = 0; f_0 < layers[l]->biases.size(); ++f_0)
