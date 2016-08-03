@@ -31,7 +31,282 @@
 #define CNN_DATA_BIAS_HESSIAN 6
 #define CNN_DATA_ACT 7
 
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding = false>
+template <size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s, bool use_pad> struct conv_helper_funcs
+{
+	static Matrix2D<float, (use_pad ? r : (r - kernel_r) / s + 1), (use_pad ? c : (c - kernel_c) / s + 1)> convolve(Matrix2D<float, r, c>& input, Matrix2D<float, kernel_r, kernel_c>& kernel);
+	static void back_prop_kernel(Matrix2D<float, r, c> input, Matrix2D<float, (use_pad ? r : (r - kernel_r) / s + 1), (use_pad ? c : (c - kernel_c) / s + 1)> output, Matrix2D<float, kernel_r, kernel_c> kernel_gradient);
+	static void back_prop_kernel_hessian(Matrix2D<float, r, c>& input, Matrix2D<float, (use_pad ? r : (r - kernel_r) / s + 1), (use_pad ? c : (c - kernel_c) / s + 1)>& output, Matrix2D<float, kernel_r, kernel_c>& kernel_hessian, float gamma);
+	static Matrix2D<float, r, c> convolve_back(Matrix2D<float, (use_pad ? r : (r - kernel_r) / s + 1), (use_pad ? c : (c - kernel_c) / s + 1)> input, Matrix2D<float, kernel_r, kernel_c> kernel);
+	static Matrix2D<float, r, c> convolve_back_weights_hessian(Matrix2D<float, r, c>& input, Matrix2D<float, kernel_r, kernel_c>& kernel);
+};
+
+template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s> struct
+conv_helper_funcs<r, c, kernel_r, kernel_c, s, false>
+{
+	static Matrix2D<float, (r - kernel_r) / s + 1, (c - kernel_c) / s + 1> convolve(Matrix2D<float, r, c>& input, Matrix2D<float, kernel_r, kernel_c>& kernel)
+	{
+		int N = (kernel_r - 1) / 2;
+		int M = (kernel_c - 1) / 2;
+		constexpr size_t out_r = (r - kernel_r) / s + 1;
+		constexpr size_t out_c = (c - kernel_c) / s + 1;
+		Matrix2D<float, out_r, out_c> output = { 0 };
+
+		for (size_t i = N; i < (r - N); i += s)//change focus of kernel
+		{
+			for (size_t j = M; j < (c - M); j += s)
+			{
+				//iterate over kernel
+				float sum = 0;
+				for (int n = N; n >= -N; --n)
+					for (int m = M; m >= -M; --m)
+						sum += input.at(i - n, j - m) * kernel.at(N - n, N - m);
+				output.at((i - N) / s, (j - N) / s) = sum;
+			}
+		}
+		return output;
+	}
+
+	static void back_prop_kernel(Matrix2D<float, r, c> input, Matrix2D<float, (r - kernel_r) / s + 1, (c - kernel_c) / s + 1> output, Matrix2D<float, kernel_r, kernel_c> kernel_gradient)
+	{
+		int N = (kernel_r - 1) / 2;
+		int M = (kernel_c - 1) / 2;
+		constexpr size_t out_r = (r - kernel_r) / s + 1;
+		constexpr size_t out_c = (c - kernel_c) / s + 1;
+
+		size_t i_0 = 0;
+		size_t j_0 = 0;
+
+		//change focus of kernel
+		for (size_t i = N; i < (r - N); i += s)
+		{
+			for (size_t j = M; j < (c - M); j += s)
+			{
+				//iterate over kernel
+				float sum = 0;
+				float out = output.at(i_0, j_0);
+				for (int n = N; n >= -N; --n)
+					for (int m = M; m >= -M; --m)
+						kernel_gradient.at(N - n, M - m) += input.at(i - n, j - m) * out;
+				++j_0;
+			}
+			j_0 = 0;
+			++i_0;
+		}
+	}
+
+	static void back_prop_kernel_hessian(Matrix2D<float, r, c>& input, Matrix2D<float, (r - kernel_r) / s + 1, (c - kernel_c) / s + 1>& output, Matrix2D<float, kernel_r, kernel_c>& kernel_hessian, float gamma)
+	{
+		int N = (kernel_r - 1) / 2;
+		int M = (kernel_c - 1) / 2;
+		constexpr size_t out_r = (r - kernel_r) / s + 1;
+		constexpr size_t out_c = (c - kernel_c) / s + 1;
+
+		size_t i_0 = 0;
+		size_t j_0 = 0;
+
+		//change focus of kernel
+		for (size_t i = N; i < (r - N); i += s)
+		{
+			for (size_t j = M; j < (c - M); j += s)
+			{
+				//iterate over kernel
+				float sum = 0;
+				float out = output.at(i_0, j_0);
+				for (int n = N; n >= -N; --n)
+					for (int m = M; m >= -M; --m)
+						kernel_hessian.at(N - n, M - m) += gamma * input.at(i - n, j - m) * input.at(i - n, j - m) * out;
+				j_0++;
+			}
+			j_0 = 0;
+			++i_0;
+		}
+	}
+
+	static Matrix2D<float, r, c> convolve_back(Matrix2D<float, (r - kernel_r) / s + 1, (c - kernel_c) / s + 1> input, Matrix2D<float, kernel_r, kernel_c> kernel)
+	{
+		int N = (kernel_r - 1) / 2;
+		int M = (kernel_c - 1) / 2;
+		Matrix2D<float, r, c> output = { 0 };
+
+		size_t times_across = 0;
+		size_t times_down = 0;
+
+		for (size_t i = N; i < (r - N); i += s)
+		{
+			for (size_t j = M; j < (c - M); j += s)
+			{
+				//find all possible ways convolved size_to
+				for (int n = N; n >= -N; --n)
+					for (int m = M; m >= -M; --m)
+						output.at(i - n, j - m) += kernel.at(N - n, M - m) * input.at(times_down, times_across);
+				++times_across;
+			}
+			times_across = 0;
+			++times_down;
+		}
+		return output;
+	}
+
+	static Matrix2D<float, r, c> convolve_back_weights_hessian(Matrix2D<float, (r - kernel_r) / s + 1, (c - kernel_c) / s + 1>& input, Matrix2D<float, kernel_r, kernel_c>& kernel)
+	{
+		int N = (kernel_r - 1) / 2;
+		int M = (kernel_c - 1) / 2;
+		Matrix2D<float, r, c> output = { 0 };
+
+		size_t times_across = 0;
+		size_t times_down = 0;
+
+		for (size_t i = N; i < (r - N); i += s)
+		{
+			for (size_t j = M; j < (c - M); j += s)
+			{
+				//find all possible ways convolved size_to
+				for (int n = N; n >= -N; --n)
+					for (int m = M; m >= -M; --m)
+						output.at(i - n, j - m) += kernel.at(N - n, M - m) * kernel.at(N - n, M - m) * input.at(times_down, times_across);
+				++times_across;
+			}
+			times_across = 0;
+			++times_down;
+		}
+		return output;
+	}
+};
+
+template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s> struct conv_helper_funcs<r, c, kernel_r, kernel_c, s, true>
+{
+	static Matrix2D<float, r, c> convolve(Matrix2D<float, r, c>& input, Matrix2D<float, kernel_r, kernel_c>& kernel)
+	{
+		int N = (kernel_r - 1) / 2;
+		int M = (kernel_c - 1) / 2;
+		constexpr size_t out_r = r;
+		constexpr size_t out_c = c;
+		Matrix2D<float, out_r, out_c> output = { 0 };
+
+		//change focus of kernel
+		for (size_t i = 0; i < r; i += s)
+		{
+			for (size_t j = 0; j < c; j += s)
+			{
+				//iterate over kernel
+				float sum = 0;
+				for (int n = N; n >= -N; --n)
+					for (int m = M; m >= -M; --m)
+						sum += kernel.at(N - n, N - m) * (i < 0 || i >= r || j < 0 || j >= c ? 0 : input.at(i - n, j - m));
+				output.at((i - N) / s, (j - N) / s) = sum;
+			}
+		}
+		return output;
+	}
+
+	static void back_prop_kernel(Matrix2D<float, r, c> input, Matrix2D<float, r, c> output, Matrix2D<float, kernel_r, kernel_c> kernel_gradient)
+	{
+		int N = (kernel_r - 1) / 2;
+		int M = (kernel_c - 1) / 2;
+		constexpr size_t out_r = r;
+		constexpr size_t out_c = c;
+
+		size_t i_0 = 0;
+		size_t j_0 = 0;
+
+		//change focus of kernel
+		for (size_t i = 0; i < r; i += s)
+		{
+			for (size_t j = 0; j < c; j += s)
+			{
+				//iterate over kernel
+				float sum = 0;
+				float out = output.at(i_0, j_0);
+				for (int n = N; n >= -N; --n)
+					for (int m = M; m >= -M; --m)
+						kernel_gradient.at(N - n, M - m) += out * (i < 0 || i >= r || j < 0 || j >= c ? 0 : input.at(i - n, j - m));
+				++j_0;
+			}
+			j_0 = 0;
+			++i_0;
+		}
+	}
+
+	static void back_prop_kernel_hessian(Matrix2D<float, r, c>& input, Matrix2D<float, r, c>& output, Matrix2D<float, kernel_r, kernel_c>& kernel_hessian, float gamma)
+	{
+		int N = (kernel_r - 1) / 2;
+		int M = (kernel_c - 1) / 2;
+		constexpr size_t out_r = (r - kernel_r) / s + 1;
+		constexpr size_t out_c = (c - kernel_c) / s + 1;
+
+		size_t i_0 = 0;
+		size_t j_0 = 0;
+
+		//change focus of kernel
+		for (size_t i = 0; i < r; i += s)
+		{
+			for (size_t j = 0; j < c; j += s)
+			{
+				//iterate over kernel
+				float sum = 0;
+				float out = output.at(i_0, j_0);
+				for (int n = N; n >= -N; --n)
+					for (int m = M; m >= -M; --m)
+						kernel_hessian.at(N - n, M - m) += gamma * out * (i < 0 || i >= r || j < 0 || j >= c ? 0 : input.at(i - n, j - m) * input.at(i - n, j - m));
+				j_0++;
+			}
+			j_0 = 0;
+			++i_0;
+		}
+	}
+
+	static Matrix2D<float, r, c> convolve_back(Matrix2D<float, r, c> input, Matrix2D<float, kernel_r, kernel_c> kernel)
+	{
+		int N = (kernel_r - 1) / 2;
+		int M = (kernel_c - 1) / 2;
+		Matrix2D<float, r, c> output = { 0 };
+
+		size_t times_across = 0;
+		size_t times_down = 0;
+
+		for (size_t i = 0; i < r; i += s)
+		{
+			for (size_t j = 0; j < c; j += s)
+			{
+				//find all possible ways convolved size_to
+				for (int n = N; n >= -N; --n)
+					for (int m = M; m >= -M; --m)
+						output.at(i - n, j - m) += kernel.at(N - n, M - m) * (i < 0 || i >= r || j < 0 || j >= c ? 0 : input.at(times_down, times_across));
+				++times_across;
+			}
+			times_across = 0;
+			++times_down;
+		}
+		return output;
+	}
+
+	static Matrix2D<float, r, c> convolve_back_weights_hessian(Matrix2D<float, r, c>& input, Matrix2D<float, kernel_r, kernel_c>& kernel)
+	{
+		int N = (kernel_r - 1) / 2;
+		int M = (kernel_c - 1) / 2;
+		Matrix2D<float, r, c> output = { 0 };
+
+		size_t times_across = 0;
+		size_t times_down = 0;
+
+		for (size_t i = 0; i < r; i += s)
+		{
+			for (size_t j = 0; j < c; j += s)
+			{
+				//find all possible ways convolved size_to
+				for (int n = N; n >= -N; --n)
+					for (int m = M; m >= -M; --m)
+						output.at(i - n, j - m) += kernel.at(N - n, M - m) * kernel.at(N - n, M - m) * (i < 0 || i >= r || j < 0 || j >= c ? 0 : input.at(times_down, times_across));
+				++times_across;
+			}
+			times_across = 0;
+			++times_down;
+		}
+		return output;
+	}
+};
+
+template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding>
 class ConvolutionLayer
 {
 public:
@@ -66,23 +341,19 @@ public:
 			//sum the kernels
 			for (size_t f = 0; f < features; ++f)
 			{
-				if (use_padding)
-					add<float, out_rows, out_cols>(output[f_0],
-						convolve_pad<rows, cols, kernel_size, kernel_size, stride>(feature_maps[f], weights[f_0 * features + f]));
-				else
-					add<float, out_rows, out_cols>(output[f_0],
-						convolve<rows, cols, kernel_size, kernel_size, stride>(feature_maps[f], weights[f_0 * features + f]));
+				add<float, out_rows, out_cols>(output[f_0],
+					conv_helper_funcs<rows, cols, kernel_size, kernel_size, stride, use_padding>::convolve(feature_maps[f], weights[f_0 * features + f]));
 				if (use_biases)
-					for (size_t i = 0; i < out_rows; ++i)
-						for (size_t j = 0; j < out_cols; ++j)
-							output[f_0].at(i, j) += biases[f_0 * features + f].at(0, 0);
+					for (size_t i_0 = 0; i_0 < out_rows; ++i_0)
+						for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
+							output[f_0].at(i_0, j_0) += biases[f_0 * features + f].at(0, 0);
 			}
 
 			if (activation_function != CNN_FUNC_LINEAR)
 			{
-				for (size_t i = 0; i < out_rows; ++i)
-					for (size_t j = 0; j < out_cols; ++j)
-						output[f_0].at(i, j) = activate(output[f_0].at(i, j), activation);
+				for (size_t i_0 = 0; i_0 < out_rows; ++i_0)
+					for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
+						output[f_0].at(i_0, j_0) = activate(output[f_0].at(i_0, j_0), activation);
 			}
 		}
 	}
@@ -93,12 +364,8 @@ public:
 		{
 			for (size_t f_0 = 0; f_0 < out_features; ++f_0)
 			{
-				if (use_padding)
-					add<float, rows, cols>(feature_maps[f],
-						convolve_back_pad<rows, cols, kernel_size, kernel_size, stride>(input[f_0], weights[f_0 * features + f]));
-				else
-					add<float, rows, cols>(feature_maps[f],
-						convolve_back<rows, cols, kernel_size, kernel_size, stride>(input[f_0], weights[f_0 * features + f]));
+				add<float, rows, cols>(feature_maps[f],
+					conv_helper_funcs<rows, cols, kernel_size, kernel_size, stride, use_padding>::convolve_back(input[f_0], weights[f_0 * features + f]));
 			}
 
 			for (size_t i = 0; i < rows; ++i)
@@ -119,17 +386,17 @@ public:
 		constexpr size_t out_cols = use_padding ? cols : (cols - kernel_size) / stride + 1;
 
 		//find difference via gibbs sampling
-		FeatureMaps<features, rows, cols> original = {0};
+		FeatureMaps<features, rows, cols> original = { 0 };
 		for (size_t f = 0; f < features; ++f)
 			original[f] = feature_maps[f].clone();
 
-		FeatureMaps<out_features, out_rows, out_cols> discriminated = {0};
-		FeatureMaps<out_features, out_rows, out_cols> reconstructed = {0};
+		FeatureMaps<out_features, out_rows, out_cols> discriminated = { 0 };
+		FeatureMaps<out_features, out_rows, out_cols> reconstructed = { 0 };
 
 		//Sample, but don't "normalize" second time
 		feed_forwards(discriminated);
-		for (size_t i = 0; i < out_features; ++i)
-			reconstructed[i] = discriminated[i].clone();
+		for (size_t f_0 = 0; f_0 < out_features; ++f_0)
+			reconstructed[f_0] = discriminated[f_0].clone();
 		stochastic_sample<out_features, out_rows, out_cols>(reconstructed);
 		feed_backwards(reconstructed);
 		if (!mean_field)
@@ -202,7 +469,7 @@ public:
 		constexpr size_t out_rows = use_padding ? rows : (rows - kernel_size) / stride + 1;
 		constexpr size_t out_cols = use_padding ? cols : (cols - kernel_size) / stride + 1;
 
-		FeatureMaps<features, rows, cols> temp = {0};
+		FeatureMaps<features, rows, cols> temp = { 0 };
 		for (int f = 0; f < features; ++f)
 			temp[f] = feature_maps[f].clone();
 
@@ -212,10 +479,7 @@ public:
 			for (size_t f = 0; f < features; ++f)
 			{
 				//adjust the gradient
-				if (use_padding)
-					back_prop_kernel_pad<rows, cols, kernel_size, kernel_size, stride>(feature_maps[f], deriv[f_0], weights_gradient[f_0 * features + f]);
-				else
-					back_prop_kernel<rows, cols, kernel_size, kernel_size, stride>(feature_maps[f], deriv[f_0], weights_gradient[f_0 * features + f]);
+				conv_helper_funcs<rows, cols, kernel_size, kernel_size, stride, use_padding>::back_prop_kernel(feature_maps[f], deriv[f_0], weights_gradient[f_0 * features + f]);
 
 				//L2 weight decay
 				if (use_l2_weight_decay && online)
@@ -292,12 +556,8 @@ public:
 		{
 			for (size_t f_0 = 0; f_0 < out_features; ++f_0)
 			{
-				if (use_padding)
-					add<float, rows, cols>(feature_maps[f],
-						convolve_back_pad<rows, cols, kernel_size, kernel_size, stride>(deriv[f_0], weights[f_0 * features + f]));
-				else
-					add<float, rows, cols>(feature_maps[f],
-						convolve_back<rows, cols, kernel_size, kernel_size, stride>(deriv[f_0], weights[f_0 * features + f]));
+				add<float, rows, cols>(feature_maps[f],
+					conv_helper_funcs<rows, cols, kernel_size, kernel_size, stride, use_padding>::convolve_back(deriv[f_0], weights[f_0 * features + f]));
 			}
 		}
 
@@ -313,7 +573,7 @@ public:
 		constexpr size_t out_rows = use_padding ? rows : (rows - kernel_size) / stride + 1;
 		constexpr size_t out_cols = use_padding ? cols : (cols - kernel_size) / stride + 1;
 
-		FeatureMaps<features, rows, cols> temp = {0};
+		FeatureMaps<features, rows, cols> temp = { 0 };
 		for (int f = 0; f < features; ++f)
 			temp[f] = feature_maps[f].clone();
 
@@ -332,12 +592,8 @@ public:
 			//update hessian
 			for (size_t f = 0; f < features; ++f)
 			{
-				if (use_padding)
-					back_prop_kernel_hessian_pad<rows, cols, kernel_size, kernel_size, stride>(feature_maps[f], deriv[f_0],
-						weights_hessian[f_0 * features + f], gamma);
-				else
-					back_prop_kernel_hessian<rows, cols, kernel_size, kernel_size, stride>(feature_maps[f], deriv[f_0],
-						weights_hessian[f_0 * features + f], gamma);
+				conv_helper_funcs<rows, cols, kernel_size, kernel_size, stride, use_padding>::back_prop_kernel_hessian(feature_maps[f], deriv[f_0],
+					weights_hessian[f_0 * features + f], gamma);
 
 				if (use_biases)
 					for (size_t i_0 = 0; i_0 < out_rows; ++i_0)
@@ -351,20 +607,12 @@ public:
 		{
 			for (size_t f_0 = 0; f_0 < out_features; ++f_0)
 			{
-				if (use_padding)
-					add<float, rows, cols>(feature_maps[f],
-						convolve_back_weights_hessian_pad<rows, cols, kernel_size, kernel_size, stride>(deriv[f_0], weights[f_0 * features + f]));
-				else
-					add<float, rows, cols>(feature_maps[f],
-						convolve_back_weights_hessian<rows, cols, kernel_size, kernel_size, stride>(deriv[f_0], weights[f_0 * features + f]));
+				add<float, rows, cols>(feature_maps[f],
+					conv_helper_funcs<rows, cols, kernel_size, kernel_size, stride, use_padding>::convolve_back_weights_hessian(deriv[f_0], weights[f_0 * features + f]));
 				if (use_first_deriv)
 				{
-					if (use_padding)
-						add<float, rows, cols>(deriv_first_out[f],
-							convolve_back_pad<rows, cols, kernel_size, kernel_size, stride>(deriv_first_in[f_0], weights[f_0 * features + f]));
-					else
-						add<float, rows, cols>(deriv_first_out[f],
-							convolve_back<rows, cols, kernel_size, kernel_size, stride>(deriv_first_in[f_0], weights[f_0 * features + f]));
+					add<float, rows, cols>(deriv_first_out[f],
+						conv_helper_funcs<rows, cols, kernel_size, kernel_size, stride, use_padding>::convolve_back(deriv_first_in[f_0], weights[f_0 * features + f]));
 				}
 			}
 		}
@@ -395,17 +643,17 @@ public:
 	static bool mean_field;
 
 	static FeatureMaps<features, rows, cols> feature_maps;
-	static FeatureMaps<(use_biases ? out_features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> biases;
+	static FeatureMaps<(use_biases ? out_features * features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> biases;
 	static FeatureMaps<out_features * features, kernel_size, kernel_size> weights;
 
 	static FeatureMaps<((use_biases && activation_function == CNN_FUNC_RBM) ? features : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? rows : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? cols : 0)> generative_biases;
 	static FeatureMaps<out_features * features, kernel_size, kernel_size> weights_hessian;
-	static FeatureMaps<(use_biases ? out_features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> biases_hessian;
+	static FeatureMaps<(use_biases ? out_features * features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> biases_hessian;
 
-	static FeatureMaps<(use_biases ? out_features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> biases_gradient;
+	static FeatureMaps<(use_biases ? out_features * features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> biases_gradient;
 	static FeatureMaps<out_features * features, kernel_size, kernel_size> weights_gradient;
 
-	static FeatureMaps<(use_biases ? out_features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> biases_momentum;
+	static FeatureMaps<(use_biases ? out_features * features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> biases_momentum;
 	static FeatureMaps<out_features * features, kernel_size, kernel_size> weights_momentum;
 
 	static FeatureMaps<features, rows, cols> activations_mean;
@@ -469,291 +717,22 @@ private:
 					for (size_t j = 0; j < c; ++j)
 						data[f].at(i, j) = ((rand() * 1.0f) / RAND_MAX < data[f].at(i, j)) ? 1 : 0;
 	}
-
-	template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s>
-	static Matrix2D<float, (r - kernel_r) / s + 1, (c - kernel_c) / s + 1> convolve(Matrix2D<float, r, c>& input, Matrix2D<float, kernel_r, kernel_c>& kernel)
-	{
-		int N = (kernel_r - 1) / 2;
-		int M = (kernel_c - 1) / 2;
-		constexpr size_t out_r = (r - kernel_r) / s + 1;
-		constexpr size_t out_c = (c - kernel_c) / s + 1;
-		Matrix2D<float, out_r, out_c> output = {0};
-
-		for (size_t i = N; i < (r - N); i += s)//change focus of kernel
-		{
-			for (size_t j = M; j < (c - M); j += s)
-			{
-				//iterate over kernel
-				float sum = 0;
-				for (int n = N; n >= -N; --n)
-					for (int m = M; m >= -M; --m)
-						sum += input.at(i - n, j - m) * kernel.at(N - n, N - m);
-				output.at((i - N) / s, (j - N) / s) = sum;
-			}
-		}
-		return output;
-	}
-
-	template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s>
-	static Matrix2D<float, r, c> convolve_pad(Matrix2D<float, r, c>& input, Matrix2D<float, kernel_r, kernel_c>& kernel)
-	{
-		int N = (kernel_r - 1) / 2;
-		int M = (kernel_c - 1) / 2;
-		constexpr size_t out_r = r;
-		constexpr size_t out_c = c;
-		Matrix2D<float, out_r, out_c> output = {0};
-
-		//change focus of kernel
-		for (size_t i = 0; i < r; i += s)
-		{
-			for (size_t j = 0; j < c; j += s)
-			{
-				//iterate over kernel
-				float sum = 0;
-				for (int n = N; n >= -N; --n)
-					for (int m = M; m >= -M; --m)
-						sum += kernel.at(N - n, N - m) * (i < 0 || i >= r || j < 0 || j >= c ? 0 : input.at(i - n, j - m));
-				output.at((i - N) / s, (j - N) / s) = sum;
-			}
-		}
-		return output;
-	}
-
-	template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s>
-	static void	back_prop_kernel(Matrix2D<float, r, c> input, Matrix2D<float, r, c> output, Matrix2D<float, kernel_r, kernel_c> kernel_gradient)
-	{
-		int N = (kernel_r - 1) / 2;
-		int M = (kernel_c - 1) / 2;
-		constexpr size_t out_r = (r - kernel_r) / s + 1;
-		constexpr size_t out_c = (c - kernel_c) / s + 1;
-
-		size_t i_0 = 0;
-		size_t j_0 = 0;
-
-		//change focus of kernel
-		for (size_t i = N; i < (r - N); i += s)
-		{
-			for (size_t j = M; j < (c - M); j += s)
-			{
-				//iterate over kernel
-				float sum = 0;
-				float out = output.at(i_0, j_0);
-				for (int n = N; n >= -N; --n)
-					for (int m = M; m >= -M; --m)
-						kernel_gradient.at(N - n, M - m) += input.at(i - n, j - m) * out;
-				++j_0;
-			}
-			j_0 = 0;
-			++i_0;
-		}
-	}
-
-	template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s>
-	static void	back_prop_kernel_pad(Matrix2D<float, r, c> input, Matrix2D<float, r, c> output, Matrix2D<float, kernel_r, kernel_c> kernel_gradient)
-	{
-		int N = (kernel_r - 1) / 2;
-		int M = (kernel_c - 1) / 2;
-		constexpr size_t out_r = r;
-		constexpr size_t out_c = c;
-
-		size_t i_0 = 0;
-		size_t j_0 = 0;
-
-		//change focus of kernel
-		for (size_t i = 0; i < r; i += s)
-		{
-			for (size_t j = 0; j < c; j += s)
-			{
-				//iterate over kernel
-				float sum = 0;
-				float out = output.at(i_0, j_0);
-				for (int n = N; n >= -N; --n)
-					for (int m = M; m >= -M; --m)
-						kernel_gradient.at(N - n, M - m) += out * (i < 0 || i >= r || j < 0 || j >= c ? 0 : input.at(i - n, j - m));
-				++j_0;
-			}
-			j_0 = 0;
-			++i_0;
-		}
-	}
-
-	template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s>
-	static void back_prop_kernel_hessian(Matrix2D<float, r, c>& input, Matrix2D<float, (r - kernel_r) / s + 1, (c - kernel_c) / s + 1>& output, Matrix2D<float, kernel_r, kernel_c>& kernel_hessian, float gamma)
-	{
-		int N = (kernel_r - 1) / 2;
-		int M = (kernel_c - 1) / 2;
-		constexpr size_t out_r = (r - kernel_r) / s + 1;
-		constexpr size_t out_c = (c - kernel_c) / s + 1;
-
-		size_t i_0 = 0;
-		size_t j_0 = 0;
-
-		//change focus of kernel
-		for (size_t i = N; i < (r - N); i += s)
-		{
-			for (size_t j = M; j < (c - M); j += s)
-			{
-				//iterate over kernel
-				float sum = 0;
-				float out = output.at(i_0, j_0);
-				for (int n = N; n >= -N; --n)
-					for (int m = M; m >= -M; --m)
-						kernel_hessian.at(N - n, M - m) += gamma * input.at(i - n, j - m) * input.at(i - n, j - m) * out;
-				j_0++;
-			}
-			j_0 = 0;
-			++i_0;
-		}
-	}
-
-	template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s>
-	static void	back_prop_kernel_hessian_pad(Matrix2D<float, r, c>& input, Matrix2D<float, r, c>& output, Matrix2D<float, kernel_r, kernel_c>& kernel_hessian, float gamma)
-	{
-		int N = (kernel_r - 1) / 2;
-		int M = (kernel_c - 1) / 2;
-		constexpr size_t out_r = (r - kernel_r) / s + 1;
-		constexpr size_t out_c = (c - kernel_c) / s + 1;
-
-		size_t i_0 = 0;
-		size_t j_0 = 0;
-
-		//change focus of kernel
-		for (size_t i = 0; i < r; i += s)
-		{
-			for (size_t j = 0; j < c; j += s)
-			{
-				//iterate over kernel
-				float sum = 0;
-				float out = output.at(i_0, j_0);
-				for (int n = N; n >= -N; --n)
-					for (int m = M; m >= -M; --m)
-						kernel_hessian.at(N - n, M - m) += gamma * out * (i < 0 || i >= r || j < 0 || j >= c ? 0 : input.at(i - n, j - m) * input.at(i - n, j - m));
-				j_0++;
-			}
-			j_0 = 0;
-			++i_0;
-		}
-	}
-
-	template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s>
-	static Matrix2D<float, r, c> convolve_back(Matrix2D<float, (r - kernel_r) / s + 1, (c - kernel_c) / s + 1> input, Matrix2D<float, kernel_r, kernel_c> kernel)
-	{
-		int N = (kernel_r - 1) / 2;
-		int M = (kernel_c - 1) / 2;
-		Matrix2D<float, r, c> output = {0};
-
-		size_t times_across = 0;
-		size_t times_down = 0;
-
-		for (size_t i = N; i < (r - N); i += s)
-		{
-			for (size_t j = M; j < (c - M); j += s)
-			{
-				//find all possible ways convolved size_to
-				for (int n = N; n >= -N; --n)
-					for (int m = M; m >= -M; --m)
-						output.at(i - n, j - m) += kernel.at(N - n, M - m) * input.at(times_down, times_across);
-				++times_across;
-			}
-			times_across = 0;
-			++times_down;
-		}
-		return output;
-	}
-
-	template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s>
-	static Matrix2D<float, r, c> convolve_back_pad(Matrix2D<float, r, c> input, Matrix2D<float, kernel_r, kernel_c> kernel)
-	{
-		int N = (kernel_r - 1) / 2;
-		int M = (kernel_c - 1) / 2;
-		Matrix2D<float, r, c> output = {0};
-
-		size_t times_across = 0;
-		size_t times_down = 0;
-
-		for (size_t i = 0; i < r; i += s)
-		{
-			for (size_t j = 0; j < c; j += s)
-			{
-				//find all possible ways convolved size_to
-				for (int n = N; n >= -N; --n)
-					for (int m = M; m >= -M; --m)
-						output.at(i - n, j - m) += kernel.at(N - n, M - m) * (i < 0 || i >= r || j < 0 || j >= c ? 0 : input.at(times_down, times_across));
-				++times_across;
-			}
-			times_across = 0;
-			++times_down;
-		}
-		return output;
-	}
-
-	template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s>
-	static Matrix2D<float, r, c> convolve_back_weights_hessian(Matrix2D<float, (r - kernel_r) / s + 1, (c - kernel_c) / s + 1>& input, Matrix2D<float, kernel_r, kernel_c>& kernel)
-	{
-		int N = (kernel_r - 1) / 2;
-		int M = (kernel_c - 1) / 2;
-		Matrix2D<float, r, c> output = {0};
-
-		size_t times_across = 0;
-		size_t times_down = 0;
-
-		for (size_t i = N; i < (r - N); i += s)
-		{
-			for (size_t j = M; j < (c - M); j += s)
-			{
-				//find all possible ways convolved size_to
-				for (int n = N; n >= -N; --n)
-					for (int m = M; m >= -M; --m)
-						output.at(i - n, j - m) += kernel.at(N - n, M - m) * kernel.at(N - n, M - m) * input.at(times_down, times_across);
-				++times_across;
-			}
-			times_across = 0;
-			++times_down;
-		}
-		return output;
-	}
-
-	template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s>
-	static Matrix2D<float, r, c> convolve_back_weights_hessian_pad(Matrix2D<float, r, c>& input, Matrix2D<float, kernel_r, kernel_c>& kernel)
-	{
-		int N = (kernel_r - 1) / 2;
-		int M = (kernel_c - 1) / 2;
-		Matrix2D<float, r, c> output = {0};
-
-		size_t times_across = 0;
-		size_t times_down = 0;
-
-		for (size_t i = 0; i < r; i += s)
-		{
-			for (size_t j = 0; j < c; j += s)
-			{
-				//find all possible ways convolved size_to
-				for (int n = N; n >= -N; --n)
-					for (int m = M; m >= -M; --m)
-						output.at(i - n, j - m) += kernel.at(N - n, M - m) * kernel.at(N - n, M - m) * (i < 0 || i >= r || j < 0 || j >= c ? 0 : input.at(times_down, times_across));
-				++times_across;
-			}
-			times_across = 0;
-			++times_down;
-		}
-		return output;
-	}
 };
 
 //initialize static todo add custom
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> bool ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::mean_field = false;
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<features, rows, cols> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::feature_maps = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<(use_biases ? out_features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::biases = {0, .1f};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<out_features * features, kernel_size, kernel_size> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::weights = {-.1f, .1f};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<((use_biases && activation_function == CNN_FUNC_RBM) ? features : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? rows : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? cols : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::generative_biases = {0, .1f};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<out_features * features, kernel_size, kernel_size> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::weights_hessian = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<(use_biases ? out_features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::biases_hessian = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<(use_biases ? out_features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::biases_gradient = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<out_features * features, kernel_size, kernel_size> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::weights_gradient = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<(use_biases ? out_features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::biases_momentum = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<out_features * features, kernel_size, kernel_size> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::weights_momentum = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<features, rows, cols> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::activations_mean = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<features, rows, cols> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::activations_variance = {0};
+template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<features, rows, cols> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::feature_maps = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<(use_biases ? out_features * features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::biases = { 0, .1f };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<out_features * features, kernel_size, kernel_size> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::weights = { -.1f, .1f };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<((use_biases && activation_function == CNN_FUNC_RBM) ? features : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? rows : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? cols : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::generative_biases = { 0, .1f };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<out_features * features, kernel_size, kernel_size> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::weights_hessian = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<(use_biases ? out_features * features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::biases_hessian = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<(use_biases ? out_features * features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::biases_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<out_features * features, kernel_size, kernel_size> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::weights_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<(use_biases ? out_features * features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::biases_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<out_features * features, kernel_size, kernel_size> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::weights_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<features, rows, cols> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::activations_mean = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMaps<features, rows, cols> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::activations_variance = { 0 };
 
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases>
 class PerceptronFullConnectivityLayer
@@ -850,16 +829,16 @@ public:
 	static void wake_sleep(float& learning_rate, size_t markov_iterations, bool use_dropout)
 	{
 		//find difference via gibbs sampling
-		FeatureMaps<features, rows, cols> original = {0};
+		FeatureMaps<features, rows, cols> original = { 0 };
 
-		FeatureMaps<out_features, out_rows, out_cols> discriminated = {0};
+		FeatureMaps<out_features, out_rows, out_cols> discriminated = { 0 };
 
-		FeatureMaps<out_features, out_rows, out_cols> reconstructed = {0};
+		FeatureMaps<out_features, out_rows, out_cols> reconstructed = { 0 };
 
 		//Sample, but don't "normalize" second time
 		feed_forwards(discriminated);
-		for (size_t i = 0; i < out_features; ++i)
-			reconstructed[i] = discriminated[i].clone();
+		for (size_t f_0 = 0; f_0 < out_features; ++f_0)
+			reconstructed[f_0] = discriminated[f_0].clone();
 		stochastic_sample<out_features, out_rows, out_cols>(reconstructed);
 		feed_backwards(reconstructed);
 		if (!mean_field)
@@ -915,7 +894,7 @@ public:
 
 	static void back_prop(size_t previous_layer_activation, FeatureMaps<out_features, out_rows, out_cols>& deriv, bool online, float learning_rate, bool use_hessian, float mu, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
 	{
-		FeatureMaps<features, rows, cols> temp = {0};
+		FeatureMaps<features, rows, cols> temp = { 0 };
 		for (int f = 0; f < features; ++f)
 			temp[f] = feature_maps[f].clone();
 
@@ -977,7 +956,7 @@ public:
 								{
 									weights[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) +=
 										-learning_rate * (weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j)
-										+ momentum_term * weights_momentum[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j));
+											+ momentum_term * weights_momentum[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j));
 									weights_momentum[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) =
 										momentum_term * weights_momentum[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j)
 										+ weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
@@ -1019,7 +998,7 @@ public:
 					for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
 						biases_hessian[f_0].at(i_0, j_0) *= (1 - gamma);
 
-		FeatureMaps<features, rows, cols> temp = {0};
+		FeatureMaps<features, rows, cols> temp = { 0 };
 		for (int f = 0; f < features; ++f)
 			temp[f] = feature_maps[f].clone();
 
@@ -1158,18 +1137,18 @@ private:
 
 //static variable initialization todo: add custom weight?
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> bool PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::mean_field = false;
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<features, rows, cols> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::feature_maps = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<(use_biases ? out_features : 0), (use_biases ? out_rows : 0), (use_biases ? out_cols : 0)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::biases = {0, .1f};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<1, (out_features * out_rows * out_cols), (features * rows * cols)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::weights = {-.1f, .1f};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<((use_biases && activation_function == CNN_FUNC_RBM) ? features : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? rows : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? cols : 0)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::generative_biases = {0, .1f};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<1, (out_features * out_rows * out_cols), (features * rows * cols)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::weights_hessian = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<(use_biases ? out_features : 0), (use_biases ? out_rows : 0), (use_biases ? out_cols : 0)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::biases_hessian = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<(use_biases ? out_features : 0), (use_biases ? out_rows : 0), (use_biases ? out_cols : 0)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::biases_gradient = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<1, (out_features * out_rows * out_cols), (features * rows * cols)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::weights_gradient = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<(use_biases ? out_features : 0), (use_biases ? out_rows : 0), (use_biases ? out_cols : 0)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::biases_momentum = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<1, (out_features * out_rows * out_cols), (features * rows * cols)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::weights_momentum = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<features, rows, cols> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::activations_mean = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<features, rows, cols> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::activations_variance = {0};
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<features, rows, cols> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::feature_maps = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<(use_biases ? out_features : 0), (use_biases ? out_rows : 0), (use_biases ? out_cols : 0)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::biases = { 0, .1f };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<1, (out_features * out_rows * out_cols), (features * rows * cols)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::weights = { -.1f, .1f };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<((use_biases && activation_function == CNN_FUNC_RBM) ? features : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? rows : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? cols : 0)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::generative_biases = { 0, .1f };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<1, (out_features * out_rows * out_cols), (features * rows * cols)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::weights_hessian = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<(use_biases ? out_features : 0), (use_biases ? out_rows : 0), (use_biases ? out_cols : 0)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::biases_hessian = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<(use_biases ? out_features : 0), (use_biases ? out_rows : 0), (use_biases ? out_cols : 0)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::biases_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<1, (out_features * out_rows * out_cols), (features * rows * cols)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::weights_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<(use_biases ? out_features : 0), (use_biases ? out_rows : 0), (use_biases ? out_cols : 0)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::biases_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<1, (out_features * out_rows * out_cols), (features * rows * cols)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::weights_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<features, rows, cols> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::activations_mean = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMaps<features, rows, cols> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::activations_variance = { 0 };
 
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols>
 class MaxpoolLayer
@@ -1193,36 +1172,36 @@ public:
 			Matrix2D<Matrix2D<float, down, across>, out_rows, out_cols> samples;
 
 			//get samples
-			for (size_t i = 0; i < out_rows; ++i)
+			for (size_t i_0 = 0; i_0 < out_rows; ++i_0)
 			{
-				for (size_t j = 0; j < out_cols; ++j)
+				for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
 				{
 					//get the current sample
-					size_t maxI = (i + 1) * down;
-					size_t maxJ = (j + 1) * across;
-					for (size_t i2 = i * down; i2 < maxI; ++i2)
+					size_t maxI = (i_0 + 1) * down;
+					size_t maxJ = (j_0 + 1) * across;
+					for (size_t i2 = i_0 * down; i2 < maxI; ++i2)
 					{
-						for (size_t j2 = j * across; j2 < maxJ; ++j2)
+						for (size_t j2 = j_0 * across; j2 < maxJ; ++j2)
 						{
-							samples.at(i, j).at(maxI - i2 - 1, maxJ - j2 - 1) = feature_maps[f].at(i2, j2);
+							samples.at(i_0, j_0).at(maxI - i2 - 1, maxJ - j2 - 1) = feature_maps[f].at(i2, j2);
 						}
 					}
 				}
 			}
 
 			//find maxes
-			for (size_t i = 0; i < out_rows; ++i)
+			for (size_t i_0 = 0; i_0 < out_rows; ++i_0)
 			{
-				for (size_t j = 0; j < out_cols; ++j)
+				for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
 				{
-					for (size_t n = 0; n < samples.at(i, j).rows(); ++n)
+					for (size_t n = 0; n < samples.at(i_0, j_0).rows(); ++n)
 					{
-						for (size_t m = 0; m < samples.at(i, j).cols(); ++m)
+						for (size_t m = 0; m < samples.at(i_0, j_0).cols(); ++m)
 						{
-							if (samples.at(i, j).at(n, m) > output[f].at(i, j))
+							if (samples.at(i_0, j_0).at(n, m) > output[f].at(i_0, j_0))
 							{
-								output[f].at(i, j) = samples.at(i, j).at(n, m);
-								switches[f].at(i, j) = std::make_pair(n, m);
+								output[f].at(i_0, j_0) = samples.at(i_0, j_0).at(n, m);
+								switches[f].at(i_0, j_0) = std::make_pair(n, m);
 							}
 						}
 					}
@@ -1350,18 +1329,18 @@ private:
 };
 
 //init static
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<features, rows, cols> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::feature_maps = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::biases = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::generative_biases = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights_hessian = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::biases_hessian = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::biases_gradient = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights_gradient = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::biases_momentum = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights_momentum = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<features, rows, cols> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::activations_mean = {0};
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<features, rows, cols> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::activations_variance = {0};
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<features, rows, cols> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::feature_maps = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::biases = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::generative_biases = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights_hessian = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::biases_hessian = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::biases_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::biases_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<features, rows, cols> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::activations_mean = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<features, rows, cols> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::activations_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMaps<features, out_rows, out_cols, std::pair<size_t, size_t>> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::switches = {};
 
 template<size_t index, size_t features, size_t rows, size_t cols>
@@ -1468,18 +1447,18 @@ public:
 };
 
 //init static
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> SoftMaxLayer<index, features, rows, cols>::feature_maps = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::biases = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::weights = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::generative_biases = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::weights_hessian = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::biases_hessian = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::biases_gradient = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::weights_gradient = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::biases_momentum = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::weights_momentum = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> SoftMaxLayer<index, features, rows, cols>::activations_mean = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> SoftMaxLayer<index, features, rows, cols>::activations_variance = {0};
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> SoftMaxLayer<index, features, rows, cols>::feature_maps = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::biases = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::weights = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::generative_biases = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::weights_hessian = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::biases_hessian = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::biases_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::weights_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::biases_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::weights_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> SoftMaxLayer<index, features, rows, cols>::activations_mean = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> SoftMaxLayer<index, features, rows, cols>::activations_variance = { 0 };
 
 template<size_t index, size_t features, size_t rows, size_t cols>
 class InputLayer
@@ -1553,18 +1532,18 @@ public:
 };
 
 //init static
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> InputLayer<index, features, rows, cols>::feature_maps = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::biases = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::weights = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::generative_biases = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::weights_hessian = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::biases_hessian = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::biases_gradient = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::weights_gradient = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::biases_momentum = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::weights_momentum = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> InputLayer<index, features, rows, cols>::activations_mean = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> InputLayer<index, features, rows, cols>::activations_variance = {0};
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> InputLayer<index, features, rows, cols>::feature_maps = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::biases = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::weights = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::generative_biases = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::weights_hessian = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::biases_hessian = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::biases_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::weights_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::biases_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> InputLayer<index, features, rows, cols>::weights_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> InputLayer<index, features, rows, cols>::activations_mean = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> InputLayer<index, features, rows, cols>::activations_variance = { 0 };
 
 template<size_t index, size_t features, size_t rows, size_t cols>
 class OutputLayer
@@ -1636,15 +1615,15 @@ public:
 };
 
 //init static
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> OutputLayer<index, features, rows, cols>::feature_maps = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::biases = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::weights = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::generative_biases = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::weights_hessian = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::biases_hessian = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::biases_gradient = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::weights_gradient = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::biases_momentum = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::weights_momentum = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> OutputLayer<index, features, rows, cols>::activations_mean = {0};
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> OutputLayer<index, features, rows, cols>::activations_variance = {0};
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> OutputLayer<index, features, rows, cols>::feature_maps = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::biases = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::weights = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::generative_biases = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::weights_hessian = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::biases_hessian = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::biases_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::weights_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::biases_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<0, 0, 0> OutputLayer<index, features, rows, cols>::weights_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> OutputLayer<index, features, rows, cols>::activations_mean = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> FeatureMaps<features, rows, cols> OutputLayer<index, features, rows, cols>::activations_variance = { 0 };
