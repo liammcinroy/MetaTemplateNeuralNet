@@ -172,3 +172,5 @@ This is a singleton static class. This class helps with network analysis, such a
 ===============================
 
 For an example of creating and using a network, see main.cpp in the examples folder.
+
+There is also an example with the MNIST Database in the examples folder!

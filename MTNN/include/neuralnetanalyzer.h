@@ -77,7 +77,7 @@ private:
 								total_grad_error += abs(layer::biases_gradient[d].at(i, j) - appr_grad);
 							else
 								total_grad_error += abs((layer::biases_gradient[d].at(i, j) - appr_grad) / layer::biases_gradient[d].at(i, j));
-						
+
 							layer::biases[d].at(i, j) += .001f;
 						}
 					}
@@ -176,7 +176,7 @@ private:
 	template<size_t l> using add_hess_error_b = add_hess_error_impl<l, true>;
 
 public:
-	//find mean gradient error from numerical approximation
+	//find mean gradient error from numerical approximation MAKE SURE INPUTS ARE NOT 0
 	static std::pair<float, float> mean_gradient_error()
 	{
 		net::discriminate();
@@ -220,7 +220,7 @@ public:
 		return errors;
 	}
 
-	//find mean proportional gradient error from numerical approximation
+	//find mean proportional gradient error from numerical approximation MAKE SURE INPUTS ARE NOT 0
 	static std::pair<float, float> proportional_gradient_error()
 	{
 		net::discriminate();

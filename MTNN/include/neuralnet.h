@@ -89,7 +89,7 @@ template<size_t N, typename T0, typename... Ts> struct get_type_impl
 	using type = typename get_type_impl<N - 1, Ts...>::type;
 };
 
-template<typename T0, typename... Ts> 
+template<typename T0, typename... Ts>
 struct get_type_impl<0, T0, Ts...>
 {
 	using type = T0;
@@ -109,7 +109,7 @@ template<typename... Ts> struct get_rbm_idx_impl<0, Ts...>
 	static constexpr size_t idx = 0;
 };
 
-template<typename... Ts> using get_rbm_idx = get_rbm_idx_impl<sizeof...(Ts) - 1, Ts...>;
+template<typename... Ts> using get_rbm_idx = get_rbm_idx_impl<sizeof...(Ts)-1, Ts...>;
 
 //CONSTEXPR STRING
 
@@ -181,7 +181,7 @@ private:
 
 				char bin[sizeof(float)]{};//for putting in binary data
 
-				//begin weights values
+										  //begin weights values
 				{
 					using t = decltype(layer::weights);
 					for (size_t d = 0; d < t::size(); ++d)
@@ -453,7 +453,7 @@ private:
 		backprop_impl()
 		{
 			get_layer<l>::back_prop(get_layer<l - 1>::activation, get_layer<l + 1>::feature_maps,
-				!use_batch_learning && optimization_method == CNN_OPT_BACKPROP, learning_rate, 
+				!use_batch_learning && optimization_method == CNN_OPT_BACKPROP, learning_rate,
 				use_hessian, minimum_divisor, use_momentum && !use_batch_learning, momentum_term,
 				use_l2_weight_decay, include_bias_decay, weight_decay_factor);
 		}
@@ -547,7 +547,7 @@ private:
 							float g = layer::weights_gradient[d].at(i, j);
 							layer::weights_momentum[d].at(i, j) = beta1 * layer::weights_momentum[d].at(i, j) + (1.0f - beta1) * g;
 							layer::weights_hessian[d].at(i, j) = beta2 * layer::weights_hessian[d].at(i, j) + (1.0f - beta2) * g * g;
-							layer::weights[d].at(i, j) += -learning_rate * (float) sqrt(1.0f - pow(beta2, t_adam)) / (1.0f - (float) pow(beta1, t_adam)) * layer::weights_momentum[d].at(i, j) / ((float) sqrt(layer::weights_hessian[d].at(i, j)) + 1e-7f);
+							layer::weights[d].at(i, j) += -learning_rate * (float)sqrt(1.0f - pow(beta2, t_adam)) / (1.0f - (float)pow(beta1, t_adam)) * layer::weights_momentum[d].at(i, j) / ((float)sqrt(layer::weights_hessian[d].at(i, j)) + 1e-7f);
 							layer::weights_gradient[d].at(i, j) = 0;
 						}
 					}
@@ -563,7 +563,7 @@ private:
 							float g = layer::biases_gradient[f_0].at(i_0, j_0);
 							layer::biases_momentum[f_0].at(i_0, j_0) = beta1 * layer::biases_momentum[f_0].at(i_0, j_0) + (1 - beta1) * g;
 							layer::biases_hessian[f_0].at(i_0, j_0) = beta2 * layer::biases_hessian[f_0].at(i_0, j_0) + (1 - beta2) * g * g;
-							layer::biases[f_0].at(i_0, j_0) += -learning_rate * (float) sqrt(1 - pow(beta2, t_adam)) / (float) (1 - pow(beta1, t_adam)) * layer::biases_momentum[f_0].at(i_0, j_0) / (float) (sqrt(layer::biases_hessian[f_0].at(i_0, j_0)) + 1e-7f);
+							layer::biases[f_0].at(i_0, j_0) += -learning_rate * (float)sqrt(1 - pow(beta2, t_adam)) / (float)(1 - pow(beta1, t_adam)) * layer::biases_momentum[f_0].at(i_0, j_0) / (float)(sqrt(layer::biases_hessian[f_0].at(i_0, j_0)) + 1e-7f);
 							layer::biases_gradient[f_0].at(i_0, j_0) = 0;
 						}
 					}
@@ -664,7 +664,7 @@ public:
 	static float weight_decay_factor;
 
 	static FeatureMaps<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()> input;
-	static FeatureMaps<get_layer<sizeof...(layers) - 1>::feature_maps.size(), get_layer<sizeof...(layers) - 1>::feature_maps.rows(), get_layer<sizeof...(layers) - 1>::feature_maps.cols()> labels;
+	static FeatureMaps<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()> labels;
 
 	//Loop bodies
 
@@ -696,7 +696,7 @@ public:
 	template<size_t l> using apply_batch_normalization_layer = apply_batch_normalization_impl<l>;
 
 	template<size_t l> using back_prop_layer = backprop_impl<l>;
-	
+
 	template<size_t l> using add_weight_decay_layer = add_weight_decay_impl<l>;
 
 	template<size_t l> using apply_gradient_layer = apply_grad_impl<l>;
@@ -711,7 +711,7 @@ private:
 
 	template<size_t l> static void dropout();
 
-	static void error_signals();
+	static FeatureMaps<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()> error_signals();
 
 	//TODO: implement or get rid of
 	static void hessian_error_signals();
@@ -719,7 +719,7 @@ private:
 public:
 
 	//Functions
-	
+
 	NeuralNet() = default;
 
 	~NeuralNet() = default;
@@ -737,13 +737,13 @@ public:
 	static void set_input(FeatureMaps<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()>& new_input);
 
 	//set labels for batch
-	static void set_labels(FeatureMaps<get_layer<sizeof...(layers) - 1>::feature_maps.size(), get_layer<sizeof...(layers) - 1>::feature_maps.rows(), get_layer<sizeof...(layers) - 1>::feature_maps.cols()>& new_labels);
+	static void set_labels(FeatureMaps<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()>& new_labels);
 
 	//feed forwards
 	static void discriminate();
 
 	//feed backwards, returns a copy of the first layer (must be deallocated)
-	static FeatureMaps<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()> generate(FeatureMaps<get_layer<sizeof...(layers) - 1>::feature_maps.size(), get_layer<sizeof...(layers) - 1>::feature_maps.rows(), get_layer<sizeof...(layers) - 1>::feature_maps.cols()>& input, size_t iterations, bool use_sampling);
+	static FeatureMaps<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()> generate(FeatureMaps<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()>& input, size_t iterations, bool use_sampling);
 
 	//wake-sleep algorithm, only trains target layer with assumption that layers up to it have been trained
 	static void pretrain(size_t markov_iterations);
@@ -752,7 +752,7 @@ public:
 	static float train();
 
 	//backprop for a batch with selected method, returns mean error by loss function
-	static float train_batch(std::vector<FeatureMaps<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()>>& batch_input, std::vector<FeatureMaps<get_layer<sizeof...(layers) - 1>::feature_maps.size(), get_layer<sizeof...(layers) - 1>::feature_maps.rows(), get_layer<sizeof...(layers) - 1>::feature_maps.cols()>>& batch_labels);
+	static float train_batch(std::vector<FeatureMaps<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()>>& batch_input, std::vector<FeatureMaps<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()>>& batch_labels);
 
 	//update second derivatives TODO: implement or get rid of
 	static void calculate_hessian(bool use_first_deriv, float gamma);
@@ -778,7 +778,7 @@ template<size_t loss_function, size_t optimization_method, bool use_dropout, boo
 template<size_t loss_function, size_t optimization_method, bool use_dropout, bool use_batch_learning, bool use_momentum, bool use_hessian, bool use_l2_weight_decay, bool include_bias_decay, bool use_batch_normalization, bool keep_running_activation_statistics, bool collect_data_while_training, typename... layers> template<typename file_name_type> FILE* NeuralNet<loss_function, optimization_method, use_dropout, use_batch_learning, use_momentum, use_hessian, use_l2_weight_decay, include_bias_decay, use_batch_normalization, keep_running_activation_statistics, collect_data_while_training, layers...>::save_data_t<file_name_type>::fp = {};
 template<size_t loss_function, size_t optimization_method, bool use_dropout, bool use_batch_learning, bool use_momentum, bool use_hessian, bool use_l2_weight_decay, bool include_bias_decay, bool use_batch_normalization, bool keep_running_activation_statistics, bool collect_data_while_training, typename... layers> template<typename file_name_type> FILE* NeuralNet<loss_function, optimization_method, use_dropout, use_batch_learning, use_momentum, use_hessian, use_l2_weight_decay, include_bias_decay, use_batch_normalization, keep_running_activation_statistics, collect_data_while_training, layers...>::load_data_t<file_name_type>::fp = {};
 template<size_t loss_function, size_t optimization_method, bool use_dropout, bool use_batch_learning, bool use_momentum, bool use_hessian, bool use_l2_weight_decay, bool include_bias_decay, bool use_batch_normalization, bool keep_running_activation_statistics, bool collect_data_while_training, typename... layers> FeatureMaps<get_type<0, layers...>::feature_maps.size(), get_type<0, layers...>::feature_maps.rows(), get_type<0, layers...>::feature_maps.cols()> NeuralNet<loss_function, optimization_method, use_dropout, use_batch_learning, use_momentum, use_hessian, use_l2_weight_decay, include_bias_decay, use_batch_normalization, keep_running_activation_statistics, collect_data_while_training, layers...>::input = {};
-template<size_t loss_function, size_t optimization_method, bool use_dropout, bool use_batch_learning, bool use_momentum, bool use_hessian, bool use_l2_weight_decay, bool include_bias_decay, bool use_batch_normalization, bool keep_running_activation_statistics, bool collect_data_while_training, typename... layers> FeatureMaps<get_type<sizeof...(layers) - 1, layers...>::feature_maps.size(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.rows(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.cols()> NeuralNet<loss_function, optimization_method, use_dropout, use_batch_learning, use_momentum, use_hessian, use_l2_weight_decay, include_bias_decay, use_batch_normalization, keep_running_activation_statistics, collect_data_while_training, layers...>::labels = {};
+template<size_t loss_function, size_t optimization_method, bool use_dropout, bool use_batch_learning, bool use_momentum, bool use_hessian, bool use_l2_weight_decay, bool include_bias_decay, bool use_batch_normalization, bool keep_running_activation_statistics, bool collect_data_while_training, typename... layers> FeatureMaps<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()> NeuralNet<loss_function, optimization_method, use_dropout, use_batch_learning, use_momentum, use_hessian, use_l2_weight_decay, include_bias_decay, use_batch_normalization, keep_running_activation_statistics, collect_data_while_training, layers...>::labels = {};
 
 template<size_t loss_function, size_t optimization_method, bool use_dropout, bool use_batch_learning, bool use_momentum, bool use_hessian, bool use_l2_weight_decay, bool include_bias_decay, bool use_batch_normalization, bool keep_running_activation_statistics, bool collect_data_while_training, typename... layers>
 inline void NeuralNet<loss_function, optimization_method, use_dropout, use_batch_learning, use_momentum, use_hessian, use_l2_weight_decay, include_bias_decay, use_batch_normalization, keep_running_activation_statistics, collect_data_while_training, layers...>::
@@ -799,19 +799,19 @@ setup()
 	//Don't need this since there is implicit initialization
 	/*if (!use_momentum && optimization_method != CNN_OPT_ADAM)
 	{
-		loop_up_layers<delete_layer_weights_momentum>();
-		loop_up_layers<delete_layer_biases_momentum>();
+	loop_up_layers<delete_layer_weights_momentum>();
+	loop_up_layers<delete_layer_biases_momentum>();
 	}
 
 	if (!use_hessian && optimization_method == CNN_OPT_BACKPROP)
 	{
-		loop_up_layers<delete_layer_weights_hessian>();
-		loop_up_layers<delete_layer_biases_hessian>();
+	loop_up_layers<delete_layer_weights_hessian>();
+	loop_up_layers<delete_layer_biases_hessian>();
 	}
 
 	if (!use_batch_normalization)
 	{
-		loop_up_layers<delete_layer_activations>();
+	loop_up_layers<delete_layer_activations>();
 	}*/
 }
 
@@ -850,7 +850,7 @@ set_input(FeatureMaps<get_type<0, layers...>::feature_maps.size(), get_type<0, l
 
 template<size_t loss_function, size_t optimization_method, bool use_dropout, bool use_batch_learning, bool use_momentum, bool use_hessian, bool use_l2_weight_decay, bool include_bias_decay, bool use_batch_normalization, bool keep_running_activation_statistics, bool collect_data_while_training, typename... layers>
 inline void NeuralNet<loss_function, optimization_method, use_dropout, use_batch_learning, use_momentum, use_hessian, use_l2_weight_decay, include_bias_decay, use_batch_normalization, keep_running_activation_statistics, collect_data_while_training, layers...>::
-set_labels(FeatureMaps<get_layer<sizeof...(layers) - 1>::feature_maps.size(), get_layer<sizeof...(layers) - 1>::feature_maps.rows(), get_layer<sizeof...(layers) - 1>::feature_maps.cols()>& new_labels)
+set_labels(FeatureMaps<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()>& new_labels)
 {
 	for (size_t f = 0; f < labels.size(); ++f)
 		for (size_t i = 0; i < labels.rows(); ++i)
@@ -872,7 +872,7 @@ discriminate()
 
 template<size_t loss_function, size_t optimization_method, bool use_dropout, bool use_batch_learning, bool use_momentum, bool use_hessian, bool use_l2_weight_decay, bool include_bias_decay, bool use_batch_normalization, bool keep_running_activation_statistics, bool collect_data_while_training, typename... layers>
 inline FeatureMaps<get_type<0, layers...>::feature_maps.size(), get_type<0, layers...>::feature_maps.rows(), get_type<0, layers...>::feature_maps.cols()> NeuralNet<loss_function, optimization_method, use_dropout, use_batch_learning, use_momentum, use_hessian, use_l2_weight_decay, include_bias_decay, use_batch_normalization, keep_running_activation_statistics, collect_data_while_training, layers...>::
-generate(FeatureMaps<get_type<sizeof...(layers) - 1, layers...>::feature_maps.size(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.rows(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.cols()>& input, size_t iterations, bool use_sampling)
+generate(FeatureMaps<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()>& input, size_t iterations, bool use_sampling)
 {
 	//reset all but output (or inputs?)
 	loop_up_layers<reset_layer_feature_maps>();
@@ -943,10 +943,14 @@ train()
 
 	//get error signals for output and returns any layers to be skipped
 	constexpr size_t off = (loss_function == CNN_LOSS_LOGLIKELIHOOD ? 1 : 0);
-	error_signals();
+	auto errors = error_signals();
 
-	//backprop for each layer
-	for_loop<sizeof...(layers) - 2 - off, 1, 1, back_prop_layer>();
+	//backprop for each layer (need to get activation derivatives for output first
+	get_layer<last_layer_index>::back_prop(get_layer<last_layer_index - 1>::activation, errors,
+		!use_batch_learning && optimization_method == CNN_OPT_BACKPROP, learning_rate,
+		use_hessian, minimum_divisor, use_momentum && !use_batch_learning, momentum_term,
+		use_l2_weight_decay, include_bias_decay, weight_decay_factor);
+	for_loop<last_layer_index - 1 - off, 1, 1, back_prop_layer>();
 
 	if (!use_batch_learning && optimization_method != CNN_OPT_BACKPROP)
 		apply_gradient();
@@ -956,7 +960,7 @@ train()
 
 template<size_t loss_function, size_t optimization_method, bool use_dropout, bool use_batch_learning, bool use_momentum, bool use_hessian, bool use_l2_weight_decay, bool include_bias_decay, bool use_batch_normalization, bool keep_running_activation_statistics, bool collect_data_while_training, typename... layers>
 inline float NeuralNet<loss_function, optimization_method, use_dropout, use_batch_learning, use_momentum, use_hessian, use_l2_weight_decay, include_bias_decay, use_batch_normalization, keep_running_activation_statistics, collect_data_while_training, layers...>::
-train_batch(std::vector<FeatureMaps<get_type<0, layers...>::feature_maps.size(), get_type<0, layers...>::feature_maps.rows(), get_type<0, layers...>::feature_maps.cols()>>& batch_inputs, std::vector<FeatureMaps<get_type<sizeof...(layers) - 1, layers...>::feature_maps.size(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.rows(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.cols()>>& batch_labels)
+train_batch(std::vector<FeatureMaps<get_type<0, layers...>::feature_maps.size(), get_type<0, layers...>::feature_maps.rows(), get_type<0, layers...>::feature_maps.cols()>>& batch_inputs, std::vector<FeatureMaps<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()>>& batch_labels)
 {
 	bool temp_batch = use_batch_learning;
 	use_batch_learning = true;
@@ -1029,24 +1033,26 @@ dropout()
 }
 
 template<size_t loss_function, size_t optimization_method, bool use_dropout, bool use_batch_learning, bool use_momentum, bool use_hessian, bool use_l2_weight_decay, bool include_bias_decay, bool use_batch_normalization, bool keep_running_activation_statistics, bool collect_data_while_training, typename... layers>
-inline void NeuralNet<loss_function, optimization_method, use_dropout, use_batch_learning, use_momentum, use_hessian, use_l2_weight_decay, include_bias_decay, use_batch_normalization, keep_running_activation_statistics, collect_data_while_training, layers...>::
+inline FeatureMaps<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()> NeuralNet<loss_function, optimization_method, use_dropout, use_batch_learning, use_momentum, use_hessian, use_l2_weight_decay, include_bias_decay, use_batch_normalization, keep_running_activation_statistics, collect_data_while_training, layers...>::
 error_signals()
 {
+	auto out = FeatureMaps<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()>{ 0 };
 	if (loss_function == CNN_LOSS_SQUAREERROR)
 		for (size_t k = 0; k < labels.size(); ++k)
 			for (size_t i = 0; i < labels.rows(); ++i)
 				for (size_t j = 0; j < labels.cols(); ++j)
-					get_layer<last_layer_index>::feature_maps[k].at(i, j) -= labels[k].at(i, j);
+					out[k].at(i, j) = get_layer<last_layer_index>::feature_maps[k].at(i, j) - labels[k].at(i, j);
 	else if (loss_function == CNN_LOSS_LOGLIKELIHOOD) //assumes next layer is softmax
 	{
 		for (size_t k = 0; k < labels.size(); ++k)
 			for (size_t i = 0; i < labels.rows(); ++i)
 				for (size_t j = 0; j < labels.cols(); ++j)
-					get_layer<last_layer_index - 1>::feature_maps[k].at(i, j) -= labels[k].at(i, j);
+					out[k].at(i, j) = get_layer<last_layer_index - 1>::feature_maps[k].at(i, j) - labels[k].at(i, j);
 	}
 	else if (loss_function == CNN_LOSS_CUSTOMTARGETS)
 		for (size_t k = 0; k < labels.size(); ++k)
 			for (size_t i = 0; i < labels.rows(); ++i)
 				for (size_t j = 0; j < labels.cols(); ++j)
-					get_layer<last_layer_index>::feature_maps[k].at(i, j) = labels[k].at(i, j);
+					out[k].at(i, j) = labels[k].at(i, j);
+	return out;
 }
