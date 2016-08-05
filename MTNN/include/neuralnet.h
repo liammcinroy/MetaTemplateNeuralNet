@@ -169,7 +169,7 @@ private:
 		template<size_t l> struct save_data_impl
 		{
 		private:
-			void write_float(char bin[sizeof(float)], const float& f, FILE* file)
+			void write_float(char bin[sizeof(float) + 1], const float& f, FILE* file)
 			{
 				std::memcpy(bin, &f, sizeof(float));
 				fputs(bin, file);
@@ -179,9 +179,9 @@ private:
 			{
 				using layer = get_layer<l>;
 
-				char bin[sizeof(float)]{};//for putting in binary data
+				char bin[sizeof(float) + 1]{};//for putting in binary data
 
-										  //begin weights values
+											  //begin weights values
 				{
 					using t = decltype(layer::weights);
 					for (size_t d = 0; d < t::size(); ++d)
@@ -230,7 +230,7 @@ private:
 		template<size_t l> struct load_data_impl
 		{
 		private:
-			void read_float(char bin[sizeof(float)], float& out_float, FILE* file)
+			void read_float(char bin[sizeof(float) + 1], float& out_float, FILE* file)
 			{
 				fgets(bin, sizeof(float) + 1, file);
 				std::memcpy(&out_float, bin, sizeof(float));
