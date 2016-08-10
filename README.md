@@ -52,7 +52,7 @@ This class is a simple matrix implementation, with some extra methods that can b
 | Member/Method  | Type | Details |
 |---------|------|---------|
 | `data` | `std::array<T, rows * cols>` | holds the matrice's data in column major format |
-| `at(int i, int j)` | `T` | returns the value of the matrix at i, j |
+| `at(size_t i, size_t j)` | `T` | returns the value of the matrix at i, j |
 | `clone()` | `Matrix2D<T, rows, cols>` | creates a deep copy of the matrix |
 | `rows()` | `static constexpr int` | returns the amount of rows |
 | `cols()` | `static constexpr int` | returns the amount of cols |
@@ -68,26 +68,27 @@ Use the `index` parameter to create different instances if using the same type o
 
 | Member/Method | Type | Details |
 |--------|------|----------|
-| `feed_forwards(FeatureMaps<> &output)` | `virtual void` | Feeds the layer forward |
-| `feed_backwards(FeatureMaps<> &input)` | `virtual FeatureMaps<>` | Feeds the layer backwards using generative or recognition weights |
-| `wake_sleep(...)` | `void` | Performs the wake-sleep (up-down) algorithm with the specified activation method |
+| `feed_forwards(FeatureMap<> &output)` | `virtual void` | Feeds the layer forward |
+| `feed_backwards(FeatureMap<> &input)` | `virtual FeatureMap<>` | Feeds the layer backwards using generative or recognition weights |
 | `back_prop(...)` | `void` | Performs vanilla backpropagation with the specified activation method |
-| `feature_maps` | `FeatureMaps<>` | Holds current activations |
-| `activations_mean` | `FeatureMaps<>` | Holds current activations' means |
-| `activations_variance` | `FeatureMaps<>` | Holds current activations' variance |
-| `weights` | `FeatureMaps<>` | Holds the weights |
-| `biases` | `FeatureMaps<>` | Holds the biases (if used) |
-| `weights_momentum` | `FeatureMaps<>` | Holds the weights' momentum |
-| `biases_momentum` | `FeatureMaps<>` | Holds the biases' momentum |
-| `weights_hessian` | `FeatureMaps<>` | Holds the weights' hessian |
-| `biases_hessian` | `FeatureMaps<>` | Holds the biases' hessian |
+| `feed_forwards(FeatureMapVector<> &output)` | `virtual void` | Feeds the layer forward (overloaded for batches) |
+| `feed_backwards(FeatureMapVector<> &input)` | `virtual FeatureMap<>` | Feeds the layer backwards using generative or recognition weights (overloaded for batches) |
+| `back_prop(...)` | `void` | Performs vanilla backpropagation with the specified activation method (overloaded for batches) |
+| `wake_sleep(...)` | `void` | Performs the wake-sleep (up-down) algorithm with the specified activation method |
+| `feature_maps` | `FeatureMap<>` | Holds current activations |
+| `weights` | `FeatureMap<>` | Holds the weights |
+| `biases` | `FeatureMap<>` | Holds the biases (if used) |
+| `weights_momentum` | `FeatureMap<>` | Holds the weights' momentum |
+| `biases_momentum` | `FeatureMap<>` | Holds the biases' momentum |
+| `weights_aux_data` | `FeatureMap<>` | Holds the weights' aux_data (used for optimization methods) |
+| `biases_aux_data` | `FeatureMap<>` | Holds the biases' aux_data (used for optimization methods) |
 
-###PerceptronFullConnectivityLayer<int index, int features, int rows, int cols, int out_features, int out_cols, int out_rows, int activation_function, bool use_biases>
+###PerceptronFullConnectivityLayer<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_cols, size_t out_rows, size_t activation_function, bool use_biases>
 ===============================
 
 Basic fully connected perceptron layer.
 
-###ConvolutionLayer<int index, int features, int rows, int cols, int recognition_data_size, int stride, int out_features, int activation_function, bool use_biases, bool use_padding = true>
+###ConvolutionLayer<size_t index, size_t features, size_t rows, size_t cols, size_t recognition_data_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding = true>
 ===============================
 
 Basic convolutional layer, masks or kernels must be square and odd.
@@ -95,23 +96,30 @@ Basic convolutional layer, masks or kernels must be square and odd.
 With padding, then output is same size. Otherwise output is reduced.
 
 
-###MaxpoolLayer<int index, int features, int rows, int cols, int out_rows, int out_cols>
+###MaxpoolLayer<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols>
 ===================================
 
 Basic maxpooling layer. Maxpool is performed on each feature map independently.
 
 
-###SoftMaxLayer<int index, int features, int rows, int cols>
+###SoftMaxLayer<size_t index, size_t features, size_t rows, size_t cols>
 =====================================
 
 Basic softmax layer. This will compute derivatives for any cost function, not just log-likelihood. Softmax is performed on each feature map independently.
 
-###InputLayer<int index, int features, int rows, int cols>
+###BatchNormalizationLayer<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function>
+=====================================
+
+Basic batch normalization layer. Gamma and beta are in `weights` and `biases`.
+
+If using, then batch learning and the respective overloads must be used.
+
+###InputLayer<size_t index, size_t features, size_t rows, size_t cols>
 =====================================
 
 Basic input layer just to signify the beginning of the network. Required
 
-###OutputLayer<int index, int features, int rows, int cols>
+###OutputLayer<size_t index, size_t features, size_t rows, size_t cols>
 =====================================
 
 Basic output layer just to signify the end of the network. Required
@@ -125,32 +133,27 @@ This is the class that encapsulates all of the rest. Has all required methods. W
 |--------|------|----------|
 | `learning_rate` | `float` | The learning term of the network. Default value is 0.01 |
 | `momentum_term` | `float` | The momentum term (proportion of learning rate when applied to momentum) of the network. Between 0 and 1. Default value is 0 |
-| `minimum_divisor` | `float` | The minimum divisor of the learning rate when using the hessian. Default value is .1 |
 | `dropout_probability` | `float` | The probability that a given neuron will be "dropped". Default value is .5 |
-| `loss_function` | `int` | The loss function to be used. Default mean square |
-| `optimization_method` | `int` | Optimization method to be used. Default backprop |
+| `loss_function` | `size_t` | The loss function to be used. Default mean square |
+| `optimization_method` | `size_t` | Optimization method to be used. Default backprop |
 | `use_batch_learning` | `bool` | Whether you will apply gradient manually with minibatches |
 | `use_dropout` | `bool` | Whether to train the network with dropout |
 | `use_momentum` | `bool` | Whether to train the network with momentums. Cannot be used with Adam or Adagrad |
-| `use_hessian` | `bool` | Whether to train the network with the hessian. Cannot be used with Adam or Adagrad |
-| `use_batch_normalization` | `bool` | Whether to train the network with batch normalization. The next two hyperparameters should be defined also |
-| `keep_running_activation_statistics` | `bool` | If using batch normalization, this flag will cause data to be collected for all training samples, not just the current minibatch |
-| `collect_data_while_training` | `bool` | If using batch normalization, then by default the statistics are only updated when discriminate() is called by the user. With this flag, they are update when both discriminate() and train() are called by the user |
-| `labels` | `FeatureMaps<>` | The current labels |
-| `input` | `FeatureMaps<>` | The current input |
+| `labels` | `FeatureMap<>` | The current labels |
+| `input` | `FeatureMap<>` | The current input |
 | `setup()` | `void` | Initializes the network to learn. Must call if learning. Must set the hyperparameters before calling |
 | `apply_gradient()` | `void` | Updates weights |
 | `save_data<typename path>()` | `void` | Saves the data. Check the example to see how to supply the filename |
 | `load_data<typename path>()` | `void` | Loads the data (<b>Must have initialized network and filled layers first!!!</b>) |
-| `set_input(FeatureMaps<> input)` | `void` | Sets the current input |
-| `set_labels(FeatureMaps<> labels)` | `void` | Sets the current labels |
+| `set_input(FeatureMap<> input)` | `void` | Sets the current input |
+| `set_labels(FeatureMap<> labels)` | `void` | Sets the current labels |
 | `discriminate()` | `void` | Feeds the network forward |
-| `generate(FeatureMaps<> input, int sampling_iterations, bool use_sampling)` | `FeatureMaps<>` | Generates an output for an rbm network. `use_sampling` means sample for each layer after the markov iterations on the final RBM layer |
+| `generate(FeatureMap<> input, size_t sampling_iterations, bool use_sampling)` | `FeatureMap<>` | Generates an output for an rbm network. `use_sampling` means sample for each layer after the markov iterations on the final RBM layer |
 | `pretrain()` | `void` | Pretrains the network using the wake-sleep algorithm. Assumes every layer upto the last RBM layer has been trained. |
 | `train()` | `void` | Trains the network using specified optimization method |
-| `template get_layer<int l> | `type` | Returns the lth layer's type |
-| `template loop_up_layers<template<int l> class loop_body> | `type` | Initialize one of these to perform a function specified from the initialization of a `loop_body` type on each layer |
-| `template loop_down_layers<template<int l> class loop_body> | `type` | Initialize one of these to perform a function specified from the initialization of a `loop_body` type on each layer |
+| `template get_layer<size_t l> | `type` | Returns the lth layer's type |
+| `template loop_up_layers<template<size_t l> class loop_body> | `type` | Initialize one of these to perform a function specified from the initialization of a `loop_body` type on each layer |
+| `template loop_down_layers<template<size_t l> class loop_body> | `type` | Initialize one of these to perform a function specified from the initialization of a `loop_body` type on each layer |
 
 ###NeuralNetAnalyzer<typename Net>
 
@@ -160,9 +163,7 @@ This is a singleton static class. This class helps with network analysis, such a
 |--------|------|----------|
 | `sample_size` | `static int` | The sample size used to calculate the expected error |
 | `mean_gradient_error()` | `static std::pair<float, float>` | Uses finite differences for backprop checking, returns mean difference in ordered pair (weights, biases) |
-| `mean_hessian_error()` | `static std::pair<float, float>` | Uses finite differences for backprop checking, returns mean difference in ordered pair (weights, biases) |
 | `proportional_gradient_error()` | `static std::pair<float, float>` | Uses finite differences for backprop checking, returns proportional difference in ordered pair (weights, biases) |
-| `proportional_hessian_error()` | `static std::pair<float, float>` | Uses finite differences for backprop checking, returns proportional difference in ordered pair (weights, biases) |
 | `add_point(float value)` | `static void` | Adds a point for the running calculation of the expected error |
 | `mean_error()` | `static float` | Returns the running estimate of expected error |
 | `save_error(std::string path)` | `static void` | Saves all calculated expected errors |

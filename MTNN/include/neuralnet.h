@@ -169,25 +169,23 @@ private:
 		template<size_t l> struct save_data_impl
 		{
 		private:
-			void write_float(char bin[sizeof(float) + 1], const float& f, FILE* file)
+			void write_float(const float& f, FILE* file)
 			{
-				std::memcpy(bin, &f, sizeof(float));
-				fputs(bin, file);
+				fwrite(&f, sizeof(float), 1, file);
 			}
 		public:
 			save_data_impl()
 			{
 				using layer = get_layer<l>;
 
-				char bin[sizeof(float) + 1]{};//for putting in binary data
 
-											  //begin weights values
+				//begin weights values
 				{
 					using t = decltype(layer::weights);
 					for (size_t d = 0; d < t::size(); ++d)
 						for (size_t i = 0; i < t::rows(); ++i)
 							for (size_t j = 0; j < t::cols(); ++j)
-								write_float(bin, layer::weights[d].at(i, j), fp);
+								write_float(layer::weights[d].at(i, j), fp);
 				}
 
 				//begin biases values
@@ -196,7 +194,7 @@ private:
 					for (size_t f_0 = 0; f_0 < t::size(); ++f_0)
 						for (size_t i_0 = 0; i_0 < t::rows(); ++i_0)
 							for (size_t j_0 = 0; j_0 < t::cols(); ++j_0)
-								write_float(bin, layer::biases[f_0].at(i_0, j_0), fp);//bias values
+								write_float(layer::biases[f_0].at(i_0, j_0), fp);//bias values
 				}
 
 				//begin gen biases values
@@ -205,7 +203,7 @@ private:
 					for (size_t f = 0; f < t::size(); ++f)
 						for (size_t i = 0; i < t::rows(); ++i)
 							for (size_t j = 0; j < t::cols(); ++j)
-								write_float(bin, layer::generative_biases[f].at(i, j), fp);//gen bias values
+								write_float(layer::generative_biases[f].at(i, j), fp);//gen bias values
 				}
 			}
 		};
@@ -230,17 +228,14 @@ private:
 		template<size_t l> struct load_data_impl
 		{
 		private:
-			void read_float(char bin[sizeof(float) + 1], float& out_float, FILE* file)
+			void read_float(float& out_float, FILE* file)
 			{
-				fgets(bin, sizeof(float) + 1, file);
-				std::memcpy(&out_float, bin, sizeof(float));
+				fread(&out_float, sizeof(float), 1, file);
 			}
 		public:
 			load_data_impl()
 			{
 				using layer = get_layer<l>;
-
-				char bin[sizeof(float) + 1]{};
 
 				//begin weights values
 				{
@@ -248,7 +243,7 @@ private:
 					for (size_t d = 0; d < t::size(); ++d)
 						for (size_t i = 0; i < t::rows(); ++i)
 							for (size_t j = 0; j < t::cols(); ++j)
-								read_float(bin, layer::weights[d].at(i, j), fp);
+								read_float(layer::weights[d].at(i, j), fp);
 				}
 
 				//begin biases values
@@ -257,7 +252,7 @@ private:
 					for (size_t f_0 = 0; f_0 < t::size(); ++f_0)
 						for (size_t i_0 = 0; i_0 < t::rows(); ++i_0)
 							for (size_t j_0 = 0; j_0 < t::cols(); ++j_0)
-								read_float(bin, layer::biases[f_0].at(i_0, j_0), fp);
+								read_float(layer::biases[f_0].at(i_0, j_0), fp);
 				}
 
 				//begin gen biases values
@@ -266,7 +261,7 @@ private:
 					for (size_t f = 0; f < t::size(); ++f)
 						for (size_t i = 0; i < t::rows(); ++i)
 							for (size_t j = 0; j < t::cols(); ++j)
-								read_float(bin, layer::generative_biases[f].at(i, j), fp);
+								read_float(layer::generative_biases[f].at(i, j), fp);
 				}
 			}
 		};
