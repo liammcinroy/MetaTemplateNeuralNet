@@ -81,7 +81,7 @@ public:
 	Matrix2D clone()
 	{
 		Matrix2D<T, r, c> out = Matrix2D<T, r, c>();
-		
+
 		for (size_t i = 0; i < r; ++i)
 			for (size_t j = 0; j < c; ++j)
 				out.at(i, j) = this->at(i, j);
@@ -115,24 +115,24 @@ public:
 	std::array<T, r * c> data;
 };
 
-template<size_t f, size_t r, size_t c, typename T = float> class FeatureMaps
+template<size_t f, size_t r, size_t c, typename T = float> class FeatureMap
 {
 public:
-	FeatureMaps() = default;
+	FeatureMap() = default;
 
-	FeatureMaps(T val)
+	FeatureMap(T val)
 	{
 		for (int k = 0; k < f; ++k)
 			maps[k] = Matrix2D<T, r, c>(val);
 	}
 
-	FeatureMaps(T max, T min)
+	FeatureMap(T max, T min)
 	{
 		for (int k = 0; k < f; ++k)
 			maps[k] = Matrix2D<T, r, c>(max, min);
 	}
 
-	~FeatureMaps() = default;
+	~FeatureMap() = default;
 
 	Matrix2D<T, r, c>& operator[](const size_t& feat)
 	{
@@ -160,29 +160,29 @@ private:
 };
 
 template<typename T, size_t rows1, size_t cols1, size_t rows2, size_t cols2> Matrix2D<T, rows1, cols2>
-	operator*(const Matrix2D<T, rows1, cols1>& lhs, const Matrix2D <T, rows2, cols2>& rhs)
+operator*(const Matrix2D<T, rows1, cols1>& lhs, const Matrix2D <T, rows2, cols2>& rhs)
+{
+	Matrix2D<T, rows1, cols2> result{};
+	for (size_t i = 0; i < rows1; ++i)
 	{
-		Matrix2D<T, rows1, cols2> result{};
-		for (size_t i = 0; i < rows1; ++i)
+		for (size_t j = 0; j < cols2; ++j)
 		{
-			for (size_t j = 0; j < cols2; ++j)
-			{
-				T sum();
-				for (size_t i2 = 0; i2 < rows2; ++i2)
-					sum += lhs.at(i, i2) * rhs.at(i2, j);
-				result.at(i, j) = sum;
-			}
+			T sum();
+			for (size_t i2 = 0; i2 < rows2; ++i2)
+				sum += lhs.at(i, i2) * rhs.at(i2, j);
+			result.at(i, j) = sum;
 		}
-		return result;
 	}
+	return result;
+}
 
 //Adds two matricies, stores in the first
 template<typename T, size_t rows, size_t cols> void add(Matrix2D<T, rows, cols>& first, const Matrix2D<T, rows, cols>& second)
-	{
-		for (size_t i = 0; i < rows; ++i)
-			for (size_t j = 0; j < cols; ++j)
-				first.at(i, j) += second.at(i, j);
-	}
+{
+	for (size_t i = 0; i < rows; ++i)
+		for (size_t j = 0; j < cols; ++j)
+			first.at(i, j) += second.at(i, j);
+}
 
 //Adds two matricies, but first second is multiplied by mult, stores in the first
 template<typename T, size_t rows, size_t cols> void add(Matrix2D<T, rows, cols>& first, const Matrix2D<T, rows, cols>& second, const T& mult)

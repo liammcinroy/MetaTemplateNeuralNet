@@ -112,7 +112,7 @@ Basic softmax layer. This will compute derivatives for any cost function, not ju
 
 Basic batch normalization layer. Gamma and beta are in `weights` and `biases`.
 
-If using, then batch learning and the respective overloads must be used.
+<b>If using, then batch learning and the respective overloads must be used.</b>
 
 ###InputLayer<size_t index, size_t features, size_t rows, size_t cols>
 =====================================
@@ -151,6 +151,7 @@ This is the class that encapsulates all of the rest. Has all required methods. W
 | `generate(FeatureMap<> input, size_t sampling_iterations, bool use_sampling)` | `FeatureMap<>` | Generates an output for an rbm network. `use_sampling` means sample for each layer after the markov iterations on the final RBM layer |
 | `pretrain()` | `void` | Pretrains the network using the wake-sleep algorithm. Assumes every layer upto the last RBM layer has been trained. |
 | `train()` | `void` | Trains the network using specified optimization method |
+| `train_batch(FeatureMap<> batch_inputs, FeatureMap<> batch_labels)` | `void` | Trains the network using specified optimization method and batch learning. MUST BE USED IF USING BATCH NORMALIZATION |
 | `template get_layer<size_t l> | `type` | Returns the lth layer's type |
 | `template loop_up_layers<template<size_t l> class loop_body> | `type` | Initialize one of these to perform a function specified from the initialization of a `loop_body` type on each layer |
 | `template loop_down_layers<template<size_t l> class loop_body> | `type` | Initialize one of these to perform a function specified from the initialization of a `loop_body` type on each layer |

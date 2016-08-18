@@ -49,7 +49,7 @@ Matrix2D<float, (r - kernel_r) / s + 1, (c - kernel_c) / s + 1> convolve(Matrix2
 }
 
 template<int rows, int cols, int kernel_size>
-FeatureMaps<1, rows, cols> distort(Matrix2D<float, rows, cols>& input, Matrix2D<float, kernel_size, kernel_size>& kernel, float elasticity, float max_stretch, float max_rot)
+FeatureMap<1, rows, cols> distort(Matrix2D<float, rows, cols>& input, Matrix2D<float, kernel_size, kernel_size>& kernel, float elasticity, float max_stretch, float max_rot)
 {
 	//elastic map distort
 	const int n = (kernel_size - 1) / 2;
@@ -103,7 +103,7 @@ FeatureMaps<1, rows, cols> distort(Matrix2D<float, rows, cols>& input, Matrix2D<
 	}
 
 	//bilinear intrepolation
-	auto output = FeatureMaps<1, rows, cols>();
+	auto output = FeatureMap<1, rows, cols>();
 	for (int i = 0; i < rows; ++i)
 	{
 		for (int j = 0; j < cols; ++j)
@@ -137,9 +137,9 @@ FeatureMaps<1, rows, cols> distort(Matrix2D<float, rows, cols>& input, Matrix2D<
 }
 
 template<int rows, int cols>
-FeatureMaps<1, rows, cols> make_fm(Matrix2D<float, rows, cols>& input)
+FeatureMap<1, rows, cols> make_fm(Matrix2D<float, rows, cols>& input)
 {
-	FeatureMaps<1, rows, cols> out{};
+	FeatureMap<1, rows, cols> out{};
 	for (int i = 0; i < rows; ++i)
 		for (int j = 0; j < cols; ++j)
 			out[0].at(i, j) = input.at(i, j);
@@ -147,8 +147,7 @@ FeatureMaps<1, rows, cols> make_fm(Matrix2D<float, rows, cols>& input)
 }
 
 //setup the network architecture
-typedef NeuralNet<CNN_LOSS_SQUAREERROR, CNN_OPT_ADAM, false, true, false, false, false, false, false, false, false,
-	InputLayer<1, 1, 29, 29>,
+typedef NeuralNet<InputLayer<1, 1, 29, 29>,
 	ConvolutionLayer<1, 1, 29, 29, 5, 2, 6, CNN_FUNC_TANH, true, false>,
 	ConvolutionLayer<1, 6, 13, 13, 5, 2, 50, CNN_FUNC_TANH, true, false>,
 	PerceptronFullConnectivityLayer<1, 50, 5, 5, 1, 100, 1, CNN_FUNC_TANH, true>,
@@ -167,6 +166,9 @@ int main()
 	using net_path_type = decltype(net_file_path);
 
 	Net::learning_rate = .001f;
+	Net::use_batch_learning = true;
+	Net::optimization_method = CNN_OPT_ADAM;
+	Net::loss_function = CNN_LOSS_SQUAREERROR;
 	NeuralNetAnalyzer<Net>::sample_size = 5000;
 
 	//timing variables
@@ -194,9 +196,9 @@ int main()
 		//load in images
 		std::vector<std::pair<NetInput, int>> images(60000);
 		std::vector<NetOutput> labels(60000);
-		ImageReader trainImgs("MNIST//Images//train-images.idx3-ubyte");
+		ImageReader trainImgs("C://LiamScienceProject//Sci Fair 15//Code//MNIST Digit//Data//Images//train-images.idx3-ubyte");
 		trainImgs.default = -1;
-		LabelReader trainLbls("MNIST//Labels//train-labels.idx1-ubyte");
+		LabelReader trainLbls("C://LiamScienceProject//Sci Fair 15//Code//MNIST Digit//Data//Labels//train-labels.idx1-ubyte");
 		trainLbls.default = -1;
 		for (int i = 0; i < 60000; ++i)
 		{
@@ -249,7 +251,7 @@ int main()
 			p_e_t += t;
 			normal_line("(training) Epoch " + std::to_string(e) + " was completed in " + std::to_string(t / CLOCKS_PER_SEC) + " seconds");
 			Net::save_data<net_path_type>();
-			NeuralNetAnalyzer<Net>::save_mean_error("MNIST//mses//mse.dat");
+			NeuralNetAnalyzer<Net>::save_mean_error("Data//mses//mse.dat");
 			t = clock();
 		}
 
@@ -261,8 +263,8 @@ int main()
 
 	normal_line("Starting Testing");
 
-	ImageReader testImgs("MNIST//Images//t10k-images.idx3-ubyte");
-	LabelReader testLbls("MNIST//Labels//t10k-labels.idx1-ubyte");
+	ImageReader testImgs("C://LiamScienceProject//Sci Fair 15//Code//MNIST Digit//Data//Images//t10k-images.idx3-ubyte");
+	LabelReader testLbls("C://LiamScienceProject//Sci Fair 15//Code//MNIST Digit//Data//Labels//t10k-labels.idx1-ubyte");
 	int correct = 0;
 
 	std::vector<int> totals(10);
@@ -289,7 +291,7 @@ int main()
 		++totals[max_i];
 		for (int j = 0; j < testLbls.current.rows(); ++j)
 			if (testLbls.current.at(j, 0) == 1 && j == max_i)
-				++correct;
+				++correct;				
 
 		if (i % 500 == 0 && i != 0)
 		{

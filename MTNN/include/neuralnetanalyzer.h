@@ -41,7 +41,7 @@ private:
 							float adj_error = net::global_error();
 
 							//approximate (finite differences)
-							float appr_grad = (adj_error - original_net_error) / .001f;
+							float appr_grad = -(adj_error - original_net_error) / .001f;
 
 							//add to total
 							if (!proportional)
@@ -71,7 +71,7 @@ private:
 							net::discriminate();
 
 							float adj_error = net::global_error();
-							float appr_grad = (adj_error - original_net_error) / .001f;
+							float appr_grad = -(adj_error - original_net_error) / .001f;
 
 							if (!proportional)
 								total_grad_error += abs(layer::biases_gradient[d].at(i, j) - appr_grad);
@@ -186,13 +186,13 @@ public:
 		n = 0;
 		original_net_error = net::global_error();
 
-		net::template loop_up_layers<add_grad_error_w>();
+		net::template loop_all_layers<add_grad_error_w>();
 		std::pair<float, float> errors{};
 		errors.first = total_grad_error / n;
 
 		total_grad_error = 0.0f;
 		n = 0;
-		net::template loop_up_layers<add_grad_error_b>();
+		net::template loop_all_layers<add_grad_error_b>();
 		errors.second = total_grad_error / n;
 
 		return errors;
@@ -208,13 +208,13 @@ public:
 		n = 0;
 		original_net_error = net::global_error();
 
-		net::template loop_up_layers<add_hess_error_w>();
+		net::template loop_all_layers<add_hess_error_w>();
 		std::pair<float, float> errors{};
 		errors.first = total_grad_error / n;
 
 		total_grad_error = 0.0f;
 		n = 0;
-		net::template loop_up_layers<add_hess_error_b>();
+		net::template loop_all_layers<add_hess_error_b>();
 		errors.second = total_grad_error / n;
 
 		return errors;
@@ -230,13 +230,13 @@ public:
 		n = 0;
 		original_net_error = net::global_error();
 
-		net::template loop_up_layers<add_grad_error_w>();
+		net::template loop_all_layers<add_grad_error_w>();
 		std::pair<float, float> errors{};
 		errors.first = total_grad_error / n;
 
 		total_grad_error = 0.0f;
 		n = 0;
-		net::template loop_up_layers<add_grad_error_b>();
+		net::template loop_all_layers<add_grad_error_b>();
 		errors.second = total_grad_error / n;
 
 		return errors;
@@ -252,13 +252,13 @@ public:
 		n = 0;
 		original_net_error = net::global_error();
 
-		net::template loop_up_layers<add_hess_error_w>();
+		net::template loop_all_layers<add_hess_error_w>();
 		std::pair<float, float> errors{};
 		errors.first = total_grad_error / n;
 
 		total_grad_error = 0.0f;
 		n = 0;
-		net::template loop_up_layers<add_hess_error_b>();
+		net::template loop_all_layers<add_hess_error_b>();
 		errors.second = total_grad_error / n;
 
 		return errors;
