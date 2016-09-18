@@ -726,7 +726,6 @@ public:
 	static constexpr size_t activation = activation_function;
 
 	static size_t n;
-	static size_t n_minibatch;
 	static bool mean_field;
 
 	static FeatureMap<features, rows, cols> feature_maps;
@@ -743,8 +742,6 @@ public:
 	static FeatureMap<(use_biases ? out_features * features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> biases_momentum;
 	static FeatureMap<out_features * features, kernel_size, kernel_size> weights_momentum;
 
-	static FeatureMap<0, 0, 0> activations_mean;
-	static FeatureMap<0, 0, 0> activations_variance;
 	static FeatureMap<0, 0, 0> activations_population_mean;
 	static FeatureMap<0, 0, 0> activations_population_variance;
 };
@@ -761,12 +758,9 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<out_features * features, kernel_size, kernel_size> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::weights_gradient = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<(use_biases ? out_features * features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::biases_momentum = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<out_features * features, kernel_size, kernel_size> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::weights_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<0, 0, 0> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::activations_mean = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<0, 0, 0> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::activations_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<0, 0, 0> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::activations_population_mean = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<0, 0, 0> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> size_t ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::n = 0;
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> size_t ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::n_minibatch = 0;
 
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases>
 class PerceptronFullConnectivityLayer : public Layer_Functions<features, rows, cols>
@@ -1081,7 +1075,6 @@ public:
 	static constexpr size_t activation = activation_function;
 
 	static size_t n;
-	static size_t n_minibatch;
 	static bool mean_field;
 
 	static FeatureMap<features, rows, cols> feature_maps;
@@ -1098,8 +1091,6 @@ public:
 	static FeatureMap<(use_biases ? out_features : 0), (use_biases ? out_rows : 0), (use_biases ? out_cols : 0)> biases_momentum;
 	static FeatureMap<1, (out_features * out_rows * out_cols), (features * rows * cols)> weights_momentum;
 
-	static FeatureMap<0, 0, 0> activations_mean;
-	static FeatureMap<0, 0, 0> activations_variance;
 	static FeatureMap<0, 0, 0> activations_population_mean;
 	static FeatureMap<0, 0, 0> activations_population_variance;
 };
@@ -1116,12 +1107,9 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t out_fea
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<1, (out_features * out_rows * out_cols), (features * rows * cols)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::weights_gradient = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<(use_biases ? out_features : 0), (use_biases ? out_rows : 0), (use_biases ? out_cols : 0)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::biases_momentum = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<1, (out_features * out_rows * out_cols), (features * rows * cols)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::weights_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<0, 0, 0> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::activations_mean = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<0, 0, 0> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::activations_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<0, 0, 0> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::activations_population_mean = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<0, 0, 0> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> size_t PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::n = 0;
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> size_t PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::n_minibatch = 0;
 
 template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function>
 class BatchNormalizationLayer : public Layer_Functions<features, rows, cols>
@@ -1136,10 +1124,10 @@ public:
 		for (size_t f = 0; f < features; ++f)
 			for (size_t i = 0; i < rows; ++i)
 				for (size_t j = 0; j < cols; ++j)
-					output[f].at(i, j) = activate(weights[f].at(i, j) * input[f].at(i, j)
-						/ sqrt(activations_population_variance[f].at(i, j) + min_divisor) + biases[f].at(i, j)
-						- activations_population_mean[f].at(i, j) * weights[f].at(i, j)
-						/ sqrt(activations_population_variance[f].at(i, j) + min_divisor), activation_function);
+					output[f].at(i, j) = activate(weights[f].at(i, j) *
+					(input[f].at(i, j) - activations_population_mean[f].at(i, j))
+						/ sqrt(activations_population_variance[f].at(i, j) + min_divisor)
+						+ biases[f].at(i, j), activation_function);
 	}
 
 	static void feed_backwards(FeatureMap<features, rows, cols>& output, FeatureMap<features, rows, cols>& input)
@@ -1165,7 +1153,7 @@ public:
 				for (size_t j = 0; j < cols; ++j)
 				{
 					float sumx = 0.0f;
-					float sumxsqr = 0.0f; //todo remove normal activations?
+					float sumxsqr = 0.0f;
 					size_t n_in = outputs.size();
 					//compute statistics
 					for (size_t in = 0; in < n_in; ++in)
@@ -1177,19 +1165,33 @@ public:
 
 					//apply to outputs
 					float mean = sumx / n_in;
+					float var = sumxsqr / n_in - mean * mean;
+					float std = sqrt(var + min_divisor);
+					float gamma = weights[f].at(i, j);
+					float beta = biases[f].at(i, j);
 					for (size_t in = 0; in < n_in; ++in)
-						outputs[in][f].at(i, j) = activate(weights[f].at(i, j) * (inputs[in][f].at(i, j) - mean)
-							/ sqrt(sumxsqr / n_in - 3 * mean * mean + min_divisor)
-							+ biases[f].at(i, j), activation_function);
+						outputs[in][f].at(i, j) = activate(gamma * (inputs[in][f].at(i, j) - mean)
+							/ std + beta, activation_function);
+
+					/*activations_population_mean[f].at(i, j) = mean;
+					activations_population_variance[f].at(i, j) = var;*/ //keeps relatively stable batch vs discriminatory values
 
 					//update population statistics
-					float old_mean = activations_population_mean[f].at(i, j);
-					float old_var = activations_population_variance[f].at(i, j);
-					float new_mean = (old_mean * n + sumx) / (n + n_in);
-					activations_population_mean[f].at(i, j) = new_mean;
-					activations_population_variance[f].at(i, j) = (n * (old_var + 3 * old_mean * old_mean)
-						+ sumxsqr) / (n + n_in) + 3 * new_mean * new_mean;
+					if (n == 0)
+					{
+						activations_population_mean[f].at(i, j) = mean;
+						activations_population_variance[f].at(i, j) = var;
+					}
 
+					else
+					{
+						float old_mean = activations_population_mean[f].at(i, j);
+						float old_var = activations_population_variance[f].at(i, j);
+						activations_population_mean[f].at(i, j) = (old_mean * n + mean) / (n + 1);
+						activations_population_variance[f].at(i, j) = (old_var * (n - 1) / n + var) * n / (n + 1);
+					}
+
+					++n; //fails completely due to / n w/ n == 0
 				}
 			}
 		}
@@ -1214,9 +1216,9 @@ public:
 				{
 					for (size_t j = 0; j < cols; ++j)
 					{
-						float mu = activations_mean[f].at(i, j);
+						float mu = activations_population_mean[f].at(i, j);
 						float div = activations_pre[f].at(i, j) - mu;
-						float std = sqrt(activations_variance[f].at(i, j) + min_divisor);
+						float std = sqrt(activations_population_variance[f].at(i, j) + min_divisor);
 
 						float xhat = div / std;
 						float d_out = deriv[f].at(i, j);
@@ -1234,7 +1236,7 @@ public:
 						}
 
 						out_deriv[f].at(i, j) = weights[f].at(i, j) / derivs.size() / std * (derivs.size() * d_out -
-							sumDeriv - div / (activations_variance[f].at(i, j) + min_divisor) * sumDiff);
+							sumDeriv - div / std * sumDiff);
 					}
 				}
 			}
@@ -1270,15 +1272,12 @@ public:
 
 	static const float min_divisor;
 	static size_t n;
-	static size_t n_minibatch;
 
 	static constexpr size_t type = CNN_LAYER_BATCHNORMALIZATION;
 	static constexpr size_t activation = CNN_FUNC_LINEAR;
 
 	static FeatureMap<features, rows, cols> feature_maps;
 
-	static FeatureMap<features, rows, cols> activations_mean; //todo
-	static FeatureMap<features, rows, cols> activations_variance;
 	static FeatureMap<features, rows, cols> activations_population_mean;
 	static FeatureMap<features, rows, cols> activations_population_variance;
 
@@ -1298,8 +1297,6 @@ public:
 
 //init static
 template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> FeatureMap<features, rows, cols> BatchNormalizationLayer<index, features, rows, cols, activation_function>::feature_maps = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> FeatureMap<features, rows, cols> BatchNormalizationLayer<index, features, rows, cols, activation_function>::activations_mean = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> FeatureMap<features, rows, cols> BatchNormalizationLayer<index, features, rows, cols, activation_function>::activations_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> FeatureMap<features, rows, cols> BatchNormalizationLayer<index, features, rows, cols, activation_function>::activations_population_mean = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> FeatureMap<features, rows, cols> BatchNormalizationLayer<index, features, rows, cols, activation_function>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> FeatureMap<features, rows, cols> BatchNormalizationLayer<index, features, rows, cols, activation_function>::biases = { 0 };
@@ -1313,7 +1310,6 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t activat
 template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> FeatureMap<0, 0, 0> BatchNormalizationLayer<index, features, rows, cols, activation_function>::generative_biases = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> const float BatchNormalizationLayer<index, features, rows, cols, activation_function>::min_divisor = .0001f;
 template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> size_t BatchNormalizationLayer<index, features, rows, cols, activation_function>::n = 0;
-template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> size_t BatchNormalizationLayer<index, features, rows, cols, activation_function>::n_minibatch = 0;
 
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols>
 class MaxpoolLayer : public Layer_Functions<features, rows, cols>
@@ -1505,7 +1501,6 @@ public:
 	static constexpr size_t activation = CNN_FUNC_LINEAR;
 
 	static size_t n;
-	static size_t n_minibatch;
 
 	static FeatureMap<features, rows, cols> feature_maps;
 	static FeatureMap<0, 0, 0> biases;
@@ -1521,8 +1516,6 @@ public:
 	static FeatureMap<0, 0, 0> biases_momentum;
 	static FeatureMap<0, 0, 0> weights_momentum;
 
-	static FeatureMap<0, 0, 0> activations_mean;
-	static FeatureMap<0, 0, 0> activations_variance;
 	static FeatureMap<0, 0, 0> activations_population_mean;
 	static FeatureMap<0, 0, 0> activations_population_variance;
 
@@ -1541,13 +1534,10 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t out_row
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights_gradient = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::biases_momentum = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::activations_mean = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::activations_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::activations_population_mean = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<features, out_rows, out_cols, std::pair<size_t, size_t>> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::switches = {};
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> size_t MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::n = 0;
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> size_t MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::n_minibatch = 0;
 
 template<size_t index, size_t features, size_t rows, size_t cols>
 class SoftMaxLayer : public Layer_Functions<features, rows, cols>
@@ -1665,7 +1655,6 @@ public:
 	static constexpr size_t activation = CNN_FUNC_LINEAR;
 
 	static size_t n;
-	static size_t n_minibatch;
 
 	static FeatureMap<features, rows, cols> feature_maps;
 	static FeatureMap<0, 0, 0> biases;
@@ -1681,8 +1670,6 @@ public:
 	static FeatureMap<0, 0, 0> biases_momentum;
 	static FeatureMap<0, 0, 0> weights_momentum;
 
-	static FeatureMap<0, 0, 0> activations_mean;
-	static FeatureMap<0, 0, 0> activations_variance;
 	static FeatureMap<0, 0, 0> activations_population_mean;
 	static FeatureMap<0, 0, 0> activations_population_variance;
 };
@@ -1698,12 +1685,9 @@ template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::weights_gradient = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::biases_momentum = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::weights_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::activations_mean = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::activations_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::activations_population_mean = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> size_t SoftMaxLayer<index, features, rows, cols>::n = 0;
-template<size_t index, size_t features, size_t rows, size_t cols> size_t SoftMaxLayer<index, features, rows, cols>::n_minibatch = 0;
 
 template<size_t index, size_t features, size_t rows, size_t cols>
 class InputLayer : public Layer_Functions<features, rows, cols>
@@ -1789,7 +1773,6 @@ public:
 	static constexpr size_t activation = CNN_FUNC_LINEAR;
 
 	static size_t n;
-	static size_t n_minibatch;
 
 	static FeatureMap<features, rows, cols> feature_maps;
 	static FeatureMap<0, 0, 0> biases;
@@ -1805,8 +1788,6 @@ public:
 	static FeatureMap<0, 0, 0> biases_momentum;
 	static FeatureMap<0, 0, 0> weights_momentum;
 
-	static FeatureMap<0, 0, 0> activations_mean;
-	static FeatureMap<0, 0, 0> activations_variance;
 	static FeatureMap<0, 0, 0> activations_population_mean;
 	static FeatureMap<0, 0, 0> activations_population_variance;
 };
@@ -1822,12 +1803,9 @@ template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::weights_gradient = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::biases_momentum = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::weights_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::activations_mean = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::activations_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::activations_population_mean = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> size_t InputLayer<index, features, rows, cols>::n = 0;
-template<size_t index, size_t features, size_t rows, size_t cols> size_t InputLayer<index, features, rows, cols>::n_minibatch = 0;
 
 template<size_t index, size_t features, size_t rows, size_t cols>
 class OutputLayer : public Layer_Functions<features, rows, cols>
@@ -1910,7 +1888,6 @@ public:
 	static constexpr size_t activation = CNN_FUNC_LINEAR;
 
 	static size_t n;
-	static size_t n_minibatch;
 
 	static FeatureMap<features, rows, cols> feature_maps;
 	static FeatureMap<0, 0, 0> biases;
@@ -1926,8 +1903,6 @@ public:
 	static FeatureMap<0, 0, 0> biases_momentum;
 	static FeatureMap<0, 0, 0> weights_momentum;
 
-	static FeatureMap<0, 0, 0> activations_mean;
-	static FeatureMap<0, 0, 0> activations_variance;
 	static FeatureMap<0, 0, 0> activations_population_mean;
 	static FeatureMap<0, 0, 0> activations_population_variance;
 };
@@ -1943,9 +1918,6 @@ template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::weights_gradient = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::biases_momentum = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::weights_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::activations_mean = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::activations_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::activations_population_mean = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> size_t OutputLayer<index, features, rows, cols>::n = 0;
-template<size_t index, size_t features, size_t rows, size_t cols> size_t OutputLayer<index, features, rows, cols>::n_minibatch = 0;

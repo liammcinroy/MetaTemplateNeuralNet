@@ -150,8 +150,9 @@ This is the class that encapsulates all of the rest. Has all required methods. W
 | `discriminate()` | `void` | Feeds the network forward |
 | `generate(FeatureMap<> input, size_t sampling_iterations, bool use_sampling)` | `FeatureMap<>` | Generates an output for an rbm network. `use_sampling` means sample for each layer after the markov iterations on the final RBM layer |
 | `pretrain()` | `void` | Pretrains the network using the wake-sleep algorithm. Assumes every layer upto the last RBM layer has been trained. |
-| `train()` | `void` | Trains the network using specified optimization method |
-| `train_batch(FeatureMap<> batch_inputs, FeatureMap<> batch_labels)` | `void` | Trains the network using specified optimization method and batch learning. MUST BE USED IF USING BATCH NORMALIZATION |
+| `train()` | `float` | Trains the network using specified optimization method |
+| `train_batch(FeatureMap<> batch_inputs, FeatureMap<> batch_labels)` | `float` | Trains the network using specified optimization method and batch learning. MUST BE USED IF USING BATCH NORMALIZATION |
+| `calculate_population_statistics(FeatureMapVector<> batch_inputs)` | `void` | Calculates the population statistics for BN networks. Do after all training with full training data. |
 | `template get_layer<size_t l> | `type` | Returns the lth layer's type |
 | `template loop_up_layers<template<size_t l> class loop_body> | `type` | Initialize one of these to perform a function specified from the initialization of a `loop_body` type on each layer |
 | `template loop_down_layers<template<size_t l> class loop_body> | `type` | Initialize one of these to perform a function specified from the initialization of a `loop_body` type on each layer |

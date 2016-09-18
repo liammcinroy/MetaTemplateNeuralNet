@@ -192,12 +192,9 @@ private:
 							{
 								write_float(layer::activations_population_mean[d].at(i, j), fp);
 								write_float(layer::activations_population_variance[d].at(i, j), fp);
-								write_float(layer::biases[d].at(i, j), fp);
-								write_float(layer::weights[d].at(i, j), fp);
 							}
 						}
 					}
-					return;
 				}
 
 				//begin weights values
@@ -269,12 +266,9 @@ private:
 							{
 								read_float(layer::activations_population_mean[d].at(i, j), fp);
 								read_float(layer::activations_population_variance[d].at(i, j), fp);
-								read_float(layer::biases[d].at(i, j), fp);
-								read_float(layer::weights[d].at(i, j), fp);
 							}
 						}
 					}
-					return;
 				}
 
 				//begin weights values
@@ -508,6 +502,51 @@ private:
 		}
 	};
 
+	template<size_t l> struct feed_forwards_pop_stats_impl
+	{
+	public:
+		feed_forwards_pop_stats_impl()
+		{
+			using layer = get_layer<l>;
+
+			//calculate statistics for batch normalization layer
+			auto& inputs = get_batch_activations<l>();
+			auto& outputs = get_batch_activations<l + 1>();
+			if (layer::type == CNN_LAYER_BATCHNORMALIZATION)
+			{
+				using t = decltype(layer::feature_maps);
+				for (size_t f = 0; f < t::size(); ++f)
+				{
+					for (size_t i = 0; i < t::rows(); ++i)
+					{
+						for (size_t j = 0; j < t::cols(); ++j)
+						{
+							float sumx = 0.0f;
+							float sumxsqr = 0.0f;
+							size_t n_in = outputs.size();
+							//compute statistics
+							for (size_t in = 0; in < n_in; ++in)
+							{
+								float x = inputs[in][f].at(i, j);
+								sumx += x;
+								sumxsqr += x * x;
+							}
+
+							//store stats
+							float mean = sumx / n_in;
+							layer::activations_population_mean[f].at(i, j) = mean;
+							layer::activations_population_variance[f].at(i, j) = sumxsqr / n_in - mean * mean;
+						}
+					}
+				}
+			}
+
+			//can't feed forward batch because batch norm will use sample statistics
+			for (size_t in = 0; in < inputs.size(); ++in)
+				layer::feed_forwards(inputs[in], outputs[in]);
+		}
+	};
+
 	template<size_t l> struct add_weight_decay_impl
 	{
 	public:
@@ -730,6 +769,8 @@ private:
 	template<size_t l> using feed_forwards_batch_layer = feed_forwards_batch_impl<l, false>;
 	template<size_t l> using feed_forwards_batch_training_layer = feed_forwards_batch_impl<l, true>;
 
+	template<size_t l> using feed_forwards_population_statistics_layer = feed_forwards_pop_stats_impl<l>;
+
 	template<size_t l> using feed_backwards_layer_nosample = feed_backwards_impl<l, false>;
 	template<size_t l> using feed_backwards_layer_sample = feed_backwards_impl<l, true>;
 
@@ -787,7 +828,7 @@ public:
 
 	//learning rate (should be positive)
 	static float learning_rate;
-	//only set if using hessian
+	//only set if using adagrad
 	static float minimum_divisor;
 	//only set if using momentum 
 	static float momentum_term;
@@ -821,9 +862,6 @@ private:
 	static FeatureMap<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()> error_signals();
 
 	static typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_outputs, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels);
-
-	//: implement or get rid of
-	//static void hessian_error_signals();
 
 public:
 
@@ -863,8 +901,8 @@ public:
 	//backprop for a batch with selected method, returns mean error by loss function
 	static float train_batch(FeatureMapVector<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()>& batch_input, FeatureMapVector<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()>& batch_labels);
 
-	//update second derivatives TODO: implement or get rid of
-	static void calculate_hessian(bool use_first_deriv, float gamma);
+	//compute the population statistics for BN networks
+	static void calculate_population_statistics(FeatureMapVector<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()>& batch_input);
 
 	//reset and apply gradient																  
 	static void apply_gradient();
@@ -970,11 +1008,11 @@ template<typename... layers>
 inline void NeuralNet<layers...>:: //todo: change output type
 discriminate()
 {
+	loop_all_layers<reset_layer_feature_maps>();
 	for (size_t f = 0; f < get_layer<0>::feature_maps.size(); ++f)
 		for (size_t i = 0; i < get_layer<0>::feature_maps.rows(); ++i)
 			for (size_t j = 0; j < get_layer<0>::feature_maps.cols(); ++j)
 				get_layer<0>::feature_maps[f].at(i, j) = input[f].at(i, j);
-	for_loop<1, last_layer_index, 1, reset_layer_feature_maps>();
 	loop_up_layers<feed_forwards_layer>();
 }
 
@@ -983,7 +1021,7 @@ inline FeatureMap<get_type<0, layers...>::feature_maps.size(), get_type<0, layer
 generate(FeatureMap<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()>& input, size_t iterations, bool use_sampling)
 {
 	//reset all but output (or inputs?)
-	loop_up_layers<reset_layer_feature_maps>();
+	loop_all_layers<reset_layer_feature_maps>();
 	get_layer<last_layer_index>::feed_backwards(input);
 
 	for_loop<last_layer_index - 1, last_rbm_index, 1, feed_backwards_layer_nosample>();
@@ -1015,7 +1053,7 @@ inline void NeuralNet<layers...>::
 pretrain(size_t markov_iterations)
 {
 	//reset input
-	loop_up_layers<reset_layer_feature_maps>();
+	loop_all_layers<reset_layer_feature_maps>();
 	for (size_t f = 0; f < get_layer<0>::feature_maps.size(); ++f)
 		for (size_t i = 0; i < get_layer<0>::feature_maps.rows(); ++i)
 			for (size_t j = 0; j < get_layer<0>::feature_maps.cols(); ++j)
@@ -1104,6 +1142,15 @@ train_batch(FeatureMapVector<get_type<0, layers...>::feature_maps.size(), get_ty
 	apply_gradient();
 	use_batch_learning = temp_batch;
 	return total_error / batch_inputs.size();
+}
+
+template<typename... layers>
+inline void NeuralNet<layers...>::
+calculate_population_statistics(FeatureMapVector<get_type<0, layers...>::feature_maps.size(), get_type<0, layers...>::feature_maps.rows(), get_type<0, layers...>::feature_maps.cols()>& batch_inputs)
+{
+	//put in inputs
+	get_layer<0>::feed_forwards(batch_inputs, get_batch_activations<1>());
+	for_loop<1, last_layer_index - 1, 1, feed_forwards_population_statistics_layer>();
 }
 
 template<typename... layers>
