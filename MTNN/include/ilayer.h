@@ -45,8 +45,7 @@ template <size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s, bool u
 	static Matrix2D<float, r, c> convolve_back_weight_hessian(Matrix2D<float, r, c>& input, Matrix2D<float, kernel_r, kernel_c>& kernel);
 };
 
-template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s> struct
-conv_helper_funcs<r, c, kernel_r, kernel_c, s, false>
+template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s> struct conv_helper_funcs<r, c, kernel_r, kernel_c, s, false>
 {
 	static Matrix2D<float, (r - kernel_r) / s + 1, (c - kernel_c) / s + 1> convolve(Matrix2D<float, r, c>& input, Matrix2D<float, kernel_r, kernel_c>& kernel)
 	{
@@ -394,8 +393,7 @@ public:
 
 //START ACTUAL LAYERS
 
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding>
-class ConvolutionLayer : public Layer_Functions<features, rows, cols>
+template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> class ConvolutionLayer : public Layer_Functions<features, rows, cols>
 {
 public:
 	ConvolutionLayer() = default;
@@ -503,20 +501,16 @@ public:
 					{
 						for (size_t j = 0; j < kernel_size; ++j)
 						{
-							weights[f_0 * features + f].at(i, j) += -learning_rate * (weights_gradient[f_0 * features + f].at(i, j)
-								+ momentum_term * weights_momentum[f_0 * features + f].at(i, j));
-							weights_momentum[f_0 * features + f].at(i, j) = momentum_term * weights_momentum[f_0 * features + f].at(i, j)
-								+ weights_gradient[f_0 * features + f].at(i, j);
+							weights[f_0 * features + f].at(i, j) += -learning_rate * (weights_gradient[f_0 * features + f].at(i, j) + momentum_term * weights_momentum[f_0 * features + f].at(i, j));
+							weights_momentum[f_0 * features + f].at(i, j) = momentum_term * weights_momentum[f_0 * features + f].at(i, j) + weights_gradient[f_0 * features + f].at(i, j);
 							weights_gradient[f_0 * features + f].at(i, j) = 0;
 						}
 					}
 
 					if (use_biases)
 					{
-						biases[f_0 * features + f].at(0, 0) += -learning_rate * (biases_gradient[f_0 * features + f].at(0, 0)
-							+ momentum_term * biases_momentum[f_0 * features + f].at(0, 0));
-						biases_momentum[f_0 * features + f].at(0, 0) = momentum_term * biases_momentum[f_0 * features + f].at(0, 0)
-							+ biases_gradient[f_0 * features + f].at(0, 0);
+						biases[f_0 * features + f].at(0, 0) += -learning_rate * (biases_gradient[f_0 * features + f].at(0, 0) + momentum_term * biases_momentum[f_0 * features + f].at(0, 0));
+						biases_momentum[f_0 * features + f].at(0, 0) = momentum_term * biases_momentum[f_0 * features + f].at(0, 0) + biases_gradient[f_0 * features + f].at(0, 0);
 						biases_gradient[f_0 * features + f].at(0, 0) = 0;
 					}
 				}
@@ -560,8 +554,7 @@ public:
 	static void back_prop(size_t previous_layer_activation, FeatureMapVector<out_features, (use_padding ? rows : (rows - kernel_size) / stride + 1), (use_padding ? cols : (cols - kernel_size) / stride + 1)>& derivs, FeatureMapVector<features, rows, cols>& activations_pre_vec, FeatureMapVector<features, rows, cols>& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
 	{
 		for (size_t in = 0; in < derivs.size(); ++in)
-			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in],
-				false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
+			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
 	}
 
 	static void wake_sleep(float& learning_rate, size_t markov_iterations, bool use_dropout)
@@ -746,7 +739,7 @@ public:
 	static FeatureMap<0, 0, 0> activations_population_variance;
 };
 
-//initialize static todo add custom
+//initialize static
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> bool ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::mean_field = false;
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<features, rows, cols> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::feature_maps = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<(use_biases ? out_features * features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::biases = { 0, .1f };
@@ -762,8 +755,7 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<0, 0, 0> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> size_t ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::n = 0;
 
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases>
-class PerceptronFullConnectivityLayer : public Layer_Functions<features, rows, cols>
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> class PerceptronFullConnectivityLayer : public Layer_Functions<features, rows, cols>
 {
 public:
 	PerceptronFullConnectivityLayer() = default;
@@ -811,13 +803,9 @@ public:
 						//go through every neuron in output layer and add it to this neuron
 						float sum = 0.0f;
 						for (size_t i_0 = 0; i_0 < out_rows; ++i_0)
-						{
 							for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
-							{
-								sum += weights[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j)
-									* input[f_0].at(i_0, j_0);
-							}
-						}
+								sum += weights[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) * input[f_0].at(i_0, j_0);
+
 						if (use_biases && activation_function == CNN_FUNC_RBM)
 							sum += generative_biases[f].at(i, j);
 						output[f].at(i, j) = activate(sum, activation_function);
@@ -870,16 +858,14 @@ public:
 							for (size_t j = 0; j < cols; ++j)
 							{
 								//update deltas
-								out_deriv[f].at(i, j) += deriv[f_0].at(i_0, j_0)
-									* weights[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
+								out_deriv[f].at(i, j) += deriv[f_0].at(i_0, j_0) * weights[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
 
 								//normal derivative
 								weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) += deriv[f_0].at(i_0, j_0) * activations_pre[f].at(i, j);
 
 								//L2 decay
 								if (use_l2_weight_decay && online)
-									weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) +=
-									2 * weight_decay_factor * weights[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
+									weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) += 2 * weight_decay_factor * weights[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
 
 								//hessian
 								/*if (use_hessian && online)
@@ -889,12 +875,8 @@ public:
 								//Online updates
 								if (use_momentum && online)
 								{
-									weights[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) +=
-										-learning_rate * (weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j)
-											+ momentum_term * weights_momentum[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j));
-									weights_momentum[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) =
-										momentum_term * weights_momentum[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j)
-										+ weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
+									weights[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) += -learning_rate * (weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) + momentum_term * weights_momentum[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j));
+									weights_momentum[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) = momentum_term * weights_momentum[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) + weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
 									weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) = 0;
 								}
 
@@ -930,8 +912,7 @@ public:
 	static void back_prop(size_t previous_layer_activation, FeatureMapVector<out_features, out_rows, out_cols>& derivs, FeatureMapVector<features, rows, cols>& activations_pre_vec, FeatureMapVector<features, rows, cols>& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
 	{
 		for (size_t in = 0; in < derivs.size(); ++in)
-			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in],
-				false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
+			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
 	}
 
 	static void wake_sleep(float& learning_rate, size_t markov_iterations, bool use_dropout)
@@ -1111,8 +1092,7 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t out_fea
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<0, 0, 0> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> size_t PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::n = 0;
 
-template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function>
-class BatchNormalizationLayer : public Layer_Functions<features, rows, cols>
+template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> class BatchNormalizationLayer : public Layer_Functions<features, rows, cols>
 {
 public:
 	BatchNormalizationLayer() = default;
@@ -1124,10 +1104,7 @@ public:
 		for (size_t f = 0; f < features; ++f)
 			for (size_t i = 0; i < rows; ++i)
 				for (size_t j = 0; j < cols; ++j)
-					output[f].at(i, j) = activate(weights[f].at(i, j) *
-					(input[f].at(i, j) - activations_population_mean[f].at(i, j))
-						/ sqrt(activations_population_variance[f].at(i, j) + min_divisor)
-						+ biases[f].at(i, j), activation_function);
+					output[f].at(i, j) = activate(weights[f].at(i, j) * (input[f].at(i, j) - activations_population_mean[f].at(i, j)) / sqrt(activations_population_variance[f].at(i, j) + min_divisor) + biases[f].at(i, j), activation_function);
 	}
 
 	static void feed_backwards(FeatureMap<features, rows, cols>& output, FeatureMap<features, rows, cols>& input)
@@ -1170,11 +1147,14 @@ public:
 					float gamma = weights[f].at(i, j);
 					float beta = biases[f].at(i, j);
 					for (size_t in = 0; in < n_in; ++in)
-						outputs[in][f].at(i, j) = activate(gamma * (inputs[in][f].at(i, j) - mean)
-							/ std + beta, activation_function);
+						outputs[in][f].at(i, j) = activate(gamma * (inputs[in][f].at(i, j) - mean) / std + beta, activation_function);
 
 					/*activations_population_mean[f].at(i, j) = mean;
 					activations_population_variance[f].at(i, j) = var;*/ //keeps relatively stable batch vs discriminatory values
+
+					//set minibatch stats
+					biases_aux_data[f].at(i, j) = mean;
+					weights_aux_data[f].at(i, j) = var;
 
 					//update population statistics
 					if (n == 0)
@@ -1187,8 +1167,9 @@ public:
 					{
 						float old_mean = activations_population_mean[f].at(i, j);
 						float old_var = activations_population_variance[f].at(i, j);
-						activations_population_mean[f].at(i, j) = (old_mean * n + mean) / (n + 1);
-						activations_population_variance[f].at(i, j) = (old_var * (n - 1) / n + var) * n / (n + 1);
+						float momentum = .8f;
+						activations_population_mean[f].at(i, j) = (1 - momentum) * mean + momentum * old_mean;//(old_mean * n + mean) / (n + 1);
+						activations_population_variance[f].at(i, j) = (1 - momentum) * var + momentum * old_var;//(old_var * (n - 1) / n + var) * n / (n + 1);
 					}
 
 					++n; //fails completely due to / n w/ n == 0
@@ -1216,9 +1197,9 @@ public:
 				{
 					for (size_t j = 0; j < cols; ++j)
 					{
-						float mu = activations_population_mean[f].at(i, j);
+						float mu = biases_aux_data[f].at(i, j); //todo: change from population to minibatch
 						float div = activations_pre[f].at(i, j) - mu;
-						float std = sqrt(activations_population_variance[f].at(i, j) + min_divisor);
+						float std = sqrt(weights_aux_data[f].at(i, j) + min_divisor);
 
 						float xhat = div / std;
 						float d_out = deriv[f].at(i, j);
@@ -1235,8 +1216,7 @@ public:
 							sumDiff += d_outj * (activations_pre_vec[in2][f].at(i, j) - mu);
 						}
 
-						out_deriv[f].at(i, j) = weights[f].at(i, j) / derivs.size() / std * (derivs.size() * d_out -
-							sumDeriv - div / std * sumDiff);
+						out_deriv[f].at(i, j) = weights[f].at(i, j) / derivs.size() / std * (derivs.size() * d_out - sumDeriv - div / std * sumDiff);
 					}
 				}
 			}
@@ -1274,7 +1254,7 @@ public:
 	static size_t n;
 
 	static constexpr size_t type = CNN_LAYER_BATCHNORMALIZATION;
-	static constexpr size_t activation = CNN_FUNC_LINEAR;
+	static constexpr size_t activation = activation_function;
 
 	static FeatureMap<features, rows, cols> feature_maps;
 
@@ -1288,8 +1268,8 @@ public:
 	static FeatureMap<features, rows, cols> weights_gradient;
 
 	static FeatureMap<0, 0, 0> generative_biases;
-	static FeatureMap<features, rows, cols> biases_aux_data; //for sum of d/dy[loss]
-	static FeatureMap<features, rows, cols> weights_aux_data; //for sum of x * d/dy[loss] todo
+	static FeatureMap<features, rows, cols> biases_aux_data;
+	static FeatureMap<features, rows, cols> weights_aux_data;
 
 	static FeatureMap<features, rows, cols> biases_momentum;
 	static FeatureMap<features, rows, cols> weights_momentum;
@@ -1311,8 +1291,7 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t activat
 template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> const float BatchNormalizationLayer<index, features, rows, cols, activation_function>::min_divisor = .0001f;
 template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> size_t BatchNormalizationLayer<index, features, rows, cols, activation_function>::n = 0;
 
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols>
-class MaxpoolLayer : public Layer_Functions<features, rows, cols>
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> class MaxpoolLayer : public Layer_Functions<features, rows, cols>
 {
 public:
 	MaxpoolLayer() = default;
@@ -1446,8 +1425,7 @@ public:
 	static void back_prop(size_t previous_layer_activation, FeatureMapVector<features, out_rows, out_cols>& derivs, FeatureMapVector<features, rows, cols>& activations_pre_vec, FeatureMapVector<features, rows, cols>& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
 	{
 		for (size_t in = 0; in < derivs.size(); ++in)
-			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in],
-				false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
+			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
 	}
 
 	//static void back_prop_second(size_t previous_layer_activation, FeatureMap<features, out_rows, out_cols>& deriv, FeatureMap<features, out_rows, out_cols>& deriv_first_in, FeatureMap<features, rows, cols>& deriv_first_out, bool use_first_deriv, float gamma)
@@ -1539,8 +1517,7 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t out_row
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<features, out_rows, out_cols, std::pair<size_t, size_t>> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::switches = {};
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> size_t MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::n = 0;
 
-template<size_t index, size_t features, size_t rows, size_t cols>
-class SoftMaxLayer : public Layer_Functions<features, rows, cols>
+template<size_t index, size_t features, size_t rows, size_t cols> class SoftMaxLayer : public Layer_Functions<features, rows, cols>
 {
 public:
 	SoftMaxLayer() = default;
@@ -1615,8 +1592,7 @@ public:
 	static void back_prop(size_t previous_layer_activation, FeatureMapVector<features, rows, cols>& derivs, FeatureMapVector<features, rows, cols>& activations_pre_vec, FeatureMapVector<features, rows, cols>& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
 	{
 		for (size_t in = 0; in < derivs.size(); ++in)
-			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in],
-				false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
+			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
 	}
 
 	//static void back_prop_second(size_t previous_layer_activation, FeatureMap<features, rows, cols>& deriv, FeatureMap<features, rows, cols>& deriv_first_in, FeatureMap<features, rows, cols>& deriv_first_out, bool use_first_deriv, float gamma)
@@ -1689,8 +1665,7 @@ template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> size_t SoftMaxLayer<index, features, rows, cols>::n = 0;
 
-template<size_t index, size_t features, size_t rows, size_t cols>
-class InputLayer : public Layer_Functions<features, rows, cols>
+template<size_t index, size_t features, size_t rows, size_t cols> class InputLayer : public Layer_Functions<features, rows, cols>
 {
 public:
 	InputLayer() = default;
@@ -1740,8 +1715,7 @@ public:
 	static void back_prop(size_t previous_layer_activation, FeatureMapVector<features, rows, cols>& derivs, FeatureMapVector<features, rows, cols>& activations_pre_vec, FeatureMapVector<features, rows, cols>& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
 	{
 		for (size_t in = 0; in < derivs.size(); ++in)
-			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in],
-				false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
+			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
 	}
 
 	//static void back_prop_second(size_t previous_layer_activation, FeatureMap<features, rows, cols>& deriv, FeatureMap<features, rows, cols>& deriv_first_in, FeatureMap<features, rows, cols>& deriv_first_out, bool use_first_deriv, float gamma)
@@ -1807,8 +1781,7 @@ template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> size_t InputLayer<index, features, rows, cols>::n = 0;
 
-template<size_t index, size_t features, size_t rows, size_t cols>
-class OutputLayer : public Layer_Functions<features, rows, cols>
+template<size_t index, size_t features, size_t rows, size_t cols> class OutputLayer : public Layer_Functions<features, rows, cols>
 {
 public:
 	OutputLayer() = default;
@@ -1856,8 +1829,7 @@ public:
 	static void back_prop(size_t previous_layer_activation, FeatureMapVector<features, rows, cols>& derivs, FeatureMapVector<features, rows, cols>& activations_pre_vec, FeatureMapVector<features, rows, cols>& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
 	{
 		for (size_t in = 0; in < derivs.size(); ++in)
-			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in],
-				false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
+			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
 	}
 
 	//static void back_prop_second(size_t previous_layer_activation, FeatureMap<features, rows, cols>& deriv, FeatureMap<features, rows, cols>& deriv_first_in, FeatureMap<features, rows, cols>& deriv_first_out, bool use_first_deriv, float gamma)

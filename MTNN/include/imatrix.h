@@ -155,39 +155,40 @@ public:
 		return c;
 	}
 
+	using type = Matrix2D<T, r, c>;
+
 private:
 	std::array<Matrix2D<T, r, c>, f> maps;
 };
 
-template<typename T, size_t rows1, size_t cols1, size_t rows2, size_t cols2> Matrix2D<T, rows1, cols2>
-	operator*(const Matrix2D<T, rows1, cols1>& lhs, const Matrix2D <T, rows2, cols2>& rhs)
+template<typename T, size_t rows1, size_t cols1, size_t rows2, size_t cols2> Matrix2D<T, rows1, cols2> operator*(const Matrix2D<T, rows1, cols1>& lhs, const Matrix2D <T, rows2, cols2>& rhs)
+{
+	Matrix2D<T, rows1, cols2> result{};
+	for (size_t i = 0; i < rows1; ++i)
 	{
-		Matrix2D<T, rows1, cols2> result{};
-		for (size_t i = 0; i < rows1; ++i)
+		for (size_t j = 0; j < cols2; ++j)
 		{
-			for (size_t j = 0; j < cols2; ++j)
-			{
-				T sum();
-				for (size_t i2 = 0; i2 < rows2; ++i2)
-					sum += lhs.at(i, i2) * rhs.at(i2, j);
-				result.at(i, j) = sum;
-			}
+			T sum();
+			for (size_t i2 = 0; i2 < rows2; ++i2)
+				sum += lhs.at(i, i2) * rhs.at(i2, j);
+			result.at(i, j) = sum;
 		}
-		return result;
 	}
+	return result;
+}
 
-	//Adds two matricies, stores in the first
-	template<typename T, size_t rows, size_t cols> void add(Matrix2D<T, rows, cols>& first, const Matrix2D<T, rows, cols>& second)
-	{
-		for (size_t i = 0; i < rows; ++i)
-			for (size_t j = 0; j < cols; ++j)
-				first.at(i, j) += second.at(i, j);
-	}
+//Adds two matricies, stores in the first
+template<typename T, size_t rows, size_t cols> void add(Matrix2D<T, rows, cols>& first, const Matrix2D<T, rows, cols>& second)
+{
+	for (size_t i = 0; i < rows; ++i)
+		for (size_t j = 0; j < cols; ++j)
+			first.at(i, j) += second.at(i, j);
+}
 
-	//Adds two matricies, but first second is multiplied by mult, stores in the first
-	template<typename T, size_t rows, size_t cols> void add(Matrix2D<T, rows, cols>& first, const Matrix2D<T, rows, cols>& second, const T& mult)
-	{
-		for (size_t i = 0; i < rows; ++i)
-			for (size_t j = 0; j < cols; ++j)
-				first.at(i, j) += second.at(i, j) * mult;
-	}
+//Adds two matricies, but first second is multiplied by mult, stores in the first
+template<typename T, size_t rows, size_t cols> void add(Matrix2D<T, rows, cols>& first, const Matrix2D<T, rows, cols>& second, const T& mult)
+{
+	for (size_t i = 0; i < rows; ++i)
+		for (size_t j = 0; j < cols; ++j)
+			first.at(i, j) += second.at(i, j) * mult;
+}
