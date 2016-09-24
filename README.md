@@ -41,7 +41,7 @@ Available activation functions are linear (y = x), sigmoid (y = 1/(1 + exp(-x)),
 
 Available loss functions are quadratic, cross entropy, log likelihood, and custom targets.
 
-Available optimization methods are vanilla backprop (with momentum/levenberg marquardt as desired), Adam, and Adagrad.
+Available optimization methods are vanilla backprop (with momentum, l2 weight decay, etc. as desired), Adam, and Adagrad.
 
 
 ###Matrix2D<T, int, int>

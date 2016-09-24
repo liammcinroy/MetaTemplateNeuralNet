@@ -40,9 +40,7 @@ template <size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s, bool u
 {
 	static Matrix2D<float, (use_pad ? r : (r - kernel_r) / s + 1), (use_pad ? c : (c - kernel_c) / s + 1)> convolve(Matrix2D<float, r, c>& input, Matrix2D<float, kernel_r, kernel_c>& kernel);
 	static void back_prop_kernel(Matrix2D<float, r, c>& input, Matrix2D<float, (use_pad ? r : (r - kernel_r) / s + 1), (use_pad ? c : (c - kernel_c) / s + 1)>& output, Matrix2D<float, kernel_r, kernel_c>& kernel_gradient);
-	static void back_prop_kernel_hessian(Matrix2D<float, r, c>& input, Matrix2D<float, (use_pad ? r : (r - kernel_r) / s + 1), (use_pad ? c : (c - kernel_c) / s + 1)>& output, Matrix2D<float, kernel_r, kernel_c>& kernel_hessian, float gamma);
 	static Matrix2D<float, r, c> convolve_back(Matrix2D<float, (use_pad ? r : (r - kernel_r) / s + 1), (use_pad ? c : (c - kernel_c) / s + 1)>& input, Matrix2D<float, kernel_r, kernel_c>& kernel);
-	static Matrix2D<float, r, c> convolve_back_weight_hessian(Matrix2D<float, r, c>& input, Matrix2D<float, kernel_r, kernel_c>& kernel);
 };
 
 template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s> struct conv_helper_funcs<r, c, kernel_r, kernel_c, s, false>
@@ -98,34 +96,6 @@ template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s> struct 
 		}
 	}
 
-	static void back_prop_kernel_hessian(Matrix2D<float, r, c>& input, Matrix2D<float, (r - kernel_r) / s + 1, (c - kernel_c) / s + 1>& output, Matrix2D<float, kernel_r, kernel_c>& kernel_hessian, float gamma)
-	{
-		int N = (kernel_r - 1) / 2;
-		int M = (kernel_c - 1) / 2;
-		constexpr size_t out_r = (r - kernel_r) / s + 1;
-		constexpr size_t out_c = (c - kernel_c) / s + 1;
-
-		size_t i_0 = 0;
-		size_t j_0 = 0;
-
-		//change focus of kernel
-		for (size_t i = N; i < (r - N); i += s)
-		{
-			for (size_t j = M; j < (c - M); j += s)
-			{
-				//iterate over kernel
-				float sum = 0;
-				float out = output.at(i_0, j_0);
-				for (int n = N; n >= -N; --n)
-					for (int m = M; m >= -M; --m)
-						kernel_hessian.at(N - n, M - m) += gamma * input.at(i - n, j - m) * input.at(i - n, j - m) * out;
-				j_0++;
-			}
-			j_0 = 0;
-			++i_0;
-		}
-	}
-
 	static Matrix2D<float, r, c> convolve_back(Matrix2D<float, (r - kernel_r) / s + 1, (c - kernel_c) / s + 1>& input, Matrix2D<float, kernel_r, kernel_c>& kernel)
 	{
 		int N = (kernel_r - 1) / 2;
@@ -143,31 +113,6 @@ template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s> struct 
 				for (int n = N; n >= -N; --n)
 					for (int m = M; m >= -M; --m)
 						output.at(i - n, j - m) += kernel.at(N - n, M - m) * input.at(times_down, times_across);
-				++times_across;
-			}
-			times_across = 0;
-			++times_down;
-		}
-		return output;
-	}
-
-	static Matrix2D<float, r, c> convolve_back_weight_hessian(Matrix2D<float, (r - kernel_r) / s + 1, (c - kernel_c) / s + 1>& input, Matrix2D<float, kernel_r, kernel_c>& kernel)
-	{
-		int N = (kernel_r - 1) / 2;
-		int M = (kernel_c - 1) / 2;
-		Matrix2D<float, r, c> output = { 0 };
-
-		size_t times_across = 0;
-		size_t times_down = 0;
-
-		for (size_t i = N; i < (r - N); i += s)
-		{
-			for (size_t j = M; j < (c - M); j += s)
-			{
-				//find all possible ways convolved size_to
-				for (int n = N; n >= -N; --n)
-					for (int m = M; m >= -M; --m)
-						output.at(i - n, j - m) += kernel.at(N - n, M - m) * kernel.at(N - n, M - m) * input.at(times_down, times_across);
 				++times_across;
 			}
 			times_across = 0;
@@ -231,34 +176,6 @@ template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s> struct 
 		}
 	}
 
-	static void back_prop_kernel_hessian(Matrix2D<float, r, c>& input, Matrix2D<float, r, c>& output, Matrix2D<float, kernel_r, kernel_c>& kernel_hessian, float gamma)
-	{
-		int N = (kernel_r - 1) / 2;
-		int M = (kernel_c - 1) / 2;
-		constexpr size_t out_r = (r - kernel_r) / s + 1;
-		constexpr size_t out_c = (c - kernel_c) / s + 1;
-
-		size_t i_0 = 0;
-		size_t j_0 = 0;
-
-		//change focus of kernel
-		for (size_t i = 0; i < r; i += s)
-		{
-			for (size_t j = 0; j < c; j += s)
-			{
-				//iterate over kernel
-				float sum = 0;
-				float out = output.at(i_0, j_0);
-				for (int n = N; n >= -N; --n)
-					for (int m = M; m >= -M; --m)
-						kernel_hessian.at(N - n, M - m) += gamma * out * (i < 0 || i >= r || j < 0 || j >= c ? 0 : input.at(i - n, j - m) * input.at(i - n, j - m));
-				j_0++;
-			}
-			j_0 = 0;
-			++i_0;
-		}
-	}
-
 	static Matrix2D<float, r, c> convolve_back(Matrix2D<float, r, c>& input, Matrix2D<float, kernel_r, kernel_c>& kernel)
 	{
 		int N = (kernel_r - 1) / 2;
@@ -283,31 +200,6 @@ template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s> struct 
 		}
 		return output;
 	}
-
-	static Matrix2D<float, r, c> convolve_back_weight_hessian(Matrix2D<float, r, c>& input, Matrix2D<float, kernel_r, kernel_c>& kernel)
-	{
-		int N = (kernel_r - 1) / 2;
-		int M = (kernel_c - 1) / 2;
-		Matrix2D<float, r, c> output = { 0 };
-
-		size_t times_across = 0;
-		size_t times_down = 0;
-
-		for (size_t i = 0; i < r; i += s)
-		{
-			for (size_t j = 0; j < c; j += s)
-			{
-				//find all possible ways convolved size_to
-				for (int n = N; n >= -N; --n)
-					for (int m = M; m >= -M; --m)
-						output.at(i - n, j - m) += kernel.at(N - n, M - m) * kernel.at(N - n, M - m) * (i < 0 || i >= r || j < 0 || j >= c ? 0 : input.at(times_down, times_across));
-				++times_across;
-			}
-			times_across = 0;
-			++times_down;
-		}
-		return output;
-	}
 };
 
 //helper functions class
@@ -322,14 +214,6 @@ public:
 			for (int i = 0; i < row; ++i)
 				for (int j = 0; j < col; ++j)
 					fm[f].at(i, j) *= activation_derivative(o_fm[f].at(i, j), activation);
-	}
-
-	static void chain_second_activations(FeatureMap<feature, row, col>& fm, FeatureMap<feature, row, col>& o_fm, size_t activation)
-	{
-		for (size_t f = 0; f < feature; ++f)
-			for (int i = 0; i < row; ++i)
-				for (int j = 0; j < col; ++j)
-					fm[f].at(i, j) *= activation_second_derivative(o_fm[f].at(i, j), activation);
 	}
 
 	static inline float activate(float value, size_t activation)
@@ -362,22 +246,6 @@ public:
 			return (0.66666667f / 1.7159f * (1.7159f + value) * (1.7159f - value));
 		else if (activation == CNN_FUNC_RELU)
 			return value > 0 ? 1.0f : 0.0f;
-	}
-
-	static inline float activation_second_derivative(float value, size_t activation)
-	{
-		if (activation == CNN_FUNC_LINEAR)
-			return 0;
-		else if (activation == CNN_FUNC_LOGISTIC || activation == CNN_FUNC_RBM)
-			return value * (1 - value) * (1 - 2 * value);
-		else if (activation == CNN_FUNC_BIPOLARLOGISTIC)
-			return (1 + value) * (1 - value) * value / 2;
-		else if (activation == CNN_FUNC_TANH)
-			return (2 * ((value * value) - 1) * value);
-		else if (activation == CNN_FUNC_TANHLECUN)
-			return (2 * (0.66666667f * 0.66666667f) / (1.7159f * 1.7159f) * (value + 1.7159f) * (value - 1.7159f) * (value));
-		else if (activation == CNN_FUNC_RELU)
-			return 0;
 	}
 
 	template<size_t f = feat, size_t r = row, size_t c = col>
@@ -472,12 +340,6 @@ public:
 						for (size_t j = 0; j < kernel_size; ++j)
 							weights_gradient[f_0 * features + f].at(i, j) += weights[f_0 * features + f].at(i, j);
 
-				//apply hessian adjustment
-				/*if (use_hessian && online)
-				for (size_t i = 0; i < kernel_size; ++i)
-				for (size_t j = 0; j < kernel_size; ++j)
-				weights_gradient[f_0 * features + f].at(i, j) /= (weights_aux_data[f_0 * features + f].at(i, j) + mu);*/
-
 				if (use_biases)
 				{
 					//normal derivative
@@ -488,10 +350,6 @@ public:
 					//l2 weight decay
 					if (use_l2_weight_decay && include_biases_decay && online)
 						biases_gradient[f_0 * features + f].at(0, 0) += 2 * weight_decay_factor * biases[f_0 * features + f].at(0, 0);
-
-					//apply hessian adjustment
-					/*if (use_hessian && online)
-					biases_gradient[f_0 * features + f].at(0, 0) /= (biases_aux_data[f_0 * features + f].at(0, 0) + mu);*/
 				}
 
 				//update for online
@@ -641,80 +499,6 @@ public:
 						generative_biases[f].at(i, j) += -learning_rate * (feature_maps[f].at(i, j) - original[f].at(i, j));
 	}
 
-	//static void back_prop_second(size_t previous_layer_activation, FeatureMap<out_features, (use_padding ? rows : (rows - kernel_size) / stride + 1), (use_padding ? cols : (cols - kernel_size) / stride + 1)>& deriv, FeatureMap<out_features, (use_padding ? rows : (rows - kernel_size) / stride + 1), (use_padding ? cols : (cols - kernel_size) / stride + 1)>& deriv_first_in, FeatureMap<features, rows, cols>& deriv_first_out, bool use_first_deriv, float gamma)
-	//{
-	//	constexpr size_t out_rows = use_padding ? rows : (rows - kernel_size) / stride + 1;
-	//	constexpr size_t out_cols = use_padding ? cols : (cols - kernel_size) / stride + 1;
-
-	//	FeatureMap<features, rows, cols> activations_pre = { 0 };
-	//	for (size_t f = 0; f < features; ++f)
-	//	{
-	//		activations_pre[f] = feature_maps[f].clone();
-	//		for (size_t i = 0; i < rows; ++i)
-	//			for (size_t j = 0; j < cols; ++j)
-	//				feature_maps[f].at(i, j) = 0;
-	//	}
-
-	//	//adjust by 1 - gamma
-	//	for (size_t d = 0; d < features * out_features; ++d)
-	//		for (size_t i = 0; i < kernel_size; ++i)
-	//			for (size_t j = 0; j < kernel_size; ++j)
-	//				weights_aux_data[d].at(i, j) *= (1 - gamma);
-	//	if (use_biases)
-	//		for (size_t d = 0; d < features * out_features; ++d)
-	//			biases_aux_data.at(d).at(0, 0) *= (1 - gamma);
-
-	//	//adjust gradients and update features
-	//	for (size_t f_0 = 0; f_0 < out_features; ++f_0)
-	//	{
-	//		//update hessian
-	//		for (size_t f = 0; f < features; ++f)
-	//		{
-	//			conv_helper_funcs<rows, cols, kernel_size, kernel_size, stride, use_padding>::back_prop_kernel_hessian(feature_maps[f], deriv[f_0],
-	//				weights_aux_data[f_0 * features + f], gamma);
-
-	//			if (use_biases)
-	//				for (size_t i_0 = 0; i_0 < out_rows; ++i_0)
-	//					for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
-	//						biases_aux_data[f_0 * features + f].at(0, 0).at(0, 0) += gamma * deriv[f_0].at(i_0, j_0);
-	//		}
-	//	}
-
-	//	//update deltas, feed backwards except w^2
-	//	for (size_t f = 0; f < features; ++f)
-	//	{
-	//		for (size_t f_0 = 0; f_0 < out_features; ++f_0)
-	//		{
-	//			add<float, rows, cols>(feature_maps[f],
-	//				conv_helper_funcs<rows, cols, kernel_size, kernel_size, stride, use_padding>::convolve_back_weight_hessian(deriv[f_0], weights[f_0 * features + f]));
-	//			if (use_first_deriv)
-	//			{
-	//				add<float, rows, cols>(deriv_first_out[f],
-	//					conv_helper_funcs<rows, cols, kernel_size, kernel_size, stride, use_padding>::convolve_back(deriv_first_in[f_0], weights[f_0 * features + f]));
-	//			}
-	//		}
-	//	}
-
-	//	//apply derivatives
-	//	for (size_t f = 0; f < features; ++f)
-	//	{
-	//		for (size_t i = 0; i < rows; ++i)
-	//		{
-	//			for (size_t j = 0; j < cols; ++j)
-	//			{
-	//				float deriv_temp = activation_derivative(activations_pre[f].at(i, j), activation_function);
-	//				feature_maps[f].at(i, j) *= deriv_temp * deriv_temp;
-
-	//				if (use_first_deriv)
-	//				{
-	//					feature_maps[f].at(i, j) += deriv_first_out[f].at(i, j) * activation_second_derivative(activations_pre[f].at(i, j), activation_function);
-	//					deriv_first_out[f].at(i, j) *= deriv_temp;
-	//				}
-	//			}
-	//		}
-	//	}
-	//}
-
 	static constexpr size_t type = CNN_LAYER_CONVOLUTION;
 	static constexpr size_t activation = activation_function;
 
@@ -832,10 +616,6 @@ public:
 						if (use_l2_weight_decay && include_biases_decay && online)
 							biases_gradient[f_0].at(i_0, j_0) += 2 * weight_decay_factor * biases[f_0].at(i_0, j_0);
 
-						//hessian
-						/*if (use_hessian && online)
-						biases_gradient[f_0].at(i_0, j_0) /= (biases_aux_data[f_0].at(i_0, j_0) + mu);*/
-
 						//online update
 						if (use_momentum && online)
 						{
@@ -866,11 +646,6 @@ public:
 								//L2 decay
 								if (use_l2_weight_decay && online)
 									weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) += 2 * weight_decay_factor * weights[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
-
-								//hessian
-								/*if (use_hessian && online)
-								weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) /=
-								(weights_aux_data[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) + mu);*/
 
 								//Online updates
 								if (use_momentum && online)
@@ -980,77 +755,6 @@ public:
 					for (size_t j = 0; j < cols; ++j)
 						generative_biases[f].at(i, j) += -learning_rate * (feature_maps[f].at(i, j) - original[f].at(i, j));
 	}
-
-	//static void back_prop_second(size_t previous_layer_activation, FeatureMap<out_features, out_rows, out_cols>& deriv, FeatureMap<out_features, out_rows, out_cols>& deriv_first_in, FeatureMap<features, rows, cols>& deriv_first_out, bool use_first_deriv, float gamma)
-	//{
-	//	for (size_t i = 0; i < (out_features * out_rows * out_cols); ++i)
-	//		for (size_t j = 0; j < (features * rows * cols); ++j)
-	//			weights_aux_data[0].at(i, j) *= (1 - gamma);
-	//	if (use_biases)
-	//		for (size_t f_0 = 0; f_0 < out_features; ++f_0)
-	//			for (size_t i_0 = 0; i_0 < out_rows; ++i_0)
-	//				for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
-	//					biases_aux_data[f_0].at(i_0, j_0) *= (1 - gamma);
-
-	//	FeatureMap<features, rows, cols> activations_pre = { 0 };
-	//	for (size_t f = 0; f < features; ++f)
-	//	{
-	//		activations_pre[f] = feature_maps[f].clone();
-	//		for (size_t i = 0; i < rows; ++i)
-	//			for (size_t j = 0; j < cols; ++j)
-	//				feature_maps[f].at(i, j) = 0;
-	//	}
-
-	//	for (size_t f_0 = 0; f_0 < out_features; ++f_0)
-	//	{
-	//		for (size_t i_0 = 0; i_0 < out_rows; ++i_0)
-	//		{
-	//			for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
-	//			{
-	//				if (use_biases)
-	//					biases_aux_data[f_0].at(i_0, j_0) += gamma * deriv[f_0].at(i_0, j_0);
-
-	//				for (size_t f = 0; f < features; ++f)
-	//				{
-	//					for (size_t i = 0; i < rows; ++i)
-	//					{
-	//						for (size_t j = 0; j < cols; ++j)
-	//						{
-	//							float w = weights[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
-	//							float x = feature_maps[f].at(i, j);
-
-	//							feature_maps[f].at(i, j) += deriv[f_0].at(i_0, j_0) * w * w;
-	//							weights_aux_data[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) +=
-	//								gamma * deriv[f_0].at(i_0, j_0) * x * x;
-
-	//							if (use_first_deriv)
-	//								deriv_first_out[f].at(i, j) += deriv_first_in[f_0].at(i_0, j_0) * w;
-	//						}
-	//					}
-	//				}
-	//			}
-	//		}
-	//	}
-
-	//	//apply derivatives
-	//	for (size_t f = 0; f < features; ++f)
-	//	{
-	//		for (size_t i = 0; i < rows; ++i)
-	//		{
-	//			for (size_t j = 0; j < cols; ++j)
-	//			{
-	//				float deriv_temp = activation_derivative(activations_pre[f].at(i, j), activation_function);
-	//				feature_maps[f].at(i, j) *= deriv_temp * deriv_temp;
-
-	//				if (use_first_deriv)
-	//				{
-	//					feature_maps[f].at(i, j) += deriv_first_out[f].at(i, j) * activation_second_derivative(activations_pre[f].at(i, j), activation_function);
-	//					deriv_first_out[f].at(i, j) *= deriv_temp;
-	//				}
-	//			}
-	//		}
-	//	}
-	//}
 
 	static constexpr size_t type = CNN_LAYER_PERCEPTRONFULLCONNECTIVITY;
 	static constexpr size_t activation = activation_function;
@@ -1225,30 +929,6 @@ public:
 			chain_activations(out_deriv, activations_pre, previous_layer_activation);
 		}
 	}
-
-	//static void back_prop_second(size_t previous_layer_activation, FeatureMap<features, rows, cols>& deriv, FeatureMap<features, rows, cols>& deriv_first_in, FeatureMap<features, rows, cols>& deriv_first_out, bool use_first_deriv, float gamma)
-	//{
-	//	FeatureMap<features, rows, cols> activations_pre = { 0 };
-	//	for (size_t f = 0; f < features; ++f)
-	//		activations_pre[f] = feature_maps[f].clone();
-
-	//	for (size_t f = 0; f < features; ++f)
-	//	{
-	//		for (size_t i = 0; i < rows; ++i)
-	//		{
-	//			for (size_t j = 0; j < cols; ++j)
-	//			{
-	//				feature_maps[f].at(i, j) = deriv[f].at(i, j);
-	//				if (use_first_deriv)
-	//					deriv_first_out[f].at(i, j) = deriv_first_in[f].at(i, j);
-	//			}
-	//		}
-	//	}
-	//	//apply derivatives
-	//	chain_second_activations(feature_maps, activations_pre, previous_layer_activation);
-	//	if (use_first_deriv)
-	//		chain_activations(deriv_first_out, activations_pre, previous_layer_activation);
-	//}
 
 	static const float min_divisor;
 	static size_t n;
@@ -1428,53 +1108,6 @@ public:
 			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
 	}
 
-	//static void back_prop_second(size_t previous_layer_activation, FeatureMap<features, out_rows, out_cols>& deriv, FeatureMap<features, out_rows, out_cols>& deriv_first_in, FeatureMap<features, rows, cols>& deriv_first_out, bool use_first_deriv, float gamma)
-	//{
-	//	FeatureMap<features, rows, cols> activations_pre = { 0 };
-	//	for (size_t f = 0; f < features; ++f)
-	//		activations_pre[f] = feature_maps[f].clone();
-
-	//	//just move the values back to which ones were passed on
-	//	for (size_t f = 0; f < features; ++f)
-	//	{
-	//		size_t down = rows / out_rows;
-	//		size_t across = cols / out_cols;
-
-	//		//search each sample
-	//		for (size_t i_0 = 0; i_0 < out_rows; ++i_0)
-	//		{
-	//			for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
-	//			{
-	//				std::pair<size_t, size_t> coords = switches[f].at(i_0, j_0);
-	//				for (size_t i = 0; i < down; ++i)
-	//				{
-	//					for (size_t j = 0; j < across; ++j)
-	//					{
-	//						if (i == coords.first && j == coords.second)
-	//						{
-	//							feature_maps[f].at(i_0 * down + i, j_0 * across + j) = deriv[f].at(i_0, j_0);
-	//							if (use_first_deriv)
-	//								deriv_first_out[f].at(i, j) = deriv_first_in[f].at(i_0, j_0);
-	//						}
-	//						else
-	//						{
-	//							feature_maps[f].at(i * down, j * across) = 0;
-	//							if (use_first_deriv)
-	//								deriv_first_out[f].at(i, j) = 0;
-	//						}
-	//					}
-	//				}
-	//			}
-	//		}
-	//	}
-
-	//	//apply derivatives
-	//	chain_second_activations(feature_maps, activations_pre, previous_layer_activation);
-	//	if (use_first_deriv)
-	//		chain_activations(deriv_first_out, activations_pre, previous_layer_activation);
-	//	
-	//}
-
 	static constexpr size_t type = CNN_LAYER_MAXPOOL;
 	static constexpr size_t activation = CNN_FUNC_LINEAR;
 
@@ -1595,38 +1228,6 @@ public:
 			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
 	}
 
-	//static void back_prop_second(size_t previous_layer_activation, FeatureMap<features, rows, cols>& deriv, FeatureMap<features, rows, cols>& deriv_first_in, FeatureMap<features, rows, cols>& deriv_first_out, bool use_first_deriv, float gamma)
-	//{
-	//	FeatureMap<features, rows, cols> activations_pre = { 0 };
-	//	for (size_t f = 0; f < features; ++f)
-	//		activations_pre[f] = feature_maps[f].clone();
-
-	//	for (size_t f = 0; f < features; ++f)
-	//	{
-	//		for (size_t i = 0; i < rows; ++i)
-	//		{
-	//			for (size_t j = 0; j < cols; ++j)
-	//			{
-	//				//cycle through all again
-	//				for (size_t i2 = 0; i2 < rows; ++i2)
-	//				{
-	//					for (size_t j2 = 0; j2 < cols; ++j2)
-	//					{
-	//						/*float h_i = data[f].at(i, j);
-	//						float h_j = data[f].at(i2, j2);
-	//						feature_maps[f].at(i, j) += (i2 == i && j2 == j) ? h_i * (1 - h_i) : -h_i * h_j;*/
-	//					}
-	//				}
-	//			}
-	//		}
-	//	}
-
-	//	//apply derivatives
-	//	chain_second_activations(feature_maps, activations_pre, previous_layer_activation);
-	//	if (use_first_deriv)
-	//		chain_activations(deriv_first_out, activations_pre, previous_layer_activation);
-	//}
-
 	static constexpr size_t type = CNN_LAYER_SOFTMAX;
 	static constexpr size_t activation = CNN_FUNC_LINEAR;
 
@@ -1718,31 +1319,6 @@ public:
 			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
 	}
 
-	//static void back_prop_second(size_t previous_layer_activation, FeatureMap<features, rows, cols>& deriv, FeatureMap<features, rows, cols>& deriv_first_in, FeatureMap<features, rows, cols>& deriv_first_out, bool use_first_deriv, float gamma)
-	//{
-	//	FeatureMap<features, rows, cols> activations_pre = { 0 };
-	//	for (size_t f = 0; f < features; ++f)
-	//		activations_pre[f] = feature_maps[f].clone();
-
-	//	for (size_t f = 0; f < features; ++f)
-	//	{
-	//		for (size_t i = 0; i < rows; ++i)
-	//		{
-	//			for (size_t j = 0; j < cols; ++j)
-	//			{
-	//				feature_maps[f].at(i, j) = deriv[f].at(i, j);
-	//				if (use_first_deriv)
-	//					deriv_first_out[f].at(i, j) = deriv_first_in[f].at(i, j);
-	//			}
-	//		}
-	//	}
-
-	//	//apply derivatives
-	//	chain_second_activations(feature_maps, activations_pre, previous_layer_activation);
-	//	if (use_first_deriv)
-	//		chain_activations(deriv_first_out, activations_pre, previous_layer_activation);
-	//}
-
 	static constexpr size_t type = CNN_LAYER_INPUT;
 	static constexpr size_t activation = CNN_FUNC_LINEAR;
 
@@ -1831,30 +1407,6 @@ public:
 		for (size_t in = 0; in < derivs.size(); ++in)
 			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
 	}
-
-	//static void back_prop_second(size_t previous_layer_activation, FeatureMap<features, rows, cols>& deriv, FeatureMap<features, rows, cols>& deriv_first_in, FeatureMap<features, rows, cols>& deriv_first_out, bool use_first_deriv, float gamma)
-	//{
-	//	FeatureMap<features, rows, cols> activations_pre = { 0 };
-	//	for (size_t f = 0; f < features; ++f)
-	//		activations_pre[f] = feature_maps[f].clone();
-
-	//	for (size_t f = 0; f < features; ++f)
-	//	{
-	//		for (size_t i = 0; i < rows; ++i)
-	//		{
-	//			for (size_t j = 0; j < cols; ++j)
-	//			{
-	//				feature_maps[f].at(i, j) = deriv[f].at(i, j);
-	//				if (use_first_deriv)
-	//					deriv_first_out[f].at(i, j) = deriv_first_in[f].at(i, j);
-	//			}
-	//		}
-	//	}
-	//	//apply derivatives
-	//	chain_second_activations(feature_maps, activations_pre, previous_layer_activation);
-	//	if (use_first_deriv)
-	//		chain_activations(deriv_first_out, activations_pre, previous_layer_activation);
-	//}
 
 	static constexpr size_t type = CNN_LAYER_OUTPUT;
 	static constexpr size_t activation = CNN_FUNC_LINEAR;
