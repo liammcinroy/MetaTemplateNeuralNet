@@ -889,6 +889,8 @@ public:
 	//feed forwards
 	static void discriminate();
 
+	static void discriminate(FeatureMapVector<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()>& batch_input);
+
 	//feed backwards, returns a copy of the first layer (must be deallocated)
 	static FeatureMap<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()> generate(FeatureMap<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()>& input, size_t iterations, bool use_sampling);
 
@@ -1014,6 +1016,26 @@ discriminate()
 			for (size_t j = 0; j < get_layer<0>::feature_maps.cols(); ++j)
 				get_layer<0>::feature_maps[f].at(i, j) = input[f].at(i, j);
 	loop_up_layers<feed_forwards_layer>();
+}
+
+template<typename... layers>
+inline void NeuralNet<layers...>::discriminate(FeatureMapVector<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()>& batch_inputs)
+{
+	//adjust batch data sizes
+	while (get_batch_activations<0>().size() != batch_inputs.size()) //fix sizes
+	{
+		if (get_batch_activations<0>().size() > batch_inputs.size())
+			loop_all_layers<remove_batch_activations>();
+		else
+			loop_all_layers<add_batch_activations>();
+	}
+
+	//reset batch activations
+	loop_all_layers<reset_layer_feature_maps>();
+
+	get_layer<0>::feed_forwards(batch_inputs, get_batch_activations<1>());
+	for_loop<1, last_layer_index - 1, 1, feed_forwards_batch_training_layer>();
+
 }
 
 template<typename... layers>

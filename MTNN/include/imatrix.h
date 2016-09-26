@@ -41,6 +41,12 @@ public:
 			data[i] = (diff * rand()) / RAND_MAX + min;
 	}
 
+	Matrix2D(const Matrix2D<T, r, c>& ref)
+	{
+		for (size_t i = 0; i < data.size(); ++i)
+			data[i] = ref.data[i];
+	}
+
 	Matrix2D(std::initializer_list<std::initializer_list<T>>& arr)
 	{
 		typename std::initializer_list<std::initializer_list<T>>::iterator it = arr.begin();
@@ -122,19 +128,39 @@ public:
 
 	FeatureMap(T val)
 	{
-		for (int k = 0; k < f; ++k)
+		for (size_t k = 0; k < f; ++k)
 			maps[k] = Matrix2D<T, r, c>(val);
 	}
 
 	FeatureMap(T max, T min)
 	{
-		for (int k = 0; k < f; ++k)
+		for (size_t k = 0; k < f; ++k)
 			maps[k] = Matrix2D<T, r, c>(max, min);
+	}
+
+	FeatureMap(const FeatureMap<f, r, c, T>& ref)
+	{
+		for (size_t k = 0; k < f; ++k)
+			maps[k] = Matrix2D<T, r, c>(ref[k]);
+	}
+
+	FeatureMap(std::initializer_list<Matrix2D<T, r, c>>& arr)
+	{
+		typename std::initializer_list<Matrix2D<T, r, c>>::iterator it = arr.begin();
+		for (size_t k = 0; k < f; ++k)
+		{
+			maps[k] = Matrix2D<T, r, c>(*it);
+			++it;
+		}
 	}
 
 	~FeatureMap() = default;
 
 	Matrix2D<T, r, c>& operator[](const size_t& feat)
+	{
+		return maps[feat];
+	}
+	const Matrix2D<T, r, c>& operator[](const size_t& feat) const
 	{
 		return maps[feat];
 	}

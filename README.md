@@ -147,7 +147,8 @@ This is the class that encapsulates all of the rest. Has all required methods. W
 | `load_data<typename path>()` | `void` | Loads the data (<b>Must have initialized network and filled layers first!!!</b>) |
 | `set_input(FeatureMap<> input)` | `void` | Sets the current input |
 | `set_labels(FeatureMap<> labels)` | `void` | Sets the current labels |
-| `discriminate()` | `void` | Feeds the network forward |
+| `discriminate()` | `void` | Feeds the network forward with current input |
+| `discriminate(FeatureMapVector<> inputs)` | `void` | Feeds the network forward with the batch inputs |
 | `generate(FeatureMap<> input, size_t sampling_iterations, bool use_sampling)` | `FeatureMap<>` | Generates an output for an rbm network. `use_sampling` means sample for each layer after the markov iterations on the final RBM layer |
 | `pretrain()` | `void` | Pretrains the network using the wake-sleep algorithm. Assumes every layer upto the last RBM layer has been trained. |
 | `train()` | `float` | Trains the network using specified optimization method |
