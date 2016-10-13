@@ -146,16 +146,38 @@ FeatureMap<1, rows, cols> make_fm(Matrix2D<float, rows, cols>& input)
 	return out;
 }
 
-//setup the network architecture
-typedef NeuralNet<InputLayer<1, 1, 29, 29>,
-	ConvolutionLayer<1, 1, 29, 29, 5, 2, 6, CNN_FUNC_TANH, true, false>,
-	ConvolutionLayer<1, 6, 13, 13, 5, 2, 50, CNN_FUNC_TANH, true, false>,
-	PerceptronFullConnectivityLayer<1, 50, 5, 5, 1, 100, 1, CNN_FUNC_TANH, true>,
-	PerceptronFullConnectivityLayer<1, 1, 100, 1, 1, 10, 1, CNN_FUNC_TANH, true>,
-	OutputLayer<1, 1, 10, 1>> Net;
+#define DEFAULT -1
 
-typedef Matrix2D<float, 29, 29> NetInput;
-typedef Matrix2D<float, 10, 1> NetOutput;
+//setup the network architecture
+//typedef NeuralNet<InputLayer<1, 1, 29, 29>,
+//	BatchNormalizationLayer<1, 1, 29, 29, CNN_FUNC_LINEAR>,
+//	PerceptronFullConnectivityLayer<2, 1, 29, 29, 1, 100, 1, CNN_FUNC_LOGISTIC, true>,
+//	BatchNormalizationLayer<2, 1, 100, 1, CNN_FUNC_LINEAR>,
+//	PerceptronFullConnectivityLayer<3, 1, 100, 1, 1, 100, 1, CNN_FUNC_LOGISTIC, true>,
+//	BatchNormalizationLayer<3, 1, 100, 1, CNN_FUNC_LINEAR>,
+//	PerceptronFullConnectivityLayer<4, 1, 100, 1, 1, 100, 1, CNN_FUNC_LOGISTIC, true>,
+//	BatchNormalizationLayer<4, 1, 100, 1, CNN_FUNC_LINEAR>,
+//	PerceptronFullConnectivityLayer<5, 1, 100, 1, 1, 10, 1, CNN_FUNC_LOGISTIC, true>,
+//	OutputLayer<1, 1, 10, 1>> Net;
+
+//typedef NeuralNet<InputLayer<1, 1, 29, 29>,
+//	PerceptronFullConnectivityLayer<2, 1, 29, 29, 1, 100, 1, CNN_FUNC_LOGISTIC, true>,
+//	PerceptronFullConnectivityLayer<3, 1, 100, 1, 1, 100, 1, CNN_FUNC_LOGISTIC, true>,
+//	PerceptronFullConnectivityLayer<4, 1, 100, 1, 1, 100, 1, CNN_FUNC_LOGISTIC, true>,
+//	PerceptronFullConnectivityLayer<5, 1, 100, 1, 1, 10, 1, CNN_FUNC_LOGISTIC, true>,
+//	OutputLayer<1, 1, 10, 1>> Net;
+
+//standard, boring
+typedef NeuralNet<InputLayer<1, 1, 29, 29>,
+	ConvolutionLayer<2, 1, 29, 29, 5, 2, 6, CNN_FUNC_TANHLECUN, true, false>,
+	ConvolutionLayer<3, 6, 13, 13, 5, 2, 50, CNN_FUNC_TANHLECUN, true, false>,
+	PerceptronFullConnectivityLayer<4, 50, 5, 5, 1, 100, 1, CNN_FUNC_TANHLECUN, true>,
+	PerceptronFullConnectivityLayer<5, 1, 100, 1, 1, 10, 1, CNN_FUNC_TANHLECUN, true>,
+	OutputLayer<6, 1, 10, 1>> Net;
+
+
+typedef FeatureMap<1, 29, 29> NetInput;
+typedef FeatureMap<1, 10, 1> NetOutput;
 
 bool training = true;
 
@@ -169,7 +191,7 @@ int main()
 	Net::use_batch_learning = true;
 	Net::optimization_method = CNN_OPT_ADAM;
 	Net::loss_function = CNN_LOSS_SQUAREERROR;
-	NeuralNetAnalyzer<Net>::sample_size = 5000;
+	NeuralNetAnalyzer<Net>::sample_size = 100;
 
 	//timing variables
 	float t = 0.0f;
@@ -194,31 +216,35 @@ int main()
 		normal_line("Loading MNIST Database...");
 
 		//load in images
-		std::vector<std::pair<NetInput, int>> images(60000);
-		std::vector<NetOutput> labels(60000);
-		ImageReader trainImgs("C://LiamScienceProject//Sci Fair 15//Code//MNIST Digit//Data//Images//train-images.idx3-ubyte");
-		trainImgs.default = -1;
-		LabelReader trainLbls("C://LiamScienceProject//Sci Fair 15//Code//MNIST Digit//Data//Labels//train-labels.idx1-ubyte");
-		trainLbls.default = -1;
+		std::vector<std::pair<typename NetInput::type, int>> images(60000);
+		std::vector<NetOutput> labels(10);
+		ImageReader trainImgs("MNIST//Images//train-images.idx3-ubyte");
+		trainImgs.default = DEFAULT;
+		LabelReader trainLbls("MNIST//Labels//train-labels.idx1-ubyte");
+		trainLbls.default = DEFAULT;
 		for (int i = 0; i < 60000; ++i)
 		{
-			images[i] = std::make_pair(trainImgs.current.clone(), i);
-			labels[i] = trainLbls.current.clone();
+			int label = 0;
+			for (int j = 0; j < trainLbls.current.rows(); ++j)
+				if (trainLbls.current.at(j, 0) > 0)
+					label = j;
+			labels[label] = make_fm<10, 1>(trainLbls.current.clone());
+			images[i] = std::make_pair(trainImgs.current.clone(), label);
 
 			trainImgs.next();
 			trainLbls.next();
 		}
 
 		normal_line("Starting Training");
-		for (int e = 0; mse > .001f; ++e)
+		for (int e = 0; e < 50; ++e)
 		{
 			//shuffle images
-			std::random_shuffle(images.begin(), images.end());
+			//std::random_shuffle(images.begin(), images.end());
 
-			for (int it = 0; it < 60000; ++it)
+			/*for (int it = 0; it < 60000; ++it)
 			{
 				auto distorted = distort<29, 29, 5>(images[it].first, gaussian, .5, .15, 15);
-				auto label = make_fm<10, 1>(labels[images[it].second]);
+				auto& label = labels[images[it].second];
 
 				Net::set_input(distorted);
 				Net::set_labels(label);
@@ -241,7 +267,110 @@ int main()
 					mse = NeuralNetAnalyzer<Net>::mean_error();
 					indented_line("MSE = " + std::to_string(mse));
 				}
+			}*/
+
+			//discrim on first 500
+			int correct = 0;
+			std::vector<int> totals(10);
+
+			for (int i = 0; i < 500; ++i)
+			{
+				Net::set_input(make_fm<29, 29>(images[i].first));
+				Net::discriminate();
+				auto& test = Net::template get_layer<Net::last_layer_index>::feature_maps[0];
+				auto& label = labels[images[i].second][0];
+				int max_i = 0;
+				int max_j = 0;
+
+				float max = test.at(0, 0);
+				float max2 = label.at(0, 0);
+				for (int j = 1; j < test.rows(); ++j)
+				{
+					//normal_line(std::to_string(test.at(j, 0)));
+					//normal_line(std::to_string(label.at(j, 0)));
+					if (test.at(j, 0) > max)
+					{
+						max = test.at(j, 0);
+						max_i = j;
+					}
+					if (label.at(j, 0) > max2)
+					{
+						max2 = label.at(j, 0);
+						max_j = j;
+					}
+				}
+
+				++totals[max_i];
+				if (max_i == max_j)
+					++correct;
 			}
+			normal_line("On running random trial of 500 got " + std::to_string(correct) + " correct. ");
+			std::string out = "";
+			for (int j = 0; j < totals.size(); ++j)
+				out += std::to_string(j) + ": " + std::to_string(totals[j] / 500.0f) + "   ";
+			indented_line("Distribution: " + out);
+			
+			for (int batches = 0; batches < 60000 / 50; ++batches)
+			{
+				auto batch_images = FeatureMapVector<1, 29, 29>(50);
+				auto batch_labels = FeatureMapVector<1, 10, 1>(50);
+				for (int i = 0; i < 50; ++i)
+				{
+					batch_images[i] = distort<29, 29, 5>(images[batches * 50 + i].first, gaussian, .5, .15, 15);
+					batch_labels[i] = labels[images[batches * 50 + i].second];
+				}
+
+				float error = Net::train_batch(batch_images, batch_labels);
+
+				if (batches == 0)
+					indented_line("First error = " + std::to_string(error));
+
+				NeuralNetAnalyzer<Net>::add_point(error);
+
+				if ((batches + 1) * 50 % 5000 == 0)
+				{
+					mse = NeuralNetAnalyzer<Net>::mean_error();
+					indented_line("MSE = " + std::to_string(mse));
+					/*int correct = 0;
+					std::vector<int> totals(10);
+
+					for (int i = 0; i < 500; ++i)
+					{
+						Net::set_input(make_fm<29, 29>(images[i].first));
+						Net::discriminate();
+						auto& test = Net::template get_layer<Net::last_layer_index>::feature_maps[0];
+						auto& label = labels[images[i].second][0];
+						int max_i = 0;
+						int max_j = 0;
+
+						float max = test.at(0, 0);
+						float max2 = label.at(0, 0);
+						for (int j = 1; j < 10; ++j)
+						{
+							if (test.at(j, 0) > max)
+							{
+								max = test.at(j, 0);
+								max_i = j;
+							}
+							if (label.at(j, 0) > max)
+							{
+								max2 = label.at(j, 0);
+								max_j = j;
+							}
+						}
+
+						++totals[max_i];
+						if (max_i == max_j)
+							++correct;
+					}
+					normal_line("On running random trial of 500 got " + std::to_string(correct) + " correct. ");
+					std::string out = "";
+					for (int j = 0; j < totals.size(); ++j)
+						out += std::to_string(j) + ": " + std::to_string(totals[j] / 500.0f) + "   ";
+					indented_line("Distribution: " + out);*/
+				}
+			}
+
 			if (Net::learning_rate > .00005f && (e + 1) % 2 == 0)
 				Net::learning_rate *= 0.794183335f;
 			//if (e == 10)
@@ -251,9 +380,13 @@ int main()
 			p_e_t += t;
 			normal_line("(training) Epoch " + std::to_string(e) + " was completed in " + std::to_string(t / CLOCKS_PER_SEC) + " seconds");
 			Net::save_data<net_path_type>();
-			NeuralNetAnalyzer<Net>::save_mean_error("Data//mses//mse.dat");
+			NeuralNetAnalyzer<Net>::save_mean_error("MNIST//mse.dat");
 			t = clock();
 		}
+		std::vector<NetInput> training_set_images(60000);
+		for (int i = 0; i < training_set_images.size(); ++i)
+			training_set_images[i] = make_fm<29, 29>(images[i].first);
+		Net::calculate_population_statistics(training_set_images);
 
 		normal_line("Training was completed in " + std::to_string(p_e_t / CLOCKS_PER_SEC) + " seconds.");
 		t = clock();
@@ -263,8 +396,10 @@ int main()
 
 	normal_line("Starting Testing");
 
-	ImageReader testImgs("C://LiamScienceProject//Sci Fair 15//Code//MNIST Digit//Data//Images//t10k-images.idx3-ubyte");
-	LabelReader testLbls("C://LiamScienceProject//Sci Fair 15//Code//MNIST Digit//Data//Labels//t10k-labels.idx1-ubyte");
+	ImageReader testImgs("MNIST//Images//t10k-images.idx3-ubyte");
+	testImgs.default = DEFAULT;
+	LabelReader testLbls("MNIST//Labels//t10k-labels.idx1-ubyte");
+	testLbls.default = DEFAULT;
 	int correct = 0;
 
 	std::vector<int> totals(10);
@@ -274,7 +409,7 @@ int main()
 		testImgs.next();
 		testLbls.next();
 
-		Net::set_input(make_fm(testImgs.current));
+		Net::set_input(make_fm<29, 29>(testImgs.current));
 		Net::discriminate();
 		auto& test = Net::template get_layer<Net::last_layer_index>::feature_maps[0];
 		int max_i = 0;
