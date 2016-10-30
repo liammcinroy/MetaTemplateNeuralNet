@@ -289,7 +289,7 @@ public:
     static constexpr size_t type = MTNN_LAYER_CONVOLUTION;
     static constexpr size_t activation = activation_function;
 
-    using out_feature_maps_type = FeatureMap<out_features, use_padding ? rows : (rows - kernel_size) / stride + 1, use_padding ? cols : (cols - kernel_size) / stride + 1>;
+    using out_feature_maps_type = FeatureMap<out_features, use_padding ? rows / stride + 1 : (rows - kernel_size) / stride + 1, use_padding ? cols / stride + 1 : (cols - kernel_size) / stride + 1>;
     using weights_type = decltype(weights);
     using biases_type = decltype(biases);
     using generative_biases_type = decltype(generative_biases);
@@ -304,8 +304,8 @@ public:
 
     static void feed_forwards(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w = weights, biases_type& params_b = biases)
     {
-        constexpr size_t out_rows = use_padding ? rows : (rows - kernel_size) / stride + 1;
-        constexpr size_t out_cols = use_padding ? cols : (cols - kernel_size) / stride + 1;
+        constexpr size_t out_rows = use_padding ? rows / stride + 1 : (rows - kernel_size) / stride + 1;
+        constexpr size_t out_cols = use_padding ? cols / stride + 1 : (cols - kernel_size) / stride + 1;
 
         for (size_t f_0 = 0; f_0 < out_features; ++f_0)
         {
@@ -353,8 +353,8 @@ public:
 
     static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases)
     {
-        constexpr size_t out_rows = use_padding ? rows : (rows - kernel_size) / stride + 1;
-        constexpr size_t out_cols = use_padding ? cols : (cols - kernel_size) / stride + 1;
+        constexpr size_t out_rows = use_padding ? rows / stride + 1 : (rows - kernel_size) / stride + 1;
+        constexpr size_t out_cols = use_padding ? cols / stride + 1 : (cols - kernel_size) / stride + 1;
 
         //adjust gradients and update features
         for (size_t f_0 = 0; f_0 < out_features; ++f_0)
@@ -451,8 +451,8 @@ public:
 
     static void wake_sleep(float& learning_rate, size_t markov_iterations, bool use_dropout)
     {
-        constexpr size_t out_rows = use_padding ? rows : (rows - kernel_size) / stride + 1;
-        constexpr size_t out_cols = use_padding ? cols : (cols - kernel_size) / stride + 1;
+        constexpr size_t out_rows = use_padding ? rows / stride + 1 : (rows - kernel_size) / stride + 1;
+        constexpr size_t out_cols = use_padding ? cols / stride + 1 : (cols - kernel_size) / stride + 1;
 
         //find difference via gibbs sampling
         feature_maps_type original = { 0 };
