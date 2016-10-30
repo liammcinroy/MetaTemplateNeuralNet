@@ -77,7 +77,7 @@ private:
 								total_grad_error += abs(layer::biases_gradient[d].at(i, j) - appr_grad);
 							else
 								total_grad_error += abs((layer::biases_gradient[d].at(i, j) - appr_grad) / layer::biases_gradient[d].at(i, j));
-
+						
 							layer::biases[d].at(i, j) += .001f;
 						}
 					}

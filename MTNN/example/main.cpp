@@ -19,33 +19,33 @@
 //setup the structure of the network
 typedef NeuralNet<
 	InputLayer<1, 1, 1, 1>, //the indexes allow the classes to be static
-	BatchNormalizationLayer<1, 1, 1, 1, CNN_FUNC_LINEAR>, //could use to normalize inputs
-	PerceptronFullConnectivityLayer<2, 1, 1, 1, 1, 1, 1, CNN_FUNC_LINEAR, false>, //can disable biases
-	ConvolutionLayer<3, 1, 1, 1, 1, 1, 2, CNN_FUNC_LINEAR, true, false>, //can disable padding
-	BatchNormalizationLayer<3, 2, 1, 1, CNN_FUNC_TANH>, //if want to use tanh for conv layer with bn, use linear on conv then logistic for bn
+	BatchNormalizationLayer<1, 1, 1, 1, MTNN_FUNC_LINEAR>, //could use to normalize inputs
+	PerceptronFullConnectivityLayer<2, 1, 1, 1, 1, 1, 1, MTNN_FUNC_LINEAR, false>, //can disable biases
+	ConvolutionLayer<3, 1, 1, 1, 1, 1, 2, MTNN_FUNC_LINEAR, true, false>, //can disable padding
+	BatchNormalizationLayer<3, 2, 1, 1, MTNN_FUNC_TANH>, //if want to use tanh for conv layer with bn, use linear on conv then logistic for bn
 	MaxpoolLayer<4, 2, 1, 1, 1, 1>,
-	PerceptronFullConnectivityLayer<5, 2, 1, 1, 1, 1, 1, CNN_FUNC_RELU, true>,
-	PerceptronFullConnectivityLayer<6, 1, 1, 1, 1, 1, 1, CNN_FUNC_LINEAR, true>, //Because of different indexes, then this and layer 1 won't share data
+	PerceptronFullConnectivityLayer<5, 2, 1, 1, 1, 1, 1, MTNN_FUNC_RELU, true>,
+	PerceptronFullConnectivityLayer<6, 1, 1, 1, 1, 1, 1, MTNN_FUNC_LINEAR, true>, //Because of different indexes, then this and layer 1 won't share data
 	OutputLayer<7, 1, 1, 1>,
 	OutputLayer<8, 1, 1, 1>> Net;
 
 //typedef NeuralNet<
 //	InputLayer<1, 1, 1, 1>,
-//	BatchNormalizationLayer<1, 1, 1, 1, CNN_FUNC_LINEAR>, //could use to normalize inputs
-//	PerceptronFullConnectivityLayer<2, 1, 1, 1, 1, 1, 1, CNN_FUNC_LINEAR, false>, //can disable biases
-//	BatchNormalizationLayer<2, 1, 1, 1, CNN_FUNC_LINEAR>,
-//	PerceptronFullConnectivityLayer<6, 1, 1, 1, 1, 1, 1, CNN_FUNC_LINEAR, true>, //Because of different indexes, then this and layer 1 won't share data
+//	BatchNormalizationLayer<1, 1, 1, 1, MTNN_FUNC_LINEAR>, //could use to normalize inputs
+//	PerceptronFullConnectivityLayer<2, 1, 1, 1, 1, 1, 1, MTNN_FUNC_LINEAR, false>, //can disable biases
+//	BatchNormalizationLayer<2, 1, 1, 1, MTNN_FUNC_LINEAR>,
+//	PerceptronFullConnectivityLayer<6, 1, 1, 1, 1, 1, 1, MTNN_FUNC_LINEAR, true>, //Because of different indexes, then this and layer 1 won't share data
 //	OutputLayer<7, 1, 1, 1>> Net;
 
-FeatureMap<1, 1, 1> PerceptronFullConnectivityLayer<2, 1, 1, 1, 1, 1, 1, CNN_FUNC_LINEAR, false>::weights = { .1f };//custom weight initialization
+FeatureMap<1, 1, 1> PerceptronFullConnectivityLayer<2, 1, 1, 1, 1, 1, 1, MTNN_FUNC_LINEAR, false>::weights = { .1f };//custom weight initialization
 
 int main(int argc, char** argv)
 {
 	//Have to define input/output filename before template because templates don't take string literals and needs linking
-	auto path = CSTRING("example.cnn");
+	auto path = CSTRING("example.MTNN");
 
-	Net::loss_function = CNN_LOSS_SQUAREERROR;
-	Net::optimization_method = CNN_OPT_BACKPROP;
+	Net::loss_function = MTNN_LOSS_SQUAREERROR;
+	Net::optimization_method = MTNN_OPT_BACKPROP;
 	Net::learning_rate = .0001f;
 	Net::use_batch_learning = true;
 	Net::weight_decay_factor = .001f;

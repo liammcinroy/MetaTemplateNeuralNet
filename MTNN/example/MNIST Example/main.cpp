@@ -150,29 +150,29 @@ FeatureMap<1, rows, cols> make_fm(Matrix2D<float, rows, cols>& input)
 
 //setup the network architecture
 //typedef NeuralNet<InputLayer<1, 1, 29, 29>,
-//	BatchNormalizationLayer<1, 1, 29, 29, CNN_FUNC_LINEAR>,
-//	PerceptronFullConnectivityLayer<2, 1, 29, 29, 1, 100, 1, CNN_FUNC_LOGISTIC, true>,
-//	BatchNormalizationLayer<2, 1, 100, 1, CNN_FUNC_LINEAR>,
-//	PerceptronFullConnectivityLayer<3, 1, 100, 1, 1, 100, 1, CNN_FUNC_LOGISTIC, true>,
-//	BatchNormalizationLayer<3, 1, 100, 1, CNN_FUNC_LINEAR>,
-//	PerceptronFullConnectivityLayer<4, 1, 100, 1, 1, 100, 1, CNN_FUNC_LOGISTIC, true>,
-//	BatchNormalizationLayer<4, 1, 100, 1, CNN_FUNC_LINEAR>,
-//	PerceptronFullConnectivityLayer<5, 1, 100, 1, 1, 10, 1, CNN_FUNC_LOGISTIC, true>,
+//	BatchNormalizationLayer<1, 1, 29, 29, MTNN_FUNC_LINEAR>,
+//	PerceptronFullConnectivityLayer<2, 1, 29, 29, 1, 100, 1, MTNN_FUNC_LOGISTIC, true>,
+//	BatchNormalizationLayer<2, 1, 100, 1, MTNN_FUNC_LINEAR>,
+//	PerceptronFullConnectivityLayer<3, 1, 100, 1, 1, 100, 1, MTNN_FUNC_LOGISTIC, true>,
+//	BatchNormalizationLayer<3, 1, 100, 1, MTNN_FUNC_LINEAR>,
+//	PerceptronFullConnectivityLayer<4, 1, 100, 1, 1, 100, 1, MTNN_FUNC_LOGISTIC, true>,
+//	BatchNormalizationLayer<4, 1, 100, 1, MTNN_FUNC_LINEAR>,
+//	PerceptronFullConnectivityLayer<5, 1, 100, 1, 1, 10, 1, MTNN_FUNC_LOGISTIC, true>,
 //	OutputLayer<1, 1, 10, 1>> Net;
 
 //typedef NeuralNet<InputLayer<1, 1, 29, 29>,
-//	PerceptronFullConnectivityLayer<2, 1, 29, 29, 1, 100, 1, CNN_FUNC_LOGISTIC, true>,
-//	PerceptronFullConnectivityLayer<3, 1, 100, 1, 1, 100, 1, CNN_FUNC_LOGISTIC, true>,
-//	PerceptronFullConnectivityLayer<4, 1, 100, 1, 1, 100, 1, CNN_FUNC_LOGISTIC, true>,
-//	PerceptronFullConnectivityLayer<5, 1, 100, 1, 1, 10, 1, CNN_FUNC_LOGISTIC, true>,
+//	PerceptronFullConnectivityLayer<2, 1, 29, 29, 1, 100, 1, MTNN_FUNC_LOGISTIC, true>,
+//	PerceptronFullConnectivityLayer<3, 1, 100, 1, 1, 100, 1, MTNN_FUNC_LOGISTIC, true>,
+//	PerceptronFullConnectivityLayer<4, 1, 100, 1, 1, 100, 1, MTNN_FUNC_LOGISTIC, true>,
+//	PerceptronFullConnectivityLayer<5, 1, 100, 1, 1, 10, 1, MTNN_FUNC_LOGISTIC, true>,
 //	OutputLayer<1, 1, 10, 1>> Net;
 
 //standard, boring
 typedef NeuralNet<InputLayer<1, 1, 29, 29>,
-	ConvolutionLayer<2, 1, 29, 29, 5, 2, 6, CNN_FUNC_TANHLECUN, true, false>,
-	ConvolutionLayer<3, 6, 13, 13, 5, 2, 50, CNN_FUNC_TANHLECUN, true, false>,
-	PerceptronFullConnectivityLayer<4, 50, 5, 5, 1, 100, 1, CNN_FUNC_TANHLECUN, true>,
-	PerceptronFullConnectivityLayer<5, 1, 100, 1, 1, 10, 1, CNN_FUNC_TANHLECUN, true>,
+	ConvolutionLayer<2, 1, 29, 29, 5, 2, 6, MTNN_FUNC_TANHLECUN, true, false>,
+	ConvolutionLayer<3, 6, 13, 13, 5, 2, 50, MTNN_FUNC_TANHLECUN, true, false>,
+	PerceptronFullConnectivityLayer<4, 50, 5, 5, 1, 100, 1, MTNN_FUNC_TANHLECUN, true>,
+	PerceptronFullConnectivityLayer<5, 1, 100, 1, 1, 10, 1, MTNN_FUNC_TANHLECUN, true>,
 	OutputLayer<6, 1, 10, 1>> Net;
 
 
@@ -189,8 +189,8 @@ int main()
 
 	Net::learning_rate = .001f;
 	Net::use_batch_learning = true;
-	Net::optimization_method = CNN_OPT_ADAM;
-	Net::loss_function = CNN_LOSS_SQUAREERROR;
+	Net::optimization_method = MTNN_OPT_ADAM;
+	Net::loss_function = MTNN_LOSS_SQUAREERROR;
 	NeuralNetAnalyzer<Net>::sample_size = 100;
 
 	//timing variables

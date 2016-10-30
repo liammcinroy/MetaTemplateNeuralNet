@@ -4,33 +4,33 @@
 
 #include "imatrix.h"
 
-#define CNN_LAYER_INPUT 0
-#define CNN_LAYER_CONVOLUTION 1
-#define CNN_LAYER_PERCEPTRONFULLCONNECTIVITY 2
-#define CNN_LAYER_BATCHNORMALIZATION 3
-#define CNN_LAYER_MAXPOOL 4
-#define CNN_LAYER_SOFTMAX 5
-#define CNN_LAYER_OUTPUT 6
+#define MTNN_LAYER_INPUT 0
+#define MTNN_LAYER_CONVOLUTION 1
+#define MTNN_LAYER_PERCEPTRONFULLCONNECTIVITY 2
+#define MTNN_LAYER_BATCHNORMALIZATION 3
+#define MTNN_LAYER_MAXPOOL 4
+#define MTNN_LAYER_SOFTMAX 5
+#define MTNN_LAYER_OUTPUT 6
 
-#define CNN_FUNC_LINEAR 0
-#define CNN_FUNC_LOGISTIC 1
-#define CNN_FUNC_BIPOLARLOGISTIC 2
-#define CNN_FUNC_TANH 3
-#define CNN_FUNC_TANHLECUN 4
-#define CNN_FUNC_RELU 5
-#define CNN_FUNC_RBM 6
+#define MTNN_FUNC_LINEAR 0
+#define MTNN_FUNC_LOGISTIC 1
+#define MTNN_FUNC_BIPOLARLOGISTIC 2
+#define MTNN_FUNC_TANH 3
+#define MTNN_FUNC_TANHLECUN 4
+#define MTNN_FUNC_RELU 5
+#define MTNN_FUNC_RBM 6
 
-#define CNN_BIAS_NONE 0
-#define CNN_BIAS_CONV 1
-#define CNN_BIAS_PERCEPTRON 2
+#define MTNN_BIAS_NONE 0
+#define MTNN_BIAS_CONV 1
+#define MTNN_BIAS_PERCEPTRON 2
 
-#define CNN_DATA_FEATURE_MAP 0
-#define CNN_DATA_WEIGHT_GRAD 1
-#define CNN_DATA_BIAS_GRAD 2
-#define CNN_DATA_WEIGHT_MOMENT 3
-#define CNN_DATA_BIAS_MOMENT 4
-#define CNN_DATA_WEIGHT_AUXDATA 5
-#define CNN_DATA_BIAS_AUXDATA 6
+#define MTNN_DATA_FEATURE_MAP 0
+#define MTNN_DATA_WEIGHT_GRAD 1
+#define MTNN_DATA_BIAS_GRAD 2
+#define MTNN_DATA_WEIGHT_MOMENT 3
+#define MTNN_DATA_BIAS_MOMENT 4
+#define MTNN_DATA_WEIGHT_AUXDATA 5
+#define MTNN_DATA_BIAS_AUXDATA 6
 
 // HELPER FUNCTIONS //// CLASS DEFINITIONS START AT LINE 395
 
@@ -218,40 +218,40 @@ public:
 
 	static inline float activate(float value, size_t activation)
 	{
-		if (activation == CNN_FUNC_LINEAR)
+		if (activation == MTNN_FUNC_LINEAR)
 			return value;
-		else if (activation == CNN_FUNC_LOGISTIC || activation == CNN_FUNC_RBM)
+		else if (activation == MTNN_FUNC_LOGISTIC || activation == MTNN_FUNC_RBM)
 			return value < 5 && value > -5 ? (1 / (1 + exp(-value))) : (value >= 5 ? 1.0f : 0.0f);
-		else if (activation == CNN_FUNC_BIPOLARLOGISTIC)
+		else if (activation == MTNN_FUNC_BIPOLARLOGISTIC)
 			return value < 5 && value > -5 ? ((2 / (1 + exp(-value))) - 1) : (value >= 5 ? 1.0f : -1.0f);
-		else if (activation == CNN_FUNC_TANH)
+		else if (activation == MTNN_FUNC_TANH)
 			return value < 5 && value > -5 ? tanh(value) : (value >= 5 ? 1.0f : -1.0f);
-		else if (activation == CNN_FUNC_TANHLECUN)
+		else if (activation == MTNN_FUNC_TANHLECUN)
 			return value < 5 && value > -5 ? 1.7159f * tanh(0.66666667f * value) : ((value >= 5 ? 1.7159f : -1.7159f));
-		else if (activation == CNN_FUNC_RELU)
+		else if (activation == MTNN_FUNC_RELU)
 			return value > 0 ? value : 0;
 	}
 
 	static inline float activation_derivative(float value, size_t activation)
 	{
-		if (activation == CNN_FUNC_LINEAR)
+		if (activation == MTNN_FUNC_LINEAR)
 			return 1;
-		else if (activation == CNN_FUNC_LOGISTIC || activation == CNN_FUNC_RBM)
+		else if (activation == MTNN_FUNC_LOGISTIC || activation == MTNN_FUNC_RBM)
 			return value * (1 - value);
-		else if (activation == CNN_FUNC_BIPOLARLOGISTIC)
+		else if (activation == MTNN_FUNC_BIPOLARLOGISTIC)
 			return (1 + value) * (1 - value) / 2;
-		else if (activation == CNN_FUNC_TANH)
+		else if (activation == MTNN_FUNC_TANH)
 			return 1 - value * value;
-		else if (activation == CNN_FUNC_TANHLECUN)
+		else if (activation == MTNN_FUNC_TANHLECUN)
 			return (0.66666667f / 1.7159f * (1.7159f + value) * (1.7159f - value));
-		else if (activation == CNN_FUNC_RELU)
+		else if (activation == MTNN_FUNC_RELU)
 			return value > 0 ? 1.0f : 0.0f;
 	}
 
 	template<size_t f = feat, size_t r = row, size_t c = col>
 	static inline void stochastic_sample(FeatureMap<f, r, c>& data)
 	{
-		if (activation == CNN_FUNC_RBM)
+		if (activation == MTNN_FUNC_RBM)
 			for (size_t f = 0; f < f; ++f)
 				for (size_t i = 0; i < r; ++i)
 					for (size_t j = 0; j < c; ++j)
@@ -286,7 +286,7 @@ public:
 							output[f_0].at(i_0, j_0) += biases[f_0 * features + f].at(0, 0);
 			}
 
-			if (activation_function != CNN_FUNC_LINEAR)
+			if (activation_function != MTNN_FUNC_LINEAR)
 			{
 				for (size_t i_0 = 0; i_0 < out_rows; ++i_0)
 					for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
@@ -309,7 +309,7 @@ public:
 			{
 				for (size_t j = 0; j < cols; ++j)
 				{
-					if (use_biases && activation_function == CNN_FUNC_RBM)
+					if (use_biases && activation_function == MTNN_FUNC_RBM)
 						output[f].at(i, j) += generative_biases[f].at(i, j);
 					output[f].at(i, j) = activate(input[f].at(i, j), activation_function);
 				}
@@ -492,14 +492,14 @@ public:
 		}
 
 		//adjust visible biases
-		if (use_biases && activation_function == CNN_FUNC_RBM)
+		if (use_biases && activation_function == MTNN_FUNC_RBM)
 			for (size_t f = 0; f < features; ++f)
 				for (size_t i = 0; i < rows; ++i)
 					for (size_t j = 0; j < cols; ++j)
 						generative_biases[f].at(i, j) += -learning_rate * (feature_maps[f].at(i, j) - original[f].at(i, j));
 	}
 
-	static constexpr size_t type = CNN_LAYER_CONVOLUTION;
+	static constexpr size_t type = MTNN_LAYER_CONVOLUTION;
 	static constexpr size_t activation = activation_function;
 
 	static size_t n;
@@ -509,7 +509,7 @@ public:
 	static FeatureMap<(use_biases ? out_features * features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> biases;
 	static FeatureMap<out_features * features, kernel_size, kernel_size> weights;
 
-	static FeatureMap<((use_biases && activation_function == CNN_FUNC_RBM) ? features : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? rows : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? cols : 0)> generative_biases;
+	static FeatureMap<((use_biases && activation_function == MTNN_FUNC_RBM) ? features : 0), ((use_biases && activation_function == MTNN_FUNC_RBM) ? rows : 0), ((use_biases && activation_function == MTNN_FUNC_RBM) ? cols : 0)> generative_biases;
 	static FeatureMap<out_features * features, kernel_size, kernel_size> weights_aux_data;
 	static FeatureMap<(use_biases ? out_features * features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> biases_aux_data;
 
@@ -528,7 +528,7 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<features, rows, cols> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::feature_maps = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<(use_biases ? out_features * features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::biases = { 0, .1f };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<out_features * features, kernel_size, kernel_size> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::weights = { -.1f, .1f };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<((use_biases && activation_function == CNN_FUNC_RBM) ? features : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? rows : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? cols : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::generative_biases = { 0, .1f };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<((use_biases && activation_function == MTNN_FUNC_RBM) ? features : 0), ((use_biases && activation_function == MTNN_FUNC_RBM) ? rows : 0), ((use_biases && activation_function == MTNN_FUNC_RBM) ? cols : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::generative_biases = { 0, .1f };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<out_features * features, kernel_size, kernel_size> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::weights_aux_data = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<(use_biases ? out_features * features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::biases_aux_data = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<(use_biases ? out_features * features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::biases_gradient = { 0 };
@@ -590,7 +590,7 @@ public:
 							for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
 								sum += weights[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) * input[f_0].at(i_0, j_0);
 
-						if (use_biases && activation_function == CNN_FUNC_RBM)
+						if (use_biases && activation_function == MTNN_FUNC_RBM)
 							sum += generative_biases[f].at(i, j);
 						output[f].at(i, j) = activate(sum, activation_function);
 					}
@@ -749,14 +749,14 @@ public:
 		}
 
 		//adjust visible biases
-		if (use_biases && activation_function == CNN_FUNC_RBM)
+		if (use_biases && activation_function == MTNN_FUNC_RBM)
 			for (size_t f = 0; f < features; ++f)
 				for (size_t i = 0; i < rows; ++i)
 					for (size_t j = 0; j < cols; ++j)
 						generative_biases[f].at(i, j) += -learning_rate * (feature_maps[f].at(i, j) - original[f].at(i, j));
 	}
 
-	static constexpr size_t type = CNN_LAYER_PERCEPTRONFULLCONNECTIVITY;
+	static constexpr size_t type = MTNN_LAYER_PERCEPTRONFULLCONNECTIVITY;
 	static constexpr size_t activation = activation_function;
 
 	static size_t n;
@@ -766,7 +766,7 @@ public:
 	static FeatureMap<(use_biases ? out_features : 0), (use_biases ? out_rows : 0), (use_biases ? out_cols : 0)> biases;
 	static FeatureMap<1, (out_features * out_rows * out_cols), (features * rows * cols)> weights;
 
-	static FeatureMap<((use_biases && activation_function == CNN_FUNC_RBM) ? features : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? rows : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? cols : 0)> generative_biases;
+	static FeatureMap<((use_biases && activation_function == MTNN_FUNC_RBM) ? features : 0), ((use_biases && activation_function == MTNN_FUNC_RBM) ? rows : 0), ((use_biases && activation_function == MTNN_FUNC_RBM) ? cols : 0)> generative_biases;
 	static FeatureMap<1, (out_features * out_rows * out_cols), (features * rows * cols)> weights_aux_data;
 	static FeatureMap<(use_biases ? out_features : 0), (use_biases ? out_rows : 0), (use_biases ? out_cols : 0)> biases_aux_data;
 
@@ -785,7 +785,7 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t out_fea
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<features, rows, cols> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::feature_maps = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<(use_biases ? out_features : 0), (use_biases ? out_rows : 0), (use_biases ? out_cols : 0)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::biases = { 0, .1f };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<1, (out_features * out_rows * out_cols), (features * rows * cols)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::weights = { -.1f, .1f };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<((use_biases && activation_function == CNN_FUNC_RBM) ? features : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? rows : 0), ((use_biases && activation_function == CNN_FUNC_RBM) ? cols : 0)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::generative_biases = { 0, .1f };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<((use_biases && activation_function == MTNN_FUNC_RBM) ? features : 0), ((use_biases && activation_function == MTNN_FUNC_RBM) ? rows : 0), ((use_biases && activation_function == MTNN_FUNC_RBM) ? cols : 0)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::generative_biases = { 0, .1f };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<1, (out_features * out_rows * out_cols), (features * rows * cols)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::weights_aux_data = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<(use_biases ? out_features : 0), (use_biases ? out_rows : 0), (use_biases ? out_cols : 0)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::biases_aux_data = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<(use_biases ? out_features : 0), (use_biases ? out_rows : 0), (use_biases ? out_cols : 0)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::biases_gradient = { 0 };
@@ -933,7 +933,7 @@ public:
 	static const float min_divisor;
 	static size_t n;
 
-	static constexpr size_t type = CNN_LAYER_BATCHNORMALIZATION;
+	static constexpr size_t type = MTNN_LAYER_BATCHNORMALIZATION;
 	static constexpr size_t activation = activation_function;
 
 	static FeatureMap<features, rows, cols> feature_maps;
@@ -1108,8 +1108,8 @@ public:
 			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
 	}
 
-	static constexpr size_t type = CNN_LAYER_MAXPOOL;
-	static constexpr size_t activation = CNN_FUNC_LINEAR;
+	static constexpr size_t type = MTNN_LAYER_MAXPOOL;
+	static constexpr size_t activation = MTNN_FUNC_LINEAR;
 
 	static size_t n;
 
@@ -1228,8 +1228,8 @@ public:
 			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
 	}
 
-	static constexpr size_t type = CNN_LAYER_SOFTMAX;
-	static constexpr size_t activation = CNN_FUNC_LINEAR;
+	static constexpr size_t type = MTNN_LAYER_SOFTMAX;
+	static constexpr size_t activation = MTNN_FUNC_LINEAR;
 
 	static size_t n;
 
@@ -1319,8 +1319,8 @@ public:
 			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
 	}
 
-	static constexpr size_t type = CNN_LAYER_INPUT;
-	static constexpr size_t activation = CNN_FUNC_LINEAR;
+	static constexpr size_t type = MTNN_LAYER_INPUT;
+	static constexpr size_t activation = MTNN_FUNC_LINEAR;
 
 	static size_t n;
 
@@ -1408,8 +1408,8 @@ public:
 			back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
 	}
 
-	static constexpr size_t type = CNN_LAYER_OUTPUT;
-	static constexpr size_t activation = CNN_FUNC_LINEAR;
+	static constexpr size_t type = MTNN_LAYER_OUTPUT;
+	static constexpr size_t activation = MTNN_FUNC_LINEAR;
 
 	static size_t n;
 

@@ -9,18 +9,18 @@
 #include "ilayer.h"
 
 //default, MSE
-#define CNN_LOSS_SQUAREERROR 0
+#define MTNN_LOSS_SQUAREERROR 0
 //assumes prior layer is softmax
-#define CNN_LOSS_LOGLIKELIHOOD 1
+#define MTNN_LOSS_LOGLIKELIHOOD 1
 //undefined for error, instead sets output to labels during training
-#define CNN_LOSS_CUSTOMTARGETS 2
+#define MTNN_LOSS_CUSTOMTARGETS 2
 
 //vanilla, add in momentum or hessian if desired
-#define CNN_OPT_BACKPROP 0
+#define MTNN_OPT_BACKPROP 0
 //can't use with momentum or hessian
-#define CNN_OPT_ADAM 1
+#define MTNN_OPT_ADAM 1
 //can't use with momentum or hessian
-#define CNN_OPT_ADAGRAD 2
+#define MTNN_OPT_ADAGRAD 2
 
 //HELPER FUNCTIONS //// Network class definitions begin at line 147
 
@@ -104,7 +104,7 @@ template<size_t N, typename... Ts> using get_type = typename get_type_impl<N, Ts
 
 template<size_t n, typename... Ts> struct get_rbm_idx_impl
 {
-	static constexpr size_t idx = (get_type<n, Ts...>::activation == CNN_FUNC_RBM) ? n : get_rbm_idx_impl<n - 1, Ts...>::idx;
+	static constexpr size_t idx = (get_type<n, Ts...>::activation == MTNN_FUNC_RBM) ? n : get_rbm_idx_impl<n - 1, Ts...>::idx;
 };
 
 template<typename... Ts> struct get_rbm_idx_impl<0, Ts...>
@@ -181,7 +181,7 @@ private:
 			{
 				using layer = get_layer<l>;
 
-				if (layer::type == CNN_LAYER_BATCHNORMALIZATION)
+				if (layer::type == MTNN_LAYER_BATCHNORMALIZATION)
 				{
 					using t = decltype(layer::activations_population_mean);
 					for (size_t d = 0; d < t::size(); ++d)
@@ -255,7 +255,7 @@ private:
 			{
 				using layer = get_layer<l>;
 
-				if (layer::type == CNN_LAYER_BATCHNORMALIZATION)
+				if (layer::type == MTNN_LAYER_BATCHNORMALIZATION)
 				{
 					using t = decltype(layer::activations_population_mean);
 					for (size_t d = 0; d < t::size(); ++d)
@@ -307,7 +307,7 @@ private:
 		reset_impl()
 		{
 			using layer = get_layer<l>;
-			if (target == CNN_DATA_FEATURE_MAP)
+			if (target == MTNN_DATA_FEATURE_MAP)
 			{
 				using t = decltype(layer::feature_maps);
 				for (size_t f = 0; f < t::size(); ++f)
@@ -330,7 +330,7 @@ private:
 					}
 				}
 			}
-			if (target == CNN_DATA_WEIGHT_GRAD)
+			if (target == MTNN_DATA_WEIGHT_GRAD)
 			{
 				using t = decltype(layer::weights_gradient);
 				for (size_t d = 0; d < t::size(); ++d)
@@ -338,7 +338,7 @@ private:
 						for (size_t j = 0; j < t::cols(); ++j)
 							layer::weights_gradient[d].at(i, j) = 0.0f;
 			}
-			if (target == CNN_DATA_BIAS_GRAD)
+			if (target == MTNN_DATA_BIAS_GRAD)
 			{
 				using t = decltype(layer::biases_gradient);
 				for (size_t f_0 = 0; f_0 < t::size(); ++f_0)
@@ -346,7 +346,7 @@ private:
 						for (size_t j_0 = 0; j_0 < t::cols(); ++j_0)
 							layer::biases_gradient[f_0].at(i_0, j_0) = 0.0f;
 			}
-			if (target == CNN_DATA_WEIGHT_MOMENT)
+			if (target == MTNN_DATA_WEIGHT_MOMENT)
 			{
 				using t = decltype(layer::weights_momentum);
 				for (size_t d = 0; d < t::size(); ++d)
@@ -354,7 +354,7 @@ private:
 						for (size_t j = 0; j < t::cols(); ++j)
 							layer::weights_momentum[d].at(i, j) = 0.0f;
 			}
-			if (target == CNN_DATA_BIAS_MOMENT)
+			if (target == MTNN_DATA_BIAS_MOMENT)
 			{
 				using t = decltype(layer::biases_gradient);
 				for (size_t f_0 = 0; f_0 < t::size(); ++f_0)
@@ -362,7 +362,7 @@ private:
 						for (size_t j_0 = 0; j_0 < t::cols(); ++j_0)
 							layer::biases_gradient[f_0].at(i_0, j_0) = 0.0f;
 			}
-			if (target == CNN_DATA_WEIGHT_AUXDATA)
+			if (target == MTNN_DATA_WEIGHT_AUXDATA)
 			{
 				using t = decltype(layer::weights_aux_data);
 				for (size_t d = 0; d < t::size(); ++d)
@@ -370,7 +370,7 @@ private:
 						for (size_t j = 0; j < t::cols(); ++j)
 							layer::weights_aux_data[d].at(i, j) = 0.0f;
 			}
-			if (target == CNN_DATA_BIAS_AUXDATA)
+			if (target == MTNN_DATA_BIAS_AUXDATA)
 			{
 				using t = decltype(layer::biases_aux_data);
 				for (size_t f_0 = 0; f_0 < t::size(); ++f_0)
@@ -387,27 +387,27 @@ private:
 		delete_impl()
 		{
 			using layer = get_layer<l>;
-			if (target == CNN_DATA_FEATURE_MAP)
+			if (target == MTNN_DATA_FEATURE_MAP)
 			{
 				using t = decltype(layer::feature_maps);
 				layer::feature_maps.~FeatureMap<t::size(), t::rows(), t::cols()>();
 			}
-			if (target == CNN_DATA_WEIGHT_MOMENT)
+			if (target == MTNN_DATA_WEIGHT_MOMENT)
 			{
 				using t = decltype(layer::weights_momentum);
 				layer::weights_momentum.~FeatureMap<t::size(), t::rows(), t::cols()>();
 			}
-			if (target == CNN_DATA_BIAS_MOMENT)
+			if (target == MTNN_DATA_BIAS_MOMENT)
 			{
 				using t = decltype(layer::biases_momentum);
 				layer::biases_momentum.~FeatureMap<t::size(), t::rows(), t::cols()>();
 			}
-			if (target == CNN_DATA_WEIGHT_AUXDATA)
+			if (target == MTNN_DATA_WEIGHT_AUXDATA)
 			{
 				using t = decltype(layer::weights_aux_data);
 				layer::weights_aux_data.~FeatureMap<t::size(), t::rows(), t::cols()>();
 			}
-			if (target == CNN_DATA_BIAS_AUXDATA)
+			if (target == MTNN_DATA_BIAS_AUXDATA)
 			{
 				using t = decltype(layer::biases_aux_data);
 				layer::biases_aux_data.~FeatureMap<t::size(), t::rows(), t::cols()>();
@@ -421,7 +421,7 @@ private:
 		feed_forwards_impl()
 		{
 			using layer = get_layer<l>;
-			if (use_dropout && l != 0 && layer::type != CNN_LAYER_SOFTMAX)
+			if (use_dropout && l != 0 && layer::type != MTNN_LAYER_SOFTMAX)
 				dropout<l>();
 			layer::feed_forwards(layer::feature_maps, get_layer<l + 1>::feature_maps);
 
@@ -461,7 +461,7 @@ private:
 		{
 			get_layer<l>::back_prop(get_layer<l - 1>::activation, get_layer<l + 1>::feature_maps,
 				get_batch_activations<l>()[0], get_layer<l>::feature_maps,
-				!use_batch_learning && optimization_method == CNN_OPT_BACKPROP, learning_rate,
+				!use_batch_learning && optimization_method == MTNN_OPT_BACKPROP, learning_rate,
 				use_momentum && !use_batch_learning, momentum_term,
 				use_l2_weight_decay, include_bias_decay, weight_decay_factor);
 		}
@@ -472,7 +472,7 @@ private:
 	public:
 		feed_forwards_batch_impl()
 		{
-			if (use_dropout && l != 0 && get_layer<l>::type != CNN_LAYER_SOFTMAX)
+			if (use_dropout && l != 0 && get_layer<l>::type != MTNN_LAYER_SOFTMAX)
 				dropout<l>();//todo vec also training bool
 			get_layer<l>::feed_forwards(get_batch_activations<l>(), get_batch_activations<l + 1>());
 		}
@@ -496,7 +496,7 @@ private:
 		{
 			get_layer<l>::back_prop(get_layer<l - 1>::activation, get_batch_out_derivs<l + 1>(),
 				get_batch_activations<l>(), get_batch_out_derivs<l>(),
-				!use_batch_learning && optimization_method == CNN_OPT_BACKPROP, learning_rate,
+				!use_batch_learning && optimization_method == MTNN_OPT_BACKPROP, learning_rate,
 				use_momentum && !use_batch_learning, momentum_term,
 				use_l2_weight_decay, include_bias_decay, weight_decay_factor);
 		}
@@ -512,7 +512,7 @@ private:
 			//calculate statistics for batch normalization layer
 			auto& inputs = get_batch_activations<l>();
 			auto& outputs = get_batch_activations<l + 1>();
-			if (layer::type == CNN_LAYER_BATCHNORMALIZATION)
+			if (layer::type == MTNN_LAYER_BATCHNORMALIZATION)
 			{
 				using t = decltype(layer::feature_maps);
 				for (size_t f = 0; f < t::size(); ++f)
@@ -592,7 +592,7 @@ private:
 			layer::biases_gradient[f_0].at(i_0, j_0) /= layer::biases_aux_data[f_0].at(i_0, j_0);
 			}*/
 
-			if (optimization_method == CNN_OPT_ADAM && layer::type != CNN_LAYER_BATCHNORMALIZATION)
+			if (optimization_method == MTNN_OPT_ADAM && layer::type != MTNN_LAYER_BATCHNORMALIZATION)
 			{
 				//update weights
 				for (size_t d = 0; d < weights_t::size(); ++d)
@@ -627,7 +627,7 @@ private:
 				}
 			}
 
-			else if (optimization_method == CNN_OPT_ADAGRAD && layer::type != CNN_LAYER_BATCHNORMALIZATION)
+			else if (optimization_method == MTNN_OPT_ADAGRAD && layer::type != MTNN_LAYER_BATCHNORMALIZATION)
 			{
 				//update weights
 				for (size_t d = 0; d < weights_t::size(); ++d)
@@ -749,19 +749,19 @@ private:
 	template<typename file> using save_net_data = save_data_t<file>;
 	template<typename file> using load_net_data = load_data_t<file>;
 
-	template<size_t l> using reset_layer_feature_maps = reset_impl<l, CNN_DATA_FEATURE_MAP>;
-	template<size_t l> using reset_layer_weights_gradient = reset_impl<l, CNN_DATA_WEIGHT_GRAD>;
-	template<size_t l> using reset_layer_biases_gradient = reset_impl<l, CNN_DATA_BIAS_GRAD>;
-	template<size_t l> using reset_layer_weights_momentum = reset_impl<l, CNN_DATA_WEIGHT_MOMENT>;
-	template<size_t l> using reset_layer_biases_momentum = reset_impl<l, CNN_DATA_BIAS_MOMENT>;
-	template<size_t l> using reset_layer_weights_aux_data = reset_impl<l, CNN_DATA_WEIGHT_AUXDATA>;
-	template<size_t l> using reset_layer_biases_aux_data = reset_impl<l, CNN_DATA_BIAS_AUXDATA>;
+	template<size_t l> using reset_layer_feature_maps = reset_impl<l, MTNN_DATA_FEATURE_MAP>;
+	template<size_t l> using reset_layer_weights_gradient = reset_impl<l, MTNN_DATA_WEIGHT_GRAD>;
+	template<size_t l> using reset_layer_biases_gradient = reset_impl<l, MTNN_DATA_BIAS_GRAD>;
+	template<size_t l> using reset_layer_weights_momentum = reset_impl<l, MTNN_DATA_WEIGHT_MOMENT>;
+	template<size_t l> using reset_layer_biases_momentum = reset_impl<l, MTNN_DATA_BIAS_MOMENT>;
+	template<size_t l> using reset_layer_weights_aux_data = reset_impl<l, MTNN_DATA_WEIGHT_AUXDATA>;
+	template<size_t l> using reset_layer_biases_aux_data = reset_impl<l, MTNN_DATA_BIAS_AUXDATA>;
 
-	template<size_t l> using delete_layer_feature_maps = delete_impl<l, CNN_DATA_FEATURE_MAP>;
-	template<size_t l> using delete_layer_weights_momentum = delete_impl<l, CNN_DATA_WEIGHT_MOMENT>;
-	template<size_t l> using delete_layer_biases_momentum = delete_impl<l, CNN_DATA_BIAS_MOMENT>;
-	template<size_t l> using delete_layer_weights_aux_data = delete_impl<l, CNN_DATA_WEIGHT_AUXDATA>;
-	template<size_t l> using delete_layer_biases_aux_data = delete_impl<l, CNN_DATA_BIAS_AUXDATA>;
+	template<size_t l> using delete_layer_feature_maps = delete_impl<l, MTNN_DATA_FEATURE_MAP>;
+	template<size_t l> using delete_layer_weights_momentum = delete_impl<l, MTNN_DATA_WEIGHT_MOMENT>;
+	template<size_t l> using delete_layer_biases_momentum = delete_impl<l, MTNN_DATA_BIAS_MOMENT>;
+	template<size_t l> using delete_layer_weights_aux_data = delete_impl<l, MTNN_DATA_WEIGHT_AUXDATA>;
+	template<size_t l> using delete_layer_biases_aux_data = delete_impl<l, MTNN_DATA_BIAS_AUXDATA>;
 
 	template<size_t l> using feed_forwards_layer = feed_forwards_impl<l, false>;
 	template<size_t l> using feed_forwards_training_layer = feed_forwards_impl<l, true>;
@@ -918,8 +918,8 @@ public:
 
 //Hyperparameter declarations
 
-template<typename... layers> size_t NeuralNet<layers...>::loss_function = CNN_LOSS_SQUAREERROR;
-template<typename... layers> size_t NeuralNet<layers...>::optimization_method = CNN_OPT_BACKPROP;
+template<typename... layers> size_t NeuralNet<layers...>::loss_function = MTNN_LOSS_SQUAREERROR;
+template<typename... layers> size_t NeuralNet<layers...>::optimization_method = MTNN_OPT_BACKPROP;
 template<typename... layers> bool NeuralNet<layers...>::use_dropout = false;
 template<typename... layers> bool NeuralNet<layers...>::use_batch_learning = false;
 template<typename... layers> bool NeuralNet<layers...>::use_momentum = false;
@@ -945,13 +945,13 @@ inline void NeuralNet<layers...>::
 setup()
 {
 	//Don't need this since there is implicit initialization
-	/*if (!use_momentum && optimization_method != CNN_OPT_ADAM)
+	/*if (!use_momentum && optimization_method != MTNN_OPT_ADAM)
 	{
 	loop_up_layers<delete_layer_weights_momentum>();
 	loop_up_layers<delete_layer_biases_momentum>();
 	}
 
-	if (!use_hessian && optimization_method == CNN_OPT_BACKPROP)
+	if (!use_hessian && optimization_method == MTNN_OPT_BACKPROP)
 	{
 	loop_up_layers<delete_layer_weights_aux_data>();
 	loop_up_layers<delete_layer_biases_aux_data>();
@@ -1083,7 +1083,7 @@ pretrain(size_t markov_iterations)
 	loop_up_layers<feed_forwards_training_layer>();
 
 	using target_layer = get_layer<last_layer_index>; //todo add in target layer
-	if (target_layer::type == CNN_LAYER_CONVOLUTION || target_layer::type == CNN_LAYER_PERCEPTRONFULLCONNECTIVITY)
+	if (target_layer::type == MTNN_LAYER_CONVOLUTION || target_layer::type == MTNN_LAYER_PERCEPTRONFULLCONNECTIVITY)
 		target_layer::wake_sleep(learning_rate, use_dropout, markov_iterations);
 }
 
@@ -1102,18 +1102,18 @@ train()
 	error = global_error();
 
 	//get error signals for output and returns any layers to be skipped
-	//constexpr size_t off = (loss_function == CNN_LOSS_LOGLIKELIHOOD ? 1 : 0); todo
+	//constexpr size_t off = (loss_function == MTNN_LOSS_LOGLIKELIHOOD ? 1 : 0); todo
 	auto errors = error_signals();
 
 	//back_prop for each layer (need to get activation derivatives for output first
 	get_layer<last_layer_index>::back_prop(get_layer<last_layer_index - 1>::activation, errors,
 		get_batch_activations<last_layer_index>()[0], get_layer<last_layer_index>::feature_maps,
-		!use_batch_learning && optimization_method == CNN_OPT_BACKPROP, learning_rate,
+		!use_batch_learning && optimization_method == MTNN_OPT_BACKPROP, learning_rate,
 		use_momentum && !use_batch_learning, momentum_term,
 		use_l2_weight_decay, include_bias_decay, weight_decay_factor);
 	for_loop<last_layer_index - 1, 1, 1, back_prop_layer>();
 
-	if (!use_batch_learning && optimization_method != CNN_OPT_BACKPROP)
+	if (!use_batch_learning && optimization_method != MTNN_OPT_BACKPROP)
 		apply_gradient();
 
 	return error;
@@ -1151,7 +1151,7 @@ train_batch(FeatureMapVector<get_type<0, layers...>::feature_maps.size(), get_ty
 	float total_error = global_error(get_batch_activations<last_layer_index>(), batch_labels);
 
 	//get error signals for output and returns any layers to be skipped
-	//constexpr size_t off = (loss_function == CNN_LOSS_LOGLIKELIHOOD ? 1 : 0); todo
+	//constexpr size_t off = (loss_function == MTNN_LOSS_LOGLIKELIHOOD ? 1 : 0); todo
 	auto errors = error_signals(get_batch_activations<last_layer_index>(), batch_labels);
 
 	//back_prop for each layer (need to get activation derivatives for output first
@@ -1182,7 +1182,7 @@ apply_gradient()
 	if (use_l2_weight_decay && use_batch_learning)
 		loop_up_layers<add_weight_decay_layer>();
 
-	if (optimization_method == CNN_OPT_ADAM)
+	if (optimization_method == MTNN_OPT_ADAM)
 		++t_adam;
 
 	loop_up_layers<apply_gradient_layer>();
@@ -1194,7 +1194,7 @@ global_error()
 {
 	float sum = 0.0f;
 
-	if (loss_function == CNN_LOSS_SQUAREERROR)
+	if (loss_function == MTNN_LOSS_SQUAREERROR)
 	{
 		for (size_t f = 0; f < labels.size(); ++f)
 			for (size_t i = 0; i < labels[f].rows(); ++i)
@@ -1202,7 +1202,7 @@ global_error()
 					sum += pow(get_layer<last_layer_index>::feature_maps[f].at(i, j) - labels[f].at(i, j), 2);
 		return sum / 2;
 	}
-	else if (loss_function == CNN_LOSS_LOGLIKELIHOOD)
+	else if (loss_function == MTNN_LOSS_LOGLIKELIHOOD)
 	{
 		for (size_t f = 0; f < labels.size(); ++f)
 			for (size_t i = 0; i < labels[f].rows(); ++i)
@@ -1210,7 +1210,7 @@ global_error()
 					if (labels[f].at(i, j) > 0)
 						return -log(get_layer<last_layer_index>::feature_maps[f].at(i, j));
 	}
-	else if (loss_function == CNN_LOSS_CUSTOMTARGETS)
+	else if (loss_function == MTNN_LOSS_CUSTOMTARGETS)
 		return 0;
 }
 
@@ -1218,26 +1218,26 @@ template<typename... layers>
 inline float NeuralNet<layers...>::
 global_error(FeatureMapVector<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()>& batch_outputs, FeatureMapVector<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()>& batch_labels)
 {
-	if (loss_function == CNN_LOSS_CUSTOMTARGETS)
+	if (loss_function == MTNN_LOSS_CUSTOMTARGETS)
 		return 0;
 	float sum = 0.0f;
 	for (size_t in = 0; in < batch_outputs.size(); ++in)
 	{
-		if (loss_function == CNN_LOSS_SQUAREERROR)
+		if (loss_function == MTNN_LOSS_SQUAREERROR)
 			for (size_t f = 0; f < batch_labels[in].size(); ++f)
 				for (size_t i = 0; i < batch_labels[in][f].rows(); ++i)
 					for (size_t j = 0; j < batch_labels[in][f].cols(); ++j)
 						sum += pow(batch_outputs[in][f].at(i, j) - batch_labels[in][f].at(i, j), 2);
-		else if (loss_function == CNN_LOSS_LOGLIKELIHOOD)
+		else if (loss_function == MTNN_LOSS_LOGLIKELIHOOD)
 			for (size_t f = 0; f < batch_labels[in].size(); ++f)
 				for (size_t i = 0; i < batch_labels[in][f].rows(); ++i)
 					for (size_t j = 0; j < batch_labels[in][f].cols(); ++j)
 						if (batch_labels[in][f].at(i, j) > 0)
 							sum += -log(batch_outputs[in][f].at(i, j));
 	}
-	if (loss_function == CNN_LOSS_SQUAREERROR)
+	if (loss_function == MTNN_LOSS_SQUAREERROR)
 		return sum / 2;
-	else if (loss_function == CNN_LOSS_LOGLIKELIHOOD)
+	else if (loss_function == MTNN_LOSS_LOGLIKELIHOOD)
 		return sum;
 }
 
@@ -1259,19 +1259,19 @@ inline FeatureMap<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(),
 error_signals()
 {
 	auto out = FeatureMap<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()>{ 0 };
-	if (loss_function == CNN_LOSS_SQUAREERROR)
+	if (loss_function == MTNN_LOSS_SQUAREERROR)
 		for (size_t f = 0; f < labels.size(); ++f)
 			for (size_t i = 0; i < labels.rows(); ++i)
 				for (size_t j = 0; j < labels.cols(); ++j)
 					out[f].at(i, j) = get_layer<last_layer_index>::feature_maps[f].at(i, j) - labels[f].at(i, j);
-	else if (loss_function == CNN_LOSS_LOGLIKELIHOOD) //assumes next layer is softmax
+	else if (loss_function == MTNN_LOSS_LOGLIKELIHOOD) //assumes next layer is softmax
 	{
 		for (size_t f = 0; f < labels.size(); ++f)
 			for (size_t i = 0; i < labels.rows(); ++i)
 				for (size_t j = 0; j < labels.cols(); ++j)
 					out[f].at(i, j) = get_layer<last_layer_index - 1>::feature_maps[f].at(i, j) - labels[f].at(i, j);
 	}
-	else if (loss_function == CNN_LOSS_CUSTOMTARGETS)
+	else if (loss_function == MTNN_LOSS_CUSTOMTARGETS)
 		for (size_t f = 0; f < labels.size(); ++f)
 			for (size_t i = 0; i < labels.rows(); ++i)
 				for (size_t j = 0; j < labels.cols(); ++j)
@@ -1286,19 +1286,19 @@ error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_ve
 	auto out = typename get_layer<last_layer_index>::feature_maps_vector_type(batch_outputs.size());
 	for (size_t in = 0; in < batch_outputs.size(); ++in)
 	{
-		if (loss_function == CNN_LOSS_SQUAREERROR)
+		if (loss_function == MTNN_LOSS_SQUAREERROR)
 			for (size_t f = 0; f < batch_labels[in].size(); ++f)
 				for (size_t i = 0; i < batch_labels[in].rows(); ++i)
 					for (size_t j = 0; j < batch_labels[in].cols(); ++j)
 						out[in][f].at(i, j) = batch_outputs[in][f].at(i, j) - batch_labels[in][f].at(i, j);
-		else if (loss_function == CNN_LOSS_LOGLIKELIHOOD) //assumes next layer is softmax and batch_outputs are given so
+		else if (loss_function == MTNN_LOSS_LOGLIKELIHOOD) //assumes next layer is softmax and batch_outputs are given so
 		{
 			for (size_t f = 0; f < batch_labels[in].size(); ++f)
 				for (size_t i = 0; i < batch_labels[in].rows(); ++i)
 					for (size_t j = 0; j < batch_labels[in].cols(); ++j)
 						out[in][f].at(i, j) = batch_outputs[in][f].at(i, j) - batch_labels[in][f].at(i, j);
 		}
-		else if (loss_function == CNN_LOSS_CUSTOMTARGETS)
+		else if (loss_function == MTNN_LOSS_CUSTOMTARGETS)
 			for (size_t f = 0; f < batch_labels[in].size(); ++f)
 				for (size_t i = 0; i < batch_labels[in].rows(); ++i)
 					for (size_t j = 0; j < batch_labels[in].cols(); ++j)

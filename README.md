@@ -35,7 +35,7 @@ Note that because this is a template based approach, then almost all errors will
 ###Macros
 ===============================
 
-These macros are used to signify layer types, optimization methods, loss functions, and activation functions. They are prefixed with `CNN_FUNC_*` for activation functions, `CNN_LAYER_*` for layers, `CNN_OPT_*` for optimization methods, and `CNN_COST_*` for cost functions. Their name should explain their use. The available layers can be found below.
+These macros are used to signify layer types, optimization methods, loss functions, and activation functions. They are prefixed with `MTNN_FUNC_*` for activation functions, `MTNN_LAYER_*` for layers, `MTNN_OPT_*` for optimization methods, and `MTNN_COST_*` for cost functions. Their name should explain their use. The available layers can be found below.
 
 Available activation functions are linear (y = x), sigmoid (y = 1/(1 + exp(-x)), bipolar sigmoid (y = 2/(1 + exp(-x)) - 1), tanh (y = tanh), and rectified linear (y = max(0, x)).
 
@@ -68,20 +68,31 @@ Use the `index` parameter to create different instances if using the same type o
 
 | Member/Method | Type | Details |
 |--------|------|----------|
-| `feed_forwards(FeatureMap<> &output)` | `virtual void` | Feeds the layer forward |
-| `feed_backwards(FeatureMap<> &input)` | `virtual FeatureMap<>` | Feeds the layer backwards using generative or recognition weights |
+| `feed_forwards(feature_maps_type& input, out_feature_maps_type& output, ...)` | `void` | Feeds the layer forward |
+| `feed_backwards(feature_maps_type& output, out_feature_maps_type& input, ...)` | `void` | Feeds the layer backwards using generative biases (if bool is enabled) |
 | `back_prop(...)` | `void` | Performs vanilla backpropagation with the specified activation method |
-| `feed_forwards(FeatureMapVector<> &output)` | `virtual void` | Feeds the layer forward (overloaded for batches) |
-| `feed_backwards(FeatureMapVector<> &input)` | `virtual FeatureMap<>` | Feeds the layer backwards using generative or recognition weights (overloaded for batches) |
+| `feed_forwards(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, ...)` | `void` | Feeds the layer forward (overloaded for batches) |
+| `feed_backwards(feature_maps_vector_type& outputs, out_feature_maps_vector_type& inputs, ...)` | `void` | Feeds the layer backwards using generative or recognition weights (overloaded for batches) |
 | `back_prop(...)` | `void` | Performs vanilla backpropagation with the specified activation method (overloaded for batches) |
 | `wake_sleep(...)` | `void` | Performs the wake-sleep (up-down) algorithm with the specified activation method |
 | `feature_maps` | `FeatureMap<>` | Holds current activations |
 | `weights` | `FeatureMap<>` | Holds the weights |
 | `biases` | `FeatureMap<>` | Holds the biases (if used) |
+| `generative_biases` | `FeatureMap<>` | Holds the generative biases (if used) |
 | `weights_momentum` | `FeatureMap<>` | Holds the weights' momentum |
 | `biases_momentum` | `FeatureMap<>` | Holds the biases' momentum |
 | `weights_aux_data` | `FeatureMap<>` | Holds the weights' aux_data (used for optimization methods) |
 | `biases_aux_data` | `FeatureMap<>` | Holds the biases' aux_data (used for optimization methods) |
+| `feature_maps_type` | `type` | the type |
+| `out_feature_maps_type` | `type` | the type |
+| `weights_type` | `type` | the type |
+| `biases_type` | `type` | the type |
+| `generative_biases_type` | `type` | the type |
+| `feature_maps_vector_type` | `type` | the type |
+| `out_feature_maps_vector_type` | `type` | the type |
+| `weights_vector_type` | `type` | the type |
+| `biases_vector_type` | `type` | the type |
+| `generative_biases_vector_type` | `type` | the type |
 
 ###PerceptronFullConnectivityLayer<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_cols, size_t out_rows, size_t activation_function, bool use_biases>
 ===============================
