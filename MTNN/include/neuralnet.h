@@ -112,7 +112,7 @@ template<typename... Ts> struct get_rbm_idx_impl<0, Ts...>
     static constexpr size_t idx = 0;
 };
 
-template<typename... Ts> using get_rbm_idx = get_rbm_idx_impl<sizeof...(Ts)-1, Ts...>;
+template<typename... Ts> using get_rbm_idx = get_rbm_idx_impl<sizeof...(Ts) - 1, Ts...>;
 
 //CONSTEXPR STRING
 
@@ -337,6 +337,11 @@ private:
                     for (size_t i = 0; i < t::rows(); ++i)
                         for (size_t j = 0; j < t::cols(); ++j)
                             layer::weights_gradient[d].at(i, j) = 0.0f;
+                for (size_t n = 0; n < get_aux_weights_gradients<0>().size(); ++n)
+                    for (size_t d = 0; d < t::size(); ++d)
+                        for (size_t i = 0; i < t::rows(); ++i)
+                            for (size_t j = 0; j < t::cols(); ++j)
+                                get_aux_weights_gradients<l>()[n][d].at(i, j) = 0.0f;
             }
             if (target == MTNN_DATA_BIAS_GRAD)
             {
@@ -345,6 +350,11 @@ private:
                     for (size_t i_0 = 0; i_0 < t::rows(); ++i_0)
                         for (size_t j_0 = 0; j_0 < t::cols(); ++j_0)
                             layer::biases_gradient[f_0].at(i_0, j_0) = 0.0f;
+                for (size_t n = 0; n < get_aux_biases_gradients<0>().size(); ++n)
+                    for (size_t f_0 = 0; f_0 < t::size(); ++f_0)
+                        for (size_t i_0 = 0; i_0 < t::rows(); ++i_0)
+                            for (size_t j_0 = 0; j_0 < t::cols(); ++j_0)
+                                get_aux_biases_gradients<l>()[n][f_0].at(i_0, j_0) = 0.0f;
             }
             if (target == MTNN_DATA_WEIGHT_MOMENT)
             {
@@ -745,6 +755,28 @@ private:
         }
     };
 
+    template<size_t l, bool add> struct modify_aux_weights_vector_impl
+    {
+        modify_aux_weights_vector_impl()
+        {
+            if (add)
+                get_aux_weights<l>().push_back(std::remove_reference_t<decltype(get_aux_weights<l>())>::value_type{ 0 });
+            else
+                get_aux_weights<l>().pop_back();
+        }
+    };
+
+    template<size_t l, bool add> struct modify_aux_biases_vector_impl
+    {
+        modify_aux_biases_vector_impl()
+        {
+            if (add)
+                get_aux_biases<l>().push_back(std::remove_reference_t<decltype(get_aux_biases<l>())>::value_type{ 0 });
+            else
+                get_aux_biases<l>().pop_back();
+        }
+    };
+
     template<size_t l, bool add> struct modify_aux_weights_gradients_vector_impl
     {
         modify_aux_weights_gradients_vector_impl()
@@ -824,6 +856,9 @@ public:
     template<size_t l> using add_aux_weights_gradient = modify_aux_weights_gradients_vector_impl<l, true>;
     template<size_t l> using remove_aux_weights_gradients = modify_aux_weights_gradients_vector_impl<l, false>;
 
+    template<size_t l> using add_aux_biases = modify_aux_biases_vector_impl<l, true>;
+    template<size_t l> using remove_aux_biases = modify_aux_biases_vector_impl<l, false>;
+
     template<size_t l> using add_aux_biases_gradients = modify_aux_biases_gradients_vector_impl<l, true>;
     template<size_t l> using remove_aux_biases_gradients = modify_aux_biases_gradients_vector_impl<l, false>;
 
@@ -846,14 +881,24 @@ public:
         return std::get<l, typename layers::feature_maps_vector_type...>(batch_out_derivs);
     }
     //fetch specific layer parallel gradient
-    template<size_t l> static typename get_layer<l>::weights_vector_type& get_aux_weights_gradient()
+    template<size_t l> static typename get_layer<l>::weights_vector_type& get_aux_weights()
     {
-        return std::get<l, typename layers::weights_vector_type>(aux_weights_gradient);
+        return std::get<l, typename layers::weights_vector_type...>(aux_weights);
     }
     //fetch specific layer parallel gradient
-    template<size_t l> static typename get_layer<l>::biases_vector_type& get_aux_biases_gradient()
+    template<size_t l> static typename get_layer<l>::biases_vector_type& get_aux_biases()
     {
-        return std::get<l, typename layers::biases_vector_type>(aux_biases_gradient);
+        return std::get<l, typename layers::biases_vector_type...>(aux_biases);
+    }
+    //fetch specific layer parallel gradient
+    template<size_t l> static typename get_layer<l>::weights_vector_type& get_aux_weights_gradients()
+    {
+        return std::get<l, typename layers::weights_vector_type...>(aux_weights_gradients);
+    }
+    //fetch specific layer parallel gradient
+    template<size_t l> static typename get_layer<l>::biases_vector_type& get_aux_biases_gradients()
+    {
+        return std::get<l, typename layers::biases_vector_type...>(aux_biases_gradients);
     }
 
     ////Hyperparameters
@@ -883,7 +928,7 @@ public:
     static float weight_decay_factor;
 
     static FeatureMap<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()> input;
-    static FeatureMap<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()> labels;
+    static FeatureMap<get_layer<sizeof...(layers) - 1>::feature_maps.size(), get_layer<sizeof...(layers) - 1>::feature_maps.rows(), get_layer<sizeof...(layers) - 1>::feature_maps.cols()> labels;
 
     //used for adam
     static size_t t_adam;
@@ -895,6 +940,12 @@ public:
 
     //only for batches and batch norm
     static std::tuple<typename layers::feature_maps_vector_type...> batch_out_derivs;
+
+    //need for parallel
+    static std::tuple<typename layers::weights_vector_type...> aux_weights;
+
+    //need for parallel
+    static std::tuple<typename layers::biases_vector_type...> aux_biases;
 
     //need for parallel
     static std::tuple<typename layers::weights_vector_type...> aux_weights_gradients;
@@ -921,7 +972,7 @@ public:
     static void set_input(FeatureMap<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()>& new_input);
 
     //set labels for batch
-    static void set_labels(FeatureMap<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()>& new_labels);
+    static void set_labels(FeatureMap<get_layer<sizeof...(layers) - 1>::feature_maps.size(), get_layer<sizeof...(layers) - 1>::feature_maps.rows(), get_layer<sizeof...(layers) - 1>::feature_maps.cols()>& new_labels);
 
     //feed forwards
     static void discriminate();
@@ -929,7 +980,7 @@ public:
     static void discriminate(FeatureMapVector<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()>& batch_input);
 
     //feed backwards, returns a copy of the first layer (must be deallocated)
-    static FeatureMap<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()> generate(FeatureMap<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()>& input, size_t iterations, bool use_sampling);
+    static FeatureMap<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()> generate(FeatureMap<get_layer<sizeof...(layers) - 1>::feature_maps.size(), get_layer<sizeof...(layers) - 1>::feature_maps.rows(), get_layer<sizeof...(layers) - 1>::feature_maps.cols()>& input, size_t iterations, bool use_sampling);
 
     //wake-sleep algorithm, only trains target layer with assumption that layers up to it have been trained
     static void pretrain(size_t markov_iterations);
@@ -938,7 +989,7 @@ public:
     static float train();
 
     //backprop for a batch with selected method, returns mean error by loss function
-    static float train_batch(FeatureMapVector<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()>& batch_input, FeatureMapVector<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()>& batch_labels);
+    static float train_batch(FeatureMapVector<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()>& batch_input, FeatureMapVector<get_layer<sizeof...(layers) - 1>::feature_maps.size(), get_layer<sizeof...(layers) - 1>::feature_maps.rows(), get_layer<sizeof...(layers) - 1>::feature_maps.cols()>& batch_labels);
 
     //compute the population statistics for BN networks
     static void calculate_population_statistics(FeatureMapVector<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()>& batch_input);
@@ -950,15 +1001,15 @@ public:
     static float global_error();
 
     //get error for an entire batch according to loss function
-    static float global_error(FeatureMapVector<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()>& batch_outputs, FeatureMapVector<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()>& batch_labels);
+    static float global_error(FeatureMapVector<get_type<sizeof...(layers) - 1, layers...>::feature_maps.size(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.rows(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.cols()>& batch_outputs, FeatureMapVector<get_type<sizeof...(layers) - 1, layers...>::feature_maps.size(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.rows(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.cols()>& batch_labels);
 
 private:
 
     template<size_t l> static void dropout();
 
-    static FeatureMap<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()> error_signals();
+    static FeatureMap<get_type<sizeof...(layers) - 1, layers...>::feature_maps.size(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.rows(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.cols()> error_signals();
 
-    static typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_outputs, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels);
+    static typename get_type<sizeof...(layers) - 1, layers...>::feature_maps_vector_type error_signals(typename get_type<sizeof...(layers) - 1, layers...>::feature_maps_vector_type& batch_outputs, typename get_type<sizeof...(layers) - 1, layers...>::feature_maps_vector_type& batch_labels);
 };
 
 //Hyperparameter declarations
@@ -981,9 +1032,11 @@ template<typename... layers> size_t NeuralNet<layers...>::t_adam = 0;
 template<typename... layers> template<typename file_name_type> FILE* NeuralNet<layers...>::save_data_t<file_name_type>::fp = {};
 template<typename... layers> template<typename file_name_type> FILE* NeuralNet<layers...>::load_data_t<file_name_type>::fp = {};
 template<typename... layers> FeatureMap<get_type<0, layers...>::feature_maps.size(), get_type<0, layers...>::feature_maps.rows(), get_type<0, layers...>::feature_maps.cols()> NeuralNet<layers...>::input = {};
-template<typename... layers> FeatureMap<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()> NeuralNet<layers...>::labels = {};
+template<typename... layers> FeatureMap<get_type<sizeof...(layers) - 1, layers...>::feature_maps.size(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.rows(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.cols()> NeuralNet<layers...>::labels = {};
 template<typename... layers> std::tuple<typename layers::feature_maps_vector_type...> NeuralNet<layers...>::batch_activations = std::make_tuple<typename layers::feature_maps_vector_type...>(layers::feature_maps_vector_type{ 1 }...); //init with one, will add more if necessary for batch
 template<typename... layers> std::tuple<typename layers::feature_maps_vector_type...> NeuralNet<layers...>::batch_out_derivs = std::make_tuple<typename layers::feature_maps_vector_type...>(layers::feature_maps_vector_type{ 0 }...); //init with zero, will add more if necessary for batch
+template<typename... layers> std::tuple<typename layers::weights_vector_type...> NeuralNet<layers...>::aux_weights = std::make_tuple<typename layers::weights_vector_type...>(layers::weights_vector_type{ 0 }...); //init with zero, will add more if necessary for parallel
+template<typename... layers> std::tuple<typename layers::biases_vector_type...> NeuralNet<layers...>::aux_biases = std::make_tuple<typename layers::biases_vector_type...>(layers::biases_vector_type{ 0 }...); //init with zero, will add more if necessary for parallel
 template<typename... layers> std::tuple<typename layers::weights_vector_type...> NeuralNet<layers...>::aux_weights_gradients = std::make_tuple<typename layers::weights_vector_type...>(layers::weights_vector_type{ 0 }...); //init with zero, will add more if necessary for parallel
 template<typename... layers> std::tuple<typename layers::biases_vector_type...> NeuralNet<layers...>::aux_biases_gradients = std::make_tuple<typename layers::biases_vector_type...>(layers::biases_vector_type{ 0 }...); //init with zero, will add more if necessary for parallel
 
@@ -1047,7 +1100,7 @@ set_input(FeatureMap<get_type<0, layers...>::feature_maps.size(), get_type<0, la
 
 template<typename... layers>
 inline void NeuralNet<layers...>::
-set_labels(FeatureMap<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()>& new_labels)
+set_labels(FeatureMap<get_layer<sizeof...(layers) - 1>::feature_maps.size(), get_layer<sizeof...(layers) - 1>::feature_maps.rows(), get_layer<sizeof...(layers) - 1>::feature_maps.cols()>& new_labels)
 {
     for (size_t f = 0; f < labels.size(); ++f)
         for (size_t i = 0; i < labels.rows(); ++i)
@@ -1089,7 +1142,7 @@ inline void NeuralNet<layers...>::discriminate(FeatureMapVector<get_layer<0>::fe
 
 template<typename... layers>
 inline FeatureMap<get_type<0, layers...>::feature_maps.size(), get_type<0, layers...>::feature_maps.rows(), get_type<0, layers...>::feature_maps.cols()> NeuralNet<layers...>::
-generate(FeatureMap<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()>& input, size_t iterations, bool use_sampling)
+generate(FeatureMap<get_type<sizeof...(layers) - 1, layers...>::feature_maps.size(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.rows(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.cols()>& input, size_t iterations, bool use_sampling)
 {
     //reset all but output (or inputs?)
     loop_all_layers<reset_layer_feature_maps>();
@@ -1170,7 +1223,7 @@ train()
 
 template<typename... layers>
 inline float NeuralNet<layers...>::
-train_batch(FeatureMapVector<get_type<0, layers...>::feature_maps.size(), get_type<0, layers...>::feature_maps.rows(), get_type<0, layers...>::feature_maps.cols()>& batch_inputs, FeatureMapVector<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()>& batch_labels)
+train_batch(FeatureMapVector<get_type<0, layers...>::feature_maps.size(), get_type<0, layers...>::feature_maps.rows(), get_type<0, layers...>::feature_maps.cols()>& batch_inputs, FeatureMapVector<get_type<sizeof...(layers) - 1, layers...>::feature_maps.size(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.rows(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.cols()>& batch_labels)
 {
     bool temp_batch = use_batch_learning;
     use_batch_learning = true;
@@ -1265,7 +1318,7 @@ global_error()
 
 template<typename... layers>
 inline float NeuralNet<layers...>::
-global_error(FeatureMapVector<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()>& batch_outputs, FeatureMapVector<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()>& batch_labels)
+global_error(FeatureMapVector<get_type<sizeof...(layers) - 1, layers...>::feature_maps.size(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.rows(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.cols()>& batch_outputs, FeatureMapVector<get_type<sizeof...(layers) - 1, layers...>::feature_maps.size(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.rows(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.cols()>& batch_labels)
 {
     if (loss_function == MTNN_LOSS_CUSTOMTARGETS)
         return 0;
@@ -1304,10 +1357,10 @@ dropout()
 }
 
 template<typename... layers>
-inline FeatureMap<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()> NeuralNet<layers...>::
+inline FeatureMap<get_type<sizeof...(layers) - 1, layers...>::feature_maps.size(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.rows(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.cols()> NeuralNet<layers...>::
 error_signals()
 {
-    auto out = FeatureMap<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()>{ 0 };
+    auto out = FeatureMap<get_type<sizeof...(layers) - 1, layers...>::feature_maps.size(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.rows(), get_type<sizeof...(layers) - 1, layers...>::feature_maps.cols()>{ 0 };
     if (loss_function == MTNN_LOSS_SQUAREERROR)
         for (size_t f = 0; f < labels.size(); ++f)
             for (size_t i = 0; i < labels.rows(); ++i)
@@ -1329,8 +1382,8 @@ error_signals()
 }
 
 template<typename ...layers>
-inline typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type NeuralNet<layers...>::
-error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_outputs, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels)
+inline typename get_type<sizeof...(layers) - 1, layers...>::feature_maps_vector_type NeuralNet<layers...>::
+error_signals(typename get_type<sizeof...(layers) - 1, layers...>::feature_maps_vector_type& batch_outputs, typename get_type<sizeof...(layers) - 1, layers...>::feature_maps_vector_type& batch_labels)
 {
     auto out = typename get_layer<last_layer_index>::feature_maps_vector_type(batch_outputs.size());
     for (size_t in = 0; in < batch_outputs.size(); ++in)

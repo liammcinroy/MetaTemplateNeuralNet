@@ -224,11 +224,11 @@ public:
         else if (activation == MTNN_FUNC_LOGISTIC || activation == MTNN_FUNC_RBM)
             return value < 5 && value > -5 ? (1 / (1 + exp(-value))) : (value >= 5 ? 1.0f : 0.0f);
         else if (activation == MTNN_FUNC_BIPOLARLOGISTIC)
-            return value < 5 && value > -5 ? ((2 / (1 + exp(-value))) - 1) : (value >= 5 ? 1.0f : -1.0f);
+            return value < 5 && value > -5 ? ((2 / (1 + exp(-value))) - 1) : (value >= 5 ? 1.0f :  - 1.0f);
         else if (activation == MTNN_FUNC_TANH)
-            return value < 5 && value > -5 ? tanh(value) : (value >= 5 ? 1.0f : -1.0f);
+            return value < 5 && value > -5 ? tanh(value) : (value >= 5 ? 1.0f :  - 1.0f);
         else if (activation == MTNN_FUNC_TANHLECUN)
-            return value < 5 && value > -5 ? 1.7159f * tanh(0.66666667f * value) : ((value >= 5 ? 1.7159f : -1.7159f));
+            return value < 5 && value > -5 ? 1.7159f * tanh(0.66666667f * value) : ((value >= 5 ? 1.7159f :  - 1.7159f));
         else if (activation == MTNN_FUNC_RELU)
             return value > 0 ? value : 0;
     }
