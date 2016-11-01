@@ -138,7 +138,7 @@ Basic output layer just to signify the end of the network. Required
 ###NeuralNetwork<typename... layers>
 ===============================
 
-This is the class that encapsulates all of the rest. Has all required methods. Will add support for more loss functions and optimization methods later.
+This is the class that encapsulates all of the rest. Has all required methods. Will add support for more loss functions and optimization methods later. If you want to train the network in parallel (or keep different sets of weights for a target network, or different architecture, etc.) then create a new instance of the class. Each new instance has its own weights and gradients and is thread safe. The static class is the master net and retains its own weights.
 
 | Member/Method | Type | Details |
 |--------|------|----------|
@@ -158,16 +158,20 @@ This is the class that encapsulates all of the rest. Has all required methods. W
 | `load_data<typename path>()` | `void` | Loads the data (<b>Must have initialized network and filled layers first!!!</b>) |
 | `set_input(FeatureMap<> input)` | `void` | Sets the current input |
 | `set_labels(FeatureMap<> labels)` | `void` | Sets the current labels |
-| `discriminate()` | `void` | Feeds the network forward with current input |
+| `discriminate()` | `void` | Feeds the network forward with current input, can be specified |
 | `discriminate(FeatureMapVector<> inputs)` | `void` | Feeds the network forward with the batch inputs |
 | `generate(FeatureMap<> input, size_t sampling_iterations, bool use_sampling)` | `FeatureMap<>` | Generates an output for an rbm network. `use_sampling` means sample for each layer after the markov iterations on the final RBM layer |
 | `pretrain()` | `void` | Pretrains the network using the wake-sleep algorithm. Assumes every layer upto the last RBM layer has been trained. |
 | `train()` | `float` | Trains the network using specified optimization method |
-| `train_batch(FeatureMap<> batch_inputs, FeatureMap<> batch_labels)` | `float` | Trains the network using specified optimization method and batch learning. MUST BE USED IF USING BATCH NORMALIZATION |
+| `train_batch(FeatureMapVector<> batch_inputs, FeatureMapVector<> batch_labels)` | `float` | Trains the network using specified optimization method and batch learning. MUST BE USED IF USING BATCH NORMALIZATION |
+| `discriminate_thread()` | `void` | Feeds the network forward with current input and the current initialization (or thread's) weights, can be specified |
+| `discriminate_thread(FeatureMapVector<> inputs)` | `void` | Feeds the network forward with the batch inputs and the current initialization (or thread's) weights |
+| `train()_thread` | `float` | Trains the network using specified optimization method with the current initialization (or thread's) weights |
+| `train_batch_thread(FeatureMapVector<> batch_inputs, FeatureMapVector<> batch_labels)` | `float` | Trains the network using specified optimization method and batch learning with the current initialization (or thread's) weights. MUST BE USED IF USING BATCH NORMALIZATION |
 | `calculate_population_statistics(FeatureMapVector<> batch_inputs)` | `void` | Calculates the population statistics for BN networks. Do after all training with full training data. |
 | `template get_layer<size_t l> | `type` | Returns the lth layer's type |
-| `template loop_up_layers<template<size_t l> class loop_body> | `type` | Initialize one of these to perform a function specified from the initialization of a `loop_body` type on each layer |
-| `template loop_down_layers<template<size_t l> class loop_body> | `type` | Initialize one of these to perform a function specified from the initialization of a `loop_body` type on each layer |
+| `template loop_up_layers<template<size_t l> class loop_body, typename... Args> | `type` | Initialize one of these to perform a function specified from the initialization of a `loop_body` type on each layer with initialization arguments of type `Args...` |
+| `template loop_down_layers<template<size_t l> class loop_body, typename... Args> | `type` | Initialize one of these to perform a function specified from the initialization of a `loop_body` type on each layer with initialization arguments of type `Args...` |
 
 ###NeuralNetAnalyzer<typename Net>
 

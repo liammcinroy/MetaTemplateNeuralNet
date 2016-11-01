@@ -351,7 +351,7 @@ public:
         }
     }
 
-    static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases)
+    static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases, weights_type& w_grad = weights_gradient, biases_type& b_grad = biases_gradient)
     {
         constexpr size_t out_rows = use_padding ? rows / stride + 1 : (rows - kernel_size) / stride + 1;
         constexpr size_t out_cols = use_padding ? cols / stride + 1 : (cols - kernel_size) / stride + 1;
@@ -366,24 +366,24 @@ public:
                     conv_helper_funcs<rows, cols, kernel_size, kernel_size, stride, use_padding>::convolve_back(deriv[f_0], params_w[f_0 * features + f]));
 
                 //adjust the gradient
-                conv_helper_funcs<rows, cols, kernel_size, kernel_size, stride, use_padding>::back_prop_kernel(activations_pre[f], deriv[f_0], weights_gradient[f_0 * features + f]);
+                conv_helper_funcs<rows, cols, kernel_size, kernel_size, stride, use_padding>::back_prop_kernel(activations_pre[f], deriv[f_0], w_grad[f_0 * features + f]);
 
                 //L2 weight decay
                 if (use_l2_weight_decay && online)
                     for (size_t i = 0; i < kernel_size; ++i)
                         for (size_t j = 0; j < kernel_size; ++j)
-                            weights_gradient[f_0 * features + f].at(i, j) += params_w[f_0 * features + f].at(i, j);
+                            w_grad[f_0 * features + f].at(i, j) += params_w[f_0 * features + f].at(i, j);
 
                 if (use_biases)
                 {
                     //normal derivative
                     for (size_t i_0 = 0; i_0 < out_rows; ++i_0)
                         for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
-                            biases_gradient[f_0 * features + f].at(0, 0) += deriv[f_0].at(i_0, j_0);
+                            b_grad[f_0 * features + f].at(0, 0) += deriv[f_0].at(i_0, j_0);
 
                     //l2 weight decay
                     if (use_l2_weight_decay && include_biases_decay && online)
-                        biases_gradient[f_0 * features + f].at(0, 0) += 2 * weight_decay_factor * params_b[f_0 * features + f].at(0, 0);
+                        b_grad[f_0 * features + f].at(0, 0) += 2 * weight_decay_factor * params_b[f_0 * features + f].at(0, 0);
                 }
 
                 //update for online
@@ -393,17 +393,17 @@ public:
                     {
                         for (size_t j = 0; j < kernel_size; ++j)
                         {
-                            params_w[f_0 * features + f].at(i, j) += -learning_rate * (weights_gradient[f_0 * features + f].at(i, j) + momentum_term * weights_momentum[f_0 * features + f].at(i, j));
-                            weights_momentum[f_0 * features + f].at(i, j) = momentum_term * weights_momentum[f_0 * features + f].at(i, j) + weights_gradient[f_0 * features + f].at(i, j);
-                            weights_gradient[f_0 * features + f].at(i, j) = 0;
+                            params_w[f_0 * features + f].at(i, j) += -learning_rate * (w_grad[f_0 * features + f].at(i, j) + momentum_term * weights_momentum[f_0 * features + f].at(i, j));
+                            weights_momentum[f_0 * features + f].at(i, j) = momentum_term * weights_momentum[f_0 * features + f].at(i, j) + w_grad[f_0 * features + f].at(i, j);
+                            w_grad[f_0 * features + f].at(i, j) = 0;
                         }
                     }
 
                     if (use_biases)
                     {
-                        params_b[f_0 * features + f].at(0, 0) += -learning_rate * (biases_gradient[f_0 * features + f].at(0, 0) + momentum_term * biases_momentum[f_0 * features + f].at(0, 0));
-                        biases_momentum[f_0 * features + f].at(0, 0) = momentum_term * biases_momentum[f_0 * features + f].at(0, 0) + biases_gradient[f_0 * features + f].at(0, 0);
-                        biases_gradient[f_0 * features + f].at(0, 0) = 0;
+                        params_b[f_0 * features + f].at(0, 0) += -learning_rate * (b_grad[f_0 * features + f].at(0, 0) + momentum_term * biases_momentum[f_0 * features + f].at(0, 0));
+                        biases_momentum[f_0 * features + f].at(0, 0) = momentum_term * biases_momentum[f_0 * features + f].at(0, 0) + b_grad[f_0 * features + f].at(0, 0);
+                        b_grad[f_0 * features + f].at(0, 0) = 0;
                     }
                 }
 
@@ -413,15 +413,15 @@ public:
                     {
                         for (size_t j = 0; j < kernel_size; ++j)
                         {
-                            params_w[f_0 * features + f].at(i, j) += -learning_rate * weights_gradient[f_0 * features + f].at(i, j);
-                            weights_gradient[f_0 * features + f].at(i, j) = 0;
+                            params_w[f_0 * features + f].at(i, j) += -learning_rate * w_grad[f_0 * features + f].at(i, j);
+                            w_grad[f_0 * features + f].at(i, j) = 0;
                         }
                     }
 
                     if (use_biases)
                     {
-                        params_b[f_0 * features + f].at(0, 0) += -learning_rate * biases_gradient[f_0 * features + f].at(0, 0);
-                        biases_gradient[f_0 * features + f].at(0, 0) = 0;
+                        params_b[f_0 * features + f].at(0, 0) += -learning_rate * b_grad[f_0 * features + f].at(0, 0);
+                        b_grad[f_0 * features + f].at(0, 0) = 0;
                     }
                 }
             }
@@ -443,10 +443,10 @@ public:
             feed_backwards(outputs[in], inputs[in], params_w, params_b);
     }
 
-    static void back_prop(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases)
+    static void back_prop(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases, weights_type& w_grad = weights_gradient, biases_type& b_grad = biases_gradient)
     {
         for (size_t in = 0; in < derivs.size(); ++in)
-            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, params_w, params_b);
+            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, params_w, params_b, w_grad, b_grad);
     }
 
     static void wake_sleep(float& learning_rate, size_t markov_iterations, bool use_dropout)
@@ -642,7 +642,7 @@ public:
         }
     }
 
-    static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases)
+    static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases, weights_type& w_grad = weights_gradient, biases_type& b_grad = biases_gradient)
     {
         for (size_t f_0 = 0; f_0 < out_features; ++f_0)
         {
@@ -653,24 +653,24 @@ public:
                     if (use_biases)
                     {
                         //normal derivative
-                        biases_gradient[f_0].at(i_0, j_0) += deriv[f_0].at(i_0, j_0);
+                        b_grad[f_0].at(i_0, j_0) += deriv[f_0].at(i_0, j_0);
 
                         //L2 weight decay
                         if (use_l2_weight_decay && include_biases_decay && online)
-                            biases_gradient[f_0].at(i_0, j_0) += 2 * weight_decay_factor * params_b[f_0].at(i_0, j_0);
+                            b_grad[f_0].at(i_0, j_0) += 2 * weight_decay_factor * params_b[f_0].at(i_0, j_0);
 
                         //online update
                         if (use_momentum && online)
                         {
-                            params_b[f_0].at(i_0, j_0) += -learning_rate * (biases_gradient[f_0].at(i_0, j_0) + momentum_term * biases_momentum[f_0].at(i_0, j_0));
-                            biases_momentum[f_0].at(i_0, j_0) = momentum_term * biases_momentum[f_0].at(i_0, j_0) + biases_gradient[f_0].at(i_0, j_0);
-                            biases_gradient[f_0].at(i_0, j_0) = 0;
+                            params_b[f_0].at(i_0, j_0) += -learning_rate * (b_grad[f_0].at(i_0, j_0) + momentum_term * biases_momentum[f_0].at(i_0, j_0));
+                            biases_momentum[f_0].at(i_0, j_0) = momentum_term * biases_momentum[f_0].at(i_0, j_0) + b_grad[f_0].at(i_0, j_0);
+                            b_grad[f_0].at(i_0, j_0) = 0;
                         }
 
                         else if (online)
                         {
-                            params_b[f_0].at(i_0, j_0) += -learning_rate * biases_gradient[f_0].at(i_0, j_0);
-                            biases_gradient[f_0].at(i_0, j_0) = 0;
+                            params_b[f_0].at(i_0, j_0) += -learning_rate * b_grad[f_0].at(i_0, j_0);
+                            b_grad[f_0].at(i_0, j_0) = 0;
                         }
                     }
 
@@ -684,25 +684,25 @@ public:
                                 out_deriv[f].at(i, j) += deriv[f_0].at(i_0, j_0) * params_w[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
 
                                 //normal derivative
-                                weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) += deriv[f_0].at(i_0, j_0) * activations_pre[f].at(i, j);
+                                w_grad[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) += deriv[f_0].at(i_0, j_0) * activations_pre[f].at(i, j);
 
                                 //L2 decay
                                 if (use_l2_weight_decay && online)
-                                    weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) += 2 * weight_decay_factor * params_w[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
+                                    w_grad[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) += 2 * weight_decay_factor * params_w[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
 
                                 //Online updates
                                 if (use_momentum && online)
                                 {
-                                    params_w[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) += -learning_rate * (weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) + momentum_term * weights_momentum[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j));
-                                    weights_momentum[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) = momentum_term * weights_momentum[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) + weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
-                                    weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) = 0;
+                                    params_w[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) += -learning_rate * (w_grad[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) + momentum_term * weights_momentum[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j));
+                                    weights_momentum[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) = momentum_term * weights_momentum[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) + w_grad[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
+                                    w_grad[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) = 0;
                                 }
 
                                 else if (online)
                                 {
                                     params_w[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) +=
-                                        -learning_rate * weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
-                                    weights_gradient[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) = 0;
+                                        -learning_rate * w_grad[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j);
+                                    w_grad[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) = 0;
                                 }
                             }
                         }
@@ -727,10 +727,10 @@ public:
             feed_backwards(outputs[in], inputs[in], params_w, params_b);
     }
 
-    static void back_prop(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases)
+    static void back_prop(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases, weights_type& w_grad = weights_gradient, biases_type& b_grad = biases_gradient)
     {
         for (size_t in = 0; in < derivs.size(); ++in)
-            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, params_w, params_b);
+            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, params_w, params_b, w_grad, b_grad);
     }
 
     static void wake_sleep(float& learning_rate, size_t markov_iterations, bool use_dropout)
@@ -872,7 +872,7 @@ public:
                     output[f].at(i, j) = params_w[f].at(i, j) * (input[f].at(i, j) - activations_population_mean[f].at(i, j)) / sqrt(activations_population_variance[f].at(i, j) + min_divisor) + params_b[f].at(i, j);
     }
 
-    static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases)
+    static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases, weights_type& w_grad = weights_gradient, biases_type& b_grad = biases_gradient)
     {
         //undefined for single 
     }
@@ -941,7 +941,7 @@ public:
             feed_backwards(outputs[in], inputs[in], params_w, params_b);
     }
 
-    static void back_prop(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases)
+    static void back_prop(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases, weights_type& w_grad = weights_gradient, biases_type& b_grad = biases_gradient)
     {
         for (size_t in = 0; in < derivs.size(); ++in)
         {
@@ -961,8 +961,8 @@ public:
                         float xhat = div / std;
                         float d_out = deriv[f].at(i, j);
 
-                        biases_gradient[f].at(i, j) += d_out;
-                        weights_gradient[f].at(i, j) += d_out * xhat;
+                        b_grad[f].at(i, j) += d_out;
+                        w_grad[f].at(i, j) += d_out * xhat;
 
                         float sumDeriv = 0.0f;
                         float sumDiff = 0.0f;
@@ -1119,7 +1119,7 @@ public:
         }
     }
 
-    static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases)
+    static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases, weights_type& w_grad = weights_gradient, biases_type& b_grad = biases_gradient)
     {
         //just move the values back to which ones were passed on
         for (size_t f = 0; f < features; ++f)
@@ -1163,10 +1163,10 @@ public:
             feed_backwards(outputs[in], inputs[in], params_w, params_b);
     }
 
-    static void back_prop(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases)
+    static void back_prop(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases, weights_type& w_grad = weights_gradient, biases_type& b_grad = biases_gradient)
     {
         for (size_t in = 0; in < derivs.size(); ++in)
-            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, params_w, params_b);
+            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, params_w, params_b, w_grad, b_grad);
     }
 
 private:
@@ -1255,7 +1255,7 @@ public:
                     output[f].at(i, j) = log(total * input[f].at(i, j));
     }
 
-    static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases)
+    static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases, weights_type& w_grad = weights_gradient, biases_type& b_grad = biases_gradient)
     {
         for (size_t f = 0; f < features; ++f)
         {
@@ -1292,10 +1292,10 @@ public:
             feed_backwards(outputs[in], inputs[in], params_w, params_b);
     }
 
-    static void back_prop(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases)
+    static void back_prop(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases, weights_type& w_grad = weights_gradient, biases_type& b_grad = biases_gradient)
     {
         for (size_t in = 0; in < derivs.size(); ++in)
-            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, params_w, params_b);
+            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, params_w, params_b, w_grad, b_grad);
     }
 };
 
@@ -1370,7 +1370,7 @@ public:
                     output[f].at(i, j) = input[f].at(i, j);
     }
 
-    static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases)
+    static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases, weights_type& w_grad = weights_gradient, biases_type& b_grad = biases_gradient)
     {
         for (size_t f = 0; f < features; ++f)
             for (size_t i = 0; i < rows; ++i)
@@ -1392,10 +1392,10 @@ public:
             feed_backwards(outputs[in], inputs[in], params_w, params_b);
     }
 
-    static void back_prop(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases)
+    static void back_prop(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases, weights_type& w_grad = weights_gradient, biases_type& b_grad = biases_gradient)
     {
         for (size_t in = 0; in < derivs.size(); ++in)
-            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, params_w, params_b);
+            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, params_w, params_b, w_grad, b_grad);
     }
 };
 
@@ -1467,7 +1467,7 @@ public:
                     output[f].at(i, j) = input[f].at(i, j);
     }
 
-    static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases)
+    static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases, weights_type& w_grad = weights_gradient, biases_type& b_grad = biases_gradient)
     {
         for (size_t f = 0; f < features; ++f)
             for (size_t i = 0; i < rows; ++i)
@@ -1489,10 +1489,10 @@ public:
             feed_backwards(outputs[in], inputs[in], params_w, params_b);
     }
 
-    static void back_prop(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases)
+    static void back_prop(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases, weights_type& w_grad = weights_gradient, biases_type& b_grad = biases_gradient)
     {
         for (size_t in = 0; in < derivs.size(); ++in)
-            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, params_w, params_b);
+            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, params_w, params_b, w_grad, b_grad);
     }
 };
 
