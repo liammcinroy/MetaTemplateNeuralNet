@@ -162,12 +162,12 @@ This is the class that encapsulates all of the rest. Has all required methods. W
 | `discriminate(FeatureMapVector<> inputs)` | `void` | Feeds the network forward with the batch inputs |
 | `generate(FeatureMap<> input, size_t sampling_iterations, bool use_sampling)` | `FeatureMap<>` | Generates an output for an rbm network. `use_sampling` means sample for each layer after the markov iterations on the final RBM layer |
 | `pretrain()` | `void` | Pretrains the network using the wake-sleep algorithm. Assumes every layer upto the last RBM layer has been trained. |
-| `train()` | `float` | Trains the network using specified optimization method |
-| `train_batch(FeatureMapVector<> batch_inputs, FeatureMapVector<> batch_labels)` | `float` | Trains the network using specified optimization method and batch learning. MUST BE USED IF USING BATCH NORMALIZATION |
-| `discriminate_thread()` | `void` | Feeds the network forward with current input and the current initialization (or thread's) weights, can be specified |
-| `discriminate_thread(FeatureMapVector<> inputs)` | `void` | Feeds the network forward with the batch inputs and the current initialization (or thread's) weights |
-| `train()_thread` | `float` | Trains the network using specified optimization method with the current initialization (or thread's) weights |
-| `train_batch_thread(FeatureMapVector<> batch_inputs, FeatureMapVector<> batch_labels)` | `float` | Trains the network using specified optimization method and batch learning with the current initialization (or thread's) weights. MUST BE USED IF USING BATCH NORMALIZATION |
+| `train()` | `float` | Trains the network using specified optimization method. `already_fed` means that the network has already been discriminated and the algorithm does not need to get the hidden layer activations. |
+| `train_batch(FeatureMapVector<> batch_inputs, FeatureMapVector<> batch_labels)` | `float` | Trains the network using specified optimization method and batch learning. `already_fed` means that the network has already been discriminated and the algorithm does not need to get the hidden layer activations. MUST BE USED IF USING BATCH NORMALIZATION |
+| `discriminate_thread()` | `void` | Feeds the network forward with current input and the current initialization (or thread's) weights, can be specified. |
+| `discriminate_thread(FeatureMapVector<> inputs)` | `void` | Feeds the network forward with the batch inputs and the current initialization (or thread's) weights. |
+| `train_thread()` | `float` | Trains the network using specified optimization method with the current initialization (or thread's) weights.  `already_fed` means that the network has already been discriminated and the algorithm does not need to get the hidden layer activations. |
+| `train_batch_thread(FeatureMapVector<> batch_inputs, FeatureMapVector<> batch_labels)` | `float` | Trains the network using specified optimization method and batch learning with the current initialization (or thread's) weights.  `already_fed` means that the network has already been discriminated and the algorithm does not need to get the hidden layer activations. MUST BE USED IF USING BATCH NORMALIZATION |
 | `calculate_population_statistics(FeatureMapVector<> batch_inputs)` | `void` | Calculates the population statistics for BN networks. Do after all training with full training data. |
 | `template get_layer<size_t l> | `type` | Returns the lth layer's type |
 | `template loop_up_layers<template<size_t l> class loop_body, typename... Args> | `type` | Initialize one of these to perform a function specified from the initialization of a `loop_body` type on each layer with initialization arguments of type `Args...` |
