@@ -9,7 +9,7 @@
 #include "ilayer.h"
 
 //default, MSE
-#define MTNN_LOSS_SQUAREERROR 0
+#define MTNN_LOSS_L2 0
 //assumes prior layer is softmax
 #define MTNN_LOSS_LOGLIKELIHOOD 1
 //undefined for error, instead sets output to labels during training
@@ -816,7 +816,7 @@ private:
     {
         back_prop_thread_impl(NeuralNet<layers...>& net)
         {
-            get_layer<l>::back_prop(get_layer<l - 1>::activation, net.get_thread_batch_out_derivs<l + 1>()[0], net.get_thread_batch_activations<l>()[0], net.get_thread_batch_out_derivs<l>()[0], !use_batch_learning && optimization_method == MTNN_OPT_BACKPROP, learning_rate, use_momentum && !use_batch_learning, momentum_term, use_l2_weight_decay, include_bias_decay, weight_decay_factor, net.get_aux_weights<l>(), net.get_aux_biases<l>(), net.get_aux_weights_gradient<l>(), net.get_aux_biases_gradient<l>()); //todo, add thread grads
+            get_layer<l>::back_prop(get_layer<l - 1>::activation, net.get_thread_batch_out_derivs<l + 1>()[0], net.get_thread_batch_activations<l>()[0], net.get_thread_batch_out_derivs<l>()[0], !use_batch_learning && optimization_method == MTNN_OPT_BACKPROP, learning_rate, use_momentum && !use_batch_learning, momentum_term, use_l2_weight_decay, include_bias_decay, weight_decay_factor, net.get_aux_weights<l>(), net.get_aux_biases<l>(), net.get_aux_weights_gradient<l>(), net.get_aux_biases_gradient<l>());
         }
     };
 
@@ -1067,9 +1067,9 @@ public:
     static FeatureMap<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()> generate(FeatureMap<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()>& input, size_t iterations, bool use_sampling);
 
     //wake-sleep algorithm, only trains target layer with assumption that layers up to it have been trained
-    static void pretrain(size_t markov_iterations); //todo: add par
+    static void pretrain(size_t markov_iterations);
 
-                                                    //backpropogate with selected method, returns error by loss function
+    //backpropogate with selected method, returns error by loss function
     static float train(bool already_fed = false, FeatureMap<get_type<0, layers...>::feature_maps.size(), get_type<0, layers...>::feature_maps.rows(), get_type<0, layers...>::feature_maps.cols()>& new_input = NeuralNet<layers...>::input, FeatureMap<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()>& lbl = labels);
 
     //backprop for a batch with selected method, returns mean error by loss function
@@ -1116,12 +1116,12 @@ public:
     void discriminate_thread(FeatureMapVector<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()>& batch_input);
 
     //feed backwards, returns a copy of the first layer (must be deallocated)
-    FeatureMap<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()> generate_thread(FeatureMap<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()>& input, size_t iterations, bool use_sampling);
+    FeatureMap<get_layer<0>::feature_maps.size(), get_layer<0>::feature_maps.rows(), get_layer<0>::feature_maps.cols()> generate_thread(FeatureMap<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()>& input, size_t iterations, bool use_sampling); //todo: add par
 
     //wake-sleep algorithm, only trains target layer with assumption that layers up to it have been trained
     void pretrain_thread(size_t markov_iterations); //todo: add par
 
-                                                    //backpropogate with selected method, returns error by loss function
+    //backpropogate with selected method, returns error by loss function
     float train_thread(bool already_fed = false, FeatureMap<get_type<0, layers...>::feature_maps.size(), get_type<0, layers...>::feature_maps.rows(), get_type<0, layers...>::feature_maps.cols()>& new_input = NeuralNet<layers...>::input, FeatureMap<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()>& lbl = labels);
 
     //backprop for a batch with selected method, returns mean error by loss function
@@ -1131,7 +1131,7 @@ public:
 
 //Hyperparameter declarations
 
-template<typename... layers> size_t NeuralNet<layers...>::loss_function = MTNN_LOSS_SQUAREERROR;
+template<typename... layers> size_t NeuralNet<layers...>::loss_function = MTNN_LOSS_L2;
 template<typename... layers> size_t NeuralNet<layers...>::optimization_method = MTNN_OPT_BACKPROP;
 template<typename... layers> bool NeuralNet<layers...>::use_dropout = false;
 template<typename... layers> bool NeuralNet<layers...>::use_batch_learning = false;
@@ -1322,8 +1322,8 @@ train(bool already_fed = false, FeatureMap<get_type<0, layers...>::feature_maps.
 
         error = global_error(get_layer<last_layer_index>::feature_maps, lbl);
     }
-    //get error signals for output and returns any layers to be skipped
-    //constexpr size_t off = (loss_function == MTNN_LOSS_LOGLIKELIHOOD ? 1 : 0); todo
+
+    //get error signals for output
     auto errors = error_signals(get_layer<last_layer_index>::feature_maps, lbl);
 
     //back_prop for each layer (need to get activation derivatives for output first
@@ -1360,8 +1360,7 @@ train_thread(bool already_fed = false, FeatureMap<get_type<0, layers...>::featur
     }
     error = global_error(get_thread_batch_activations<last_layer_index>()[0], lbl);
 
-    //get error signals for output and returns any layers to be skipped
-    //constexpr size_t off = (loss_function == MTNN_LOSS_LOGLIKELIHOOD ? 1 : 0); todo
+    //get error signals for output
     auto errors = error_signals(get_thread_batch_activations<last_layer_index>()[0], lbl);
 
     //back_prop for each layer (need to get activation derivatives for output first
@@ -1412,8 +1411,7 @@ train_batch(FeatureMapVector<get_type<0, layers...>::feature_maps.size(), get_ty
 
     float total_error = global_error(get_batch_activations<last_layer_index>(), batch_labels);
 
-    //get error signals for output and returns any layers to be skipped
-    //constexpr size_t off = (loss_function == MTNN_LOSS_LOGLIKELIHOOD ? 1 : 0); todo
+    //get error signals for output
     auto errors = error_signals(get_batch_activations<last_layer_index>(), batch_labels);
 
     //back_prop for each layer (need to get activation derivatives for output first
@@ -1462,8 +1460,7 @@ train_batch_thread(FeatureMapVector<get_type<0, layers...>::feature_maps.size(),
 
     float total_error = global_error(get_thread_batch_activations<last_layer_index>(), batch_labels);
 
-    //get error signals for output and returns any layers to be skipped
-    //constexpr size_t off = (loss_function == MTNN_LOSS_LOGLIKELIHOOD ? 1 : 0); todo
+    //get error signals for output
     auto errors = error_signals(get_thread_batch_activations<last_layer_index>(), batch_labels);
 
     //back_prop for each layer (need to get activation derivatives for output first
@@ -1506,7 +1503,7 @@ global_error(FeatureMap<get_layer<sizeof...(layers)-1>::feature_maps.size(), get
 {
     float sum = 0.0f;
 
-    if (loss_function == MTNN_LOSS_SQUAREERROR)
+    if (loss_function == MTNN_LOSS_L2)
     {
         for (size_t f = 0; f < labels.size(); ++f)
             for (size_t i = 0; i < labels[f].rows(); ++i)
@@ -1516,11 +1513,12 @@ global_error(FeatureMap<get_layer<sizeof...(layers)-1>::feature_maps.size(), get
     }
     else if (loss_function == MTNN_LOSS_LOGLIKELIHOOD)
     {
+        sum = 0.0f;
         for (size_t f = 0; f < labels.size(); ++f)
             for (size_t i = 0; i < labels[f].rows(); ++i)
                 for (size_t j = 0; j < labels[f].cols(); ++j)
-                    if (labels[f].at(i, j) > 0)
-                        return -log(output[f].at(i, j));
+                    sum += -1 * (labels[f].at(i, j) * log(output[f].at(i, j));
+        return sum;
     }
     else if (loss_function == MTNN_LOSS_CUSTOMTARGETS)
         return 0;
@@ -1535,19 +1533,18 @@ global_error(FeatureMapVector<get_type<sizeof...(layers)-1, layers...>::feature_
     float sum = 0.0f;
     for (size_t in = 0; in < batch_outputs.size(); ++in)
     {
-        if (loss_function == MTNN_LOSS_SQUAREERROR)
+        if (loss_function == MTNN_LOSS_L2)
             for (size_t f = 0; f < batch_labels[in].size(); ++f)
                 for (size_t i = 0; i < batch_labels[in][f].rows(); ++i)
                     for (size_t j = 0; j < batch_labels[in][f].cols(); ++j)
                         sum += pow(batch_outputs[in][f].at(i, j) - batch_labels[in][f].at(i, j), 2);
         else if (loss_function == MTNN_LOSS_LOGLIKELIHOOD)
-            for (size_t f = 0; f < batch_labels[in].size(); ++f)
-                for (size_t i = 0; i < batch_labels[in][f].rows(); ++i)
-                    for (size_t j = 0; j < batch_labels[in][f].cols(); ++j)
-                        if (batch_labels[in][f].at(i, j) > 0)
-                            sum += -log(batch_outputs[in][f].at(i, j));
+            for (size_t f = 0; f < labels.size(); ++f)
+                for (size_t i = 0; i < labels[f].rows(); ++i)
+                    for (size_t j = 0; j < labels[f].cols(); ++j)
+                        sum += -1 * (labels[f].at(i, j) * log(output[f].at(i, j));
     }
-    if (loss_function == MTNN_LOSS_SQUAREERROR)
+    if (loss_function == MTNN_LOSS_L2)
         return sum / 2;
     else if (loss_function == MTNN_LOSS_LOGLIKELIHOOD)
         return sum;
@@ -1571,7 +1568,7 @@ inline FeatureMap<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(),
 error_signals(FeatureMap<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()>& output = get_layer<last_layer_index>::feature_maps, FeatureMap<get_layer<sizeof...(layers)-1>::feature_maps.size(), get_layer<sizeof...(layers)-1>::feature_maps.rows(), get_layer<sizeof...(layers)-1>::feature_maps.cols()>& lbls = NeuralNet<layers...>::labels)
 {
     auto out = FeatureMap<get_type<sizeof...(layers)-1, layers...>::feature_maps.size(), get_type<sizeof...(layers)-1, layers...>::feature_maps.rows(), get_type<sizeof...(layers)-1, layers...>::feature_maps.cols()>{ 0 };
-    if (loss_function == MTNN_LOSS_SQUAREERROR)
+    if (loss_function == MTNN_LOSS_L2)
         for (size_t f = 0; f < lbls.size(); ++f)
             for (size_t i = 0; i < lbls.rows(); ++i)
                 for (size_t j = 0; j < lbls.cols(); ++j)
@@ -1598,7 +1595,7 @@ error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_ve
     auto out = typename get_layer<last_layer_index>::feature_maps_vector_type(batch_outputs.size());
     for (size_t in = 0; in < batch_outputs.size(); ++in)
     {
-        if (loss_function == MTNN_LOSS_SQUAREERROR)
+        if (loss_function == MTNN_LOSS_L2)
             for (size_t f = 0; f < batch_labels[in].size(); ++f)
                 for (size_t i = 0; i < batch_labels[in].rows(); ++i)
                     for (size_t j = 0; j < batch_labels[in].cols(); ++j)

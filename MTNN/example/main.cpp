@@ -43,7 +43,7 @@ int main(int argc, char** argv)
     //Have to define input/output filename before template because templates don't take string literals and needs linking
     auto path = CSTRING("example.cnn");
 
-    Net::loss_function = MTNN_LOSS_SQUAREERROR;
+    Net::loss_function = MTNN_LOSS_L2;
     Net::optimization_method = MTNN_OPT_BACKPROP;
     Net::learning_rate = .001f;
     Net::use_batch_learning = true;

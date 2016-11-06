@@ -954,7 +954,7 @@ public:
                 {
                     for (size_t j = 0; j < cols; ++j)
                     {
-                        float mu = biases_aux_data[f].at(i, j); //todo: change from population to minibatch
+                        float mu = biases_aux_data[f].at(i, j);
                         float div = activations_pre[f].at(i, j) - mu;
                         float std = sqrt(weights_aux_data[f].at(i, j) + min_divisor);
 
@@ -1240,7 +1240,7 @@ public:
             //get prob
             for (size_t i = 0; i < rows; ++i)
                 for (size_t j = 0; j < cols; ++j)
-                    output[f].at(i, j) = exp(input[f].at(i, j)) / sum;
+                    output[f].at(i, j) = (input[f].at(i, j) < 6 ? exp(input[f].at(i, j)) : 4) / sum;
         }
     }
 
@@ -1257,25 +1257,23 @@ public:
 
     static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases, weights_type& w_grad = weights_gradient, biases_type& b_grad = biases_gradient)
     {
+        //calculate sum of all derivs
+        std::vector<float> sums(features);
         for (size_t f = 0; f < features; ++f)
-        {
             for (size_t i = 0; i < rows; ++i)
-            {
                 for (size_t j = 0; j < cols; ++j)
-                {
-                    //cycle through all again
-                    for (size_t i2 = 0; i2 < rows; ++i2)
-                    {
-                        for (size_t j2 = 0; j2 < cols; ++j2)
-                        {
-                            /*float h_i = data[f].at(i, j);
-                            float h_j = data[f].at(i2, j2);
-                            feature_maps[f].at(i, j) += (i2 == i && j2 == j) ? h_i * (1 - h_i) : -h_i * h_j;*///todo: check
-                        }
-                    }
-                }
-            }
-        }
+                    sums[f] += deriv[f].at(i, j);
+
+        //recalculate activations for next layer (little inefficient, but oh well)
+        out_feature_maps_type out_vals{};
+        feed_forwards(activations_pre, out_vals, params_w, params_b);
+
+        //compute derivative as = out_act * sum_derivs - deriv
+        for (size_t f = 0; f < features; ++f)
+            for (size_t i = 0; i < rows; ++i)
+                for (size_t j = 0; j < cols; ++j)
+                    out_derivs[f].at(i, j) = out_vals[f].at(i, j) * sums[f] - deriv[f].at(i, j);
+
         //apply derivatives
         chain_activations(out_deriv, activations_pre, previous_layer_activation);
     }
