@@ -44,20 +44,29 @@ Available loss functions are quadratic, cross entropy, log likelihood, and custo
 Available optimization methods are vanilla backprop (with momentum, l2 weight decay, etc. as desired), Adam, and Adagrad.
 
 
-###Matrix2D<T, int, int>
+###Matrix2D<T, size_t, size_t>
 ===============================
 
 This class is a simple matrix implementation, with some extra methods that can be used in situations outside of this neural network.
 
 | Member/Method  | Type | Details |
 |---------|------|---------|
-| `data` | `std::array<T, rows * cols>` | holds the matrice's data in column major format |
+| `data` | `std::vector<T>(rows * cols)` | holds the matrice's data in column major format |
 | `at(size_t i, size_t j)` | `T` | returns the value of the matrix at i, j |
 | `clone()` | `Matrix2D<T, rows, cols>` | creates a deep copy of the matrix |
-| `rows()` | `static constexpr int` | returns the amount of rows |
-| `cols()` | `static constexpr int` | returns the amount of cols |
+| `rows()` | `static constexpr size_t` | returns the amount of rows |
+| `cols()` | `static constexpr size_t` | returns the amount of cols |
 
 <small>This table contains methods used only in the source code of the network</small>
+
+<small>Can be initialized with initialization lists, so brace initializers may create some problems.</small>
+
+###FeatureMap<size_t, size_t, size_t, T = float>
+===============================
+
+This class is a slightly more advanced wrapper of just a `std::vector<Matrix2D<T, r, c>(f)`, with basic initialization functions.
+
+<small>Can be initialized with initialization lists, so brace initializers may create some problems.</small>
 
 ###Layer
 ===============================
@@ -138,7 +147,7 @@ Basic output layer just to signify the end of the network. Required
 ###NeuralNetwork<typename... layers>
 ===============================
 
-This is the class that encapsulates all of the rest. Has all required methods. Will add support for more loss functions and optimization methods later. If you want to train the network in parallel (or keep different sets of weights for a target network, or different architecture, etc.) then create a new instance of the class. Each new instance has its own weights and gradients and is thread safe. The static class is the master net and retains its own weights.
+This is the class that encapsulates all of the rest. Has all required methods. Will add support for more loss functions and optimization methods later. If you want to train the network in parallel (or keep different sets of weights for a target network, or different architecture, etc.) then create a new instance of the class. Each new instance has its own weights and gradients and is thread safe (if you use `*_thread(.)` functions). The static class is the master net and retains its own weights.
 
 | Member/Method | Type | Details |
 |--------|------|----------|
@@ -179,7 +188,7 @@ This is a singleton static class. This class helps with network analysis, such a
 
 | Member/Method | Type | Details |
 |--------|------|----------|
-| `sample_size` | `static int` | The sample size used to calculate the expected error |
+| `sample_size` | `static size_t` | The sample size used to calculate the expected error |
 | `mean_gradient_error()` | `static std::pair<float, float>` | Uses finite differences for backprop checking, returns mean difference in ordered pair (weights, biases) |
 | `proportional_gradient_error()` | `static std::pair<float, float>` | Uses finite differences for backprop checking, returns proportional difference in ordered pair (weights, biases) |
 | `add_point(float value)` | `static void` | Adds a point for the running calculation of the expected error |
@@ -192,4 +201,4 @@ This is a singleton static class. This class helps with network analysis, such a
 
 For an example of creating and using a network, see main.cpp in the examples folder.
 
-There is also an example with the MNIST Database in the examples folder!
+There is also an example with the MNIST Database in the examples folder. The provided .nn file has ~1% error.

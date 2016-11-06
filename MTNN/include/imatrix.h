@@ -1,6 +1,6 @@
 #pragma once
 
-#include <array>
+#include <vector>
 #include <initializer_list>
 #include <memory>
 
@@ -24,18 +24,21 @@ template<typename T, size_t r, size_t c> class Matrix2D : public IMatrix<T>
 public:
     Matrix2D()
     {
+        data = std::vector<T>(r * c);;
         for (size_t i = 0; i < r * c; ++i)
             data[i] = T();
     }
 
     Matrix2D(T val)
     {
+        data = std::vector<T>(r * c);;
         for (size_t i = 0; i < r * c; ++i)
             data[i] = val;
     }
 
     Matrix2D(const T& min, const T& max)
     {
+        data = std::vector<T>(r * c);;
         T diff = max - min;
         for (size_t i = 0; i < data.size(); ++i)
             data[i] = (diff * rand()) / RAND_MAX + min;
@@ -43,12 +46,14 @@ public:
 
     Matrix2D(const Matrix2D<T, r, c>& ref)
     {
+        data = std::vector<T>(r * c);;
         for (size_t i = 0; i < data.size(); ++i)
             data[i] = ref.data[i];
     }
 
     Matrix2D(std::initializer_list<std::initializer_list<T>>& arr)
     {
+        data = std::vector<T>(r * c);;
         typename std::initializer_list<std::initializer_list<T>>::iterator it = arr.begin();
         for (size_t i = 0; i < r; ++i)
         {
@@ -64,6 +69,7 @@ public:
 
     Matrix2D(std::initializer_list<T>& arr)
     {
+        data = std::vector<T>(r * c);
         typename std::initializer_list<T>::iterator it = arr.begin();
         for (size_t i = 0; i < r; ++i)
         {
@@ -118,38 +124,41 @@ public:
         return c;
     }
 
-    std::array<T, r * c> data;
+    std::vector<T> data;
 };
 
 template<size_t f, size_t r, size_t c, typename T = float> class FeatureMap
 {
 public:
-    FeatureMap() = default;
+    FeatureMap()
+    {
+        maps = std::vector<Matrix2D<float, r, c>>(f);
+    }
 
     FeatureMap(T val)
     {
         for (size_t k = 0; k < f; ++k)
-            maps[k] = Matrix2D<T, r, c>(val);
+            maps.push_back(Matrix2D<T, r, c>(val));
     }
 
     FeatureMap(T max, T min)
     {
         for (size_t k = 0; k < f; ++k)
-            maps[k] = Matrix2D<T, r, c>(max, min);
+            maps.push_back(Matrix2D<T, r, c>(max, min));
     }
 
     FeatureMap(const FeatureMap<f, r, c, T>& ref)
     {
         for (size_t k = 0; k < f; ++k)
-            maps[k] = Matrix2D<T, r, c>(ref[k]);
+            maps.push_back(Matrix2D<T, r, c>(ref[k]));
     }
 
     FeatureMap(std::initializer_list<Matrix2D<T, r, c>>& arr)
     {
         typename std::initializer_list<Matrix2D<T, r, c>>::iterator it = arr.begin();
-        for (size_t k = 0; k < f; ++k)
+        for (size_t k = 0; k < f && it != arr.end(); ++k)
         {
-            maps[k] = Matrix2D<T, r, c>(*it);
+            maps.push_back(Matrix2D<T, r, c>(*it));
             ++it;
         }
     }
@@ -184,7 +193,7 @@ public:
     using type = Matrix2D<T, r, c>;
 
 private:
-    std::array<Matrix2D<T, r, c>, f> maps;
+    std::vector<Matrix2D<T, r, c>> maps;
 };
 
 template<typename T, size_t rows1, size_t cols1, size_t rows2, size_t cols2> Matrix2D<T, rows1, cols2> operator*(const Matrix2D<T, rows1, cols1>& lhs, const Matrix2D <T, rows2, cols2>& rhs)
