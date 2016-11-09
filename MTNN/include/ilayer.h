@@ -249,14 +249,13 @@ public:
             return value > 0 ? 1.0f : 0.0f;
     }
 
-    template<size_t f = feat, size_t r = row, size_t c = col>
+    template<size_t f, size_t r, size_t c>
     static inline void stochastic_sample(FeatureMap<f, r, c>& data)
     {
-        if (activation == MTNN_FUNC_RBM)
-            for (size_t f = 0; f < f; ++f)
-                for (size_t i = 0; i < r; ++i)
-                    for (size_t j = 0; j < c; ++j)
-                        data[f].at(i, j) = ((rand() * 1.0f) / RAND_MAX < data[f].at(i, j)) ? 1 : 0;
+        for (size_t f = 0; f < f; ++f)
+            for (size_t i = 0; i < r; ++i)
+                for (size_t j = 0; j < c; ++j)
+                    data[f].at(i, j) = ((rand() * 1.0f) / RAND_MAX < data[f].at(i, j)) ? 1 : 0;
     }
 };
 
@@ -469,14 +468,14 @@ public:
         stochastic_sample<out_features, out_rows, out_cols>(reconstructed);
         feed_backwards(reconstructed);
         if (!mean_field)
-            stochastic_sample(feature_maps);
+            stochastic_sample<features, rows, cols>(feature_maps);
         feed_forwards(reconstructed);
         for (size_t its = 1; its < markov_iterations; ++its)
         {
             stochastic_sample<out_features, out_rows, out_cols>(reconstructed);
             feed_backwards(reconstructed);
             if (!mean_field)
-                stochastic_sample(feature_maps);
+                stochastic_sample<features, rows, cols>(feature_maps);
             feed_forwards(reconstructed);
         }
 
@@ -508,7 +507,7 @@ public:
                             for (int m = N; m >= -N; --m)
                             {
                                 float delta_weight = reconstructed[f_0].at(i_0, j_0) * feature_maps[f].at(i, j) - discriminated[f_0].at(i_0, j_0) * original[f].at(i, j);
-                                params_w[f_0 * features + f].at(N - n, N - m) += -learning_rate * delta_weight;
+                                weights[f_0 * features + f].at(N - n, N - m) += -learning_rate * delta_weight;
                             }
                         }
                         j += stride;
@@ -520,9 +519,9 @@ public:
 
             //adjust hidden biases
             if (use_biases)
-                for (size_t i_0 = 0; i_0 < params_b[f_0].rows(); ++i_0)
-                    for (size_t j_0 = 0; j_0 < params_b[f_0].cols(); ++j_0)
-                        params_b[f_0].at(i_0, j_0) += -learning_rate * (reconstructed[f_0].at(i_0, j_0) - discriminated[f_0].at(i_0, j_0));
+                for (size_t i_0 = 0; i_0 < biases[f_0].rows(); ++i_0)
+                    for (size_t j_0 = 0; j_0 < biases[f_0].cols(); ++j_0)
+                        biases[f_0].at(i_0, j_0) += -learning_rate * (reconstructed[f_0].at(i_0, j_0) - discriminated[f_0].at(i_0, j_0));
         }
 
         //adjust visible biases
@@ -530,7 +529,7 @@ public:
             for (size_t f = 0; f < features; ++f)
                 for (size_t i = 0; i < rows; ++i)
                     for (size_t j = 0; j < cols; ++j)
-                        params_b[f].at(i, j) += -learning_rate * (feature_maps[f].at(i, j) - original[f].at(i, j));
+                        biases[f].at(i, j) += -learning_rate * (feature_maps[f].at(i, j) - original[f].at(i, j));
     }
 };
 
@@ -743,21 +742,20 @@ public:
         out_feature_maps_type reconstructed = { 0 };
 
         //Sample, but don't "normalize" second time
-        feed_forwards(discriminated);
-        for (size_t f_0 = 0; f_0 < out_features; ++f_0)
-            reconstructed[f_0] = discriminated[f_0].clone();
+        feed_forwards(feature_maps, discriminated);
+        reconstructed = discriminated;
         stochastic_sample<out_features, out_rows, out_cols>(reconstructed);
-        feed_backwards(reconstructed);
+        feed_backwards(feature_maps, reconstructed);
         if (!mean_field)
-            stochastic_sample(feature_maps);
-        feed_forwards(reconstructed);
+            stochastic_sample<features, rows, cols>(feature_maps);
+        feed_forwards(feature_maps, reconstructed);
         for (size_t its = 1; its < markov_iterations; ++its)
         {
             stochastic_sample<out_features, out_rows, out_cols>(reconstructed);
-            feed_backwards(reconstructed);
+            feed_backwards(feature_maps, reconstructed);
             if (!mean_field)
-                stochastic_sample(feature_maps);
-            feed_forwards(reconstructed);
+                stochastic_sample<features, rows, cols>(feature_maps);
+            feed_forwards(feature_maps, reconstructed);
         }
 
         if (!mean_field)
@@ -777,7 +775,7 @@ public:
                             for (size_t j = 0; j < cols; ++j)
                             {
                                 float delta_weight = reconstructed[f_0].at(i_0, j_0) * feature_maps[f].at(i, j) - discriminated[f_0].at(i_0, j_0) * original[f].at(i, j);
-                                params_w[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) += -learning_rate * delta_weight;
+                                weights[0].at(f_0 * out_rows * out_cols + i_0 * out_cols + j_0, f * rows * cols + i * cols + j) += -learning_rate * delta_weight;
                             }
                         }
                     }
@@ -786,9 +784,9 @@ public:
 
             //adjust hidden biases
             if (use_biases)
-                for (size_t i_0 = 0; i_0 < params_b[f_0].rows(); ++i_0)
-                    for (size_t j_0 = 0; j_0 < params_b[f_0].cols(); ++j_0)
-                        params_b[f_0].at(i_0, j_0) += -learning_rate * (reconstructed[f_0].at(i_0, j_0) - discriminated[f_0].at(i_0, j_0));
+                for (size_t i_0 = 0; i_0 < biases.rows(); ++i_0)
+                    for (size_t j_0 = 0; j_0 < biases.cols(); ++j_0)
+                        biases[f_0].at(i_0, j_0) += -learning_rate * (reconstructed[f_0].at(i_0, j_0) - discriminated[f_0].at(i_0, j_0));
         }
 
         //adjust visible biases
@@ -796,7 +794,7 @@ public:
             for (size_t f = 0; f < features; ++f)
                 for (size_t i = 0; i < rows; ++i)
                     for (size_t j = 0; j < cols; ++j)
-                        params_b[f].at(i, j) += -learning_rate * (feature_maps[f].at(i, j) - original[f].at(i, j));
+                        generative_biases[f].at(i, j) += -learning_rate * (feature_maps[f].at(i, j) - original[f].at(i, j));
     }
 };
 
@@ -1272,7 +1270,7 @@ public:
         for (size_t f = 0; f < features; ++f)
             for (size_t i = 0; i < rows; ++i)
                 for (size_t j = 0; j < cols; ++j)
-                    out_derivs[f].at(i, j) = out_vals[f].at(i, j) * sums[f] - deriv[f].at(i, j);
+                    out_deriv[f].at(i, j) = out_vals[f].at(i, j) * sums[f] - deriv[f].at(i, j);
 
         //apply derivatives
         chain_activations(out_deriv, activations_pre, previous_layer_activation);

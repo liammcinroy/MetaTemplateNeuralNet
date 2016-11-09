@@ -102,15 +102,15 @@ public:
 
     void elem_multiply(Matrix2D<T, r, c>& other)
     {
-        for (size_t i = 0; i < rows; ++i)
-            for (size_t j = 0; j < cols; ++j)
+        for (size_t i = 0; i < r; ++i)
+            for (size_t j = 0; j < c; ++j)
                 this->at(i, j) *= other.at(i, j);
     }
 
     void elem_divide(Matrix2D<T, r, c>& other)
     {
-        for (size_t i = 0; i < rows; ++i)
-            for (size_t j = 0; j < cols; ++j)
+        for (size_t i = 0; i < r; ++i)
+            for (size_t j = 0; j < c; ++j)
                 this->at(i, j) /= other.at(i, j);
     }
 
@@ -132,7 +132,8 @@ template<size_t f, size_t r, size_t c, typename T = float> class FeatureMap
 public:
     FeatureMap()
     {
-        maps = std::vector<Matrix2D<float, r, c>>(f);
+        for (size_t k = 0; k < f; ++k)
+            maps.push_back(Matrix2D<T, r, c>());
     }
 
     FeatureMap(T val)
