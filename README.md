@@ -111,7 +111,7 @@ Basic fully connected perceptron layer.
 ###ConvolutionLayer<size_t index, size_t features, size_t rows, size_t cols, size_t recognition_data_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding = true>
 ===============================
 
-Basic convolutional layer, masks or kernels must be square and odd.
+Basic convolutional layer, masks or kernels must be square (but not odd!).
 
 With padding, then output is same size. Otherwise output is reduced.
 

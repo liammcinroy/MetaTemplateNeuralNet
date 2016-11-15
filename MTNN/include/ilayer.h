@@ -47,22 +47,20 @@ template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s> struct 
 {
     static Matrix2D<float, (r - kernel_r) / s + 1, (c - kernel_c) / s + 1> convolve(Matrix2D<float, r, c>& input, Matrix2D<float, kernel_r, kernel_c>& kernel)
     {
-        int N = (kernel_r - 1) / 2;
-        int M = (kernel_c - 1) / 2;
         constexpr size_t out_r = (r - kernel_r) / s + 1;
         constexpr size_t out_c = (c - kernel_c) / s + 1;
         Matrix2D<float, out_r, out_c> output = { 0 };
 
-        for (size_t i = N; i < (r - N); i += s)//change focus of kernel
+        for (size_t i = 0; i < r - kernel_r; i += s)//change top left of overlayed kernel
         {
-            for (size_t j = M; j < (c - M); j += s)
+            for (size_t j = 0; j < c - kernel_c; j += s)
             {
                 //iterate over kernel
                 float sum = 0;
-                for (int n = N; n >= -N; --n)
-                    for (int m = M; m >= -M; --m)
-                        sum += input.at(i - n, j - m) * kernel.at(N - n, N - m);
-                output.at((i - N) / s, (j - N) / s) = sum;
+                for (int n = 0; n < kernel_r; n++)
+                    for (int m = 0; m < kernel_c; m++)
+                        sum += input.at(i + n, j + m) * kernel.at(n, m);
+                output.at(i / s, j / s) = sum;
             }
         }
         return output;
@@ -70,8 +68,6 @@ template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s> struct 
 
     static void back_prop_kernel(Matrix2D<float, r, c>& input, Matrix2D<float, (r - kernel_r) / s + 1, (c - kernel_c) / s + 1>& output, Matrix2D<float, kernel_r, kernel_c>& kernel_gradient)
     {
-        int N = (kernel_r - 1) / 2;
-        int M = (kernel_c - 1) / 2;
         constexpr size_t out_r = (r - kernel_r) / s + 1;
         constexpr size_t out_c = (c - kernel_c) / s + 1;
 
@@ -79,16 +75,16 @@ template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s> struct 
         size_t j_0 = 0;
 
         //change focus of kernel
-        for (size_t i = N; i < (r - N); i += s)
+        for (size_t i = 0; i < r - kernel_r; i += s)//change top left of overlayed kernel
         {
-            for (size_t j = M; j < (c - M); j += s)
+            for (size_t j = 0; j < c - kernel_c; j += s)
             {
                 //iterate over kernel
                 float sum = 0;
                 float out = output.at(i_0, j_0);
-                for (int n = N; n >= -N; --n)
-                    for (int m = M; m >= -M; --m)
-                        kernel_gradient.at(N - n, M - m) += input.at(i - n, j - m) * out;
+                for (int n = 0; n < kernel_r; n++)
+                    for (int m = 0; m < kernel_c; m++)
+                        kernel_gradient.at(n, m) += input.at(i + n, j + m) * out;
                 ++j_0;
             }
             j_0 = 0;
@@ -98,25 +94,23 @@ template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s> struct 
 
     static Matrix2D<float, r, c> convolve_back(Matrix2D<float, (r - kernel_r) / s + 1, (c - kernel_c) / s + 1>& input, Matrix2D<float, kernel_r, kernel_c>& kernel)
     {
-        int N = (kernel_r - 1) / 2;
-        int M = (kernel_c - 1) / 2;
         Matrix2D<float, r, c> output = { 0 };
 
-        size_t times_across = 0;
-        size_t times_down = 0;
+        size_t i_0 = 0;
+        size_t j_0 = 0;
 
-        for (size_t i = N; i < (r - N); i += s)
+        for (size_t i = 0; i < r - kernel_r; i += s)//change top left of overlayed kernel
         {
-            for (size_t j = M; j < (c - M); j += s)
+            for (size_t j = 0; j < c - kernel_c; j += s)
             {
                 //find all possible ways convolved size_to
-                for (int n = N; n >= -N; --n)
-                    for (int m = M; m >= -M; --m)
-                        output.at(i - n, j - m) += kernel.at(N - n, M - m) * input.at(times_down, times_across);
-                ++times_across;
+                for (int n = 0; n < kernel_r; n++)
+                    for (int m = 0; m < kernel_c; m++)
+                        output.at(i + n, j + m) += kernel.at(n, m) * input.at(i_0, j_0);
+                ++j_0;
             }
-            times_across = 0;
-            ++times_down;
+            j_0 = 0;
+            ++i_0;
         }
         return output;
     }
@@ -131,18 +125,18 @@ template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s> struct 
         constexpr size_t out_r = r;
         constexpr size_t out_c = c;
         Matrix2D<float, out_r, out_c> output = { 0 };
-
-        //change focus of kernel
-        for (size_t i = 0; i < r; i += s)
+        
+        //change top left of kernel
+        for (int i = -N; i < (int)r - N; i += s)
         {
-            for (size_t j = 0; j < c; j += s)
+            for (int j = -M; j < (int)c - M; j += s)
             {
                 //iterate over kernel
                 float sum = 0;
-                for (int n = N; n >= -N; --n)
-                    for (int m = M; m >= -M; --m)
-                        sum += kernel.at(N - n, N - m) * (i < 0 || i >= r || j < 0 || j >= c ? 0 : input.at(i - n, j - m));
-                output.at((i - N) / s, (j - N) / s) = sum;
+                for (int n = 0; n < kernel_r; n++)
+                    for (int m = 0; m < kernel_c; m++)
+                        sum += kernel.at(n, m) * (i + n < 0 || i + n >= r || j + m < 0 || j + m >= c ? 0 : input.at(i + n, j + m));
+                output.at((i + M) / s, (j + M) / s) = sum;
             }
         }
         return output;
@@ -158,17 +152,17 @@ template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s> struct 
         size_t i_0 = 0;
         size_t j_0 = 0;
 
-        //change focus of kernel
-        for (size_t i = 0; i < r; i += s)
+        //change top left of kernel
+        for (int i = -N; i < (int)r - N; i += s)
         {
-            for (size_t j = 0; j < c; j += s)
+            for (int j = -M; j < (int)c - M; j += s)
             {
                 //iterate over kernel
                 float sum = 0;
                 float out = output.at(i_0, j_0);
-                for (int n = N; n >= -N; --n)
-                    for (int m = M; m >= -M; --m)
-                        kernel_gradient.at(N - n, M - m) += out * (i < 0 || i >= r || j < 0 || j >= c ? 0 : input.at(i - n, j - m));
+                for (int n = 0; n < kernel_r; n++)
+                    for (int m = 0; m < kernel_c; m++)
+                        kernel_gradient.at(n, m) += out * (i + n < 0 || i + n >= r || j + m < 0 || j + m >= c ? 0 : input.at(i + n, j + m));
                 ++j_0;
             }
             j_0 = 0;
@@ -182,21 +176,22 @@ template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s> struct 
         int M = (kernel_c - 1) / 2;
         Matrix2D<float, r, c> output = { 0 };
 
-        size_t times_across = 0;
-        size_t times_down = 0;
+        size_t i_0 = 0;
+        size_t j_0 = 0;
 
-        for (size_t i = 0; i < r; i += s)
+        //change top left of kernel
+        for (int i = -N; i < (int)r - N; i += s)
         {
-            for (size_t j = 0; j < c; j += s)
+            for (int j = -M; j < (int)c - M; j += s)
             {
                 //find all possible ways convolved size_to
-                for (int n = N; n >= -N; --n)
-                    for (int m = M; m >= -M; --m)
-                        output.at(i - n, j - m) += kernel.at(N - n, M - m) * (i < 0 || i >= r || j < 0 || j >= c ? 0 : input.at(times_down, times_across));
-                ++times_across;
+                for (int n = 0; n < kernel_r; n++)
+                    for (int m = 0; m < kernel_c; m++)
+                        output.at(i + n, j + m) += kernel.at(n, m) * (i + n < 0 || i + n >= r || j + m < 0 || j + m >= c ? 0 : input.at(i_0, j_0));
+                ++j_0;
             }
-            times_across = 0;
-            ++times_down;
+            j_0 = 0;
+            ++i_0;
         }
         return output;
     }
@@ -1233,12 +1228,12 @@ public:
             float sum = 0.0f;
             for (size_t i = 0; i < rows; ++i)
                 for (size_t j = 0; j < cols; ++j)
-                    sum += input[f].at(i, j) < 6 ? exp(input[f].at(i, j)) : 4;
+                    sum += input[f].at(i, j) < 6 ? exp(input[f].at(i, j)) : exp(6);
 
             //get prob
             for (size_t i = 0; i < rows; ++i)
                 for (size_t j = 0; j < cols; ++j)
-                    output[f].at(i, j) = (input[f].at(i, j) < 6 ? exp(input[f].at(i, j)) : 4) / sum;
+                    output[f].at(i, j) = (input[f].at(i, j) < 6 ? exp(input[f].at(i, j)) : exp(6)) / sum;
         }
     }
 
