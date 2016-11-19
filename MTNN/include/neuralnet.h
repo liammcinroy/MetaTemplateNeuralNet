@@ -437,21 +437,7 @@ private:
 
             if (use_dropout && l != 0 && layer::type != MTNN_LAYER_SOFTMAX)
                 dropout<l>();
-            layer::feed_forwards(layer::feature_maps, get_layer<l + 1>::feature_maps);
-            //get activations
-            auto& src = layer::feature_maps;
-            auto& dest = get_batch_activations<l>()[0];
-            for (size_t f = 0; f < src.size() && training; ++f)
-            {
-                for (size_t i = 0; i < src.rows(); ++i)
-                {
-                    for (size_t j = 0; j < src.cols(); ++j)
-                    {
-                        dest[f].at(i, j) = src[f].at(i, j);
-                        src[f].at(i, j) = 0;//reset for next iteration
-                    }
-                }
-            }
+            layer::feed_forwards(get_batch_activations<l>()[0], get_batch_activations<l + 1>()[0]);
         }
     };
 
@@ -1103,7 +1089,7 @@ public:
     static float train(bool already_fed = false, typename get_type<0, layers...>::feature_maps_type& new_input = NeuralNet<layers...>::input, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbl = labels);
 
     //backprop for a batch with selected method, returns mean error by loss function
-    static float train_batch(typename get_type<0, layers...>::feature_maps_vector_type& batch_input, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels, bool already_fed = false);
+    static float train_batch(typename get_type<0, layers...>::feature_maps_vector_type& batch_input, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels, bool already_fed = false, bool apply = false);
 
     //compute the population statistics for BN networks
     static void calculate_population_statistics(typename get_type<0, layers...>::feature_maps_vector_type& batch_input);
@@ -1426,7 +1412,7 @@ train(bool already_fed = false, typename get_type<0, layers...>::feature_maps_ty
         loop_all_layers<add_batch_activations>(0);
 #endif
 
-    float error;
+    float error = 0.0f;
     if (!already_fed)
     {
 #ifndef _MSC_VER
@@ -1434,22 +1420,19 @@ train(bool already_fed = false, typename get_type<0, layers...>::feature_maps_ty
 #else
         loop_up_layers<reset_layer_feature_maps>(0); //resets batch too
 #endif
-        for (size_t f = 0; f < get_layer<0>::feature_maps.size(); ++f)
-            for (size_t i = 0; i < get_layer<0>::feature_maps.rows(); ++i)
-                for (size_t j = 0; j < get_layer<0>::feature_maps.cols(); ++j)
-                    get_layer<0>::feature_maps[f].at(i, j) = new_input[f].at(i, j);
+        get_layer<0>::feed_forwards(new_input, get_batch_activations<0>()[0]);
 
 #ifndef _MSC_VER
-        loop_up_layers<feed_forwards_training_layer>(); //resets fm in process
+		loop_up_layers<feed_forwards_training_layer>();
 #else
-        loop_up_layers<feed_forwards_training_layer>(0); //resets fm in process
+		loop_up_layers<feed_forwards_training_layer>(0);
 #endif
 
-        error = global_error(get_layer<last_layer_index>::feature_maps, lbl);
+        error = global_error(get_batch_activations<last_layer_index>()[0], lbl);
     }
 
     //get error signals for output
-    auto errors = error_signals(get_layer<last_layer_index>::feature_maps, lbl);
+    auto errors = error_signals(get_batch_activations<last_layer_index>()[0], lbl);
 
     //back_prop for each layer (need to get activation derivatives for output first
     get_layer<last_layer_index>::back_prop(get_layer<last_layer_index - 1>::activation, errors,
@@ -1463,7 +1446,7 @@ train(bool already_fed = false, typename get_type<0, layers...>::feature_maps_ty
     for_loop<last_layer_index - 1, 1, 1, back_prop_layer>(0);
 #endif
 
-    if (!use_batch_learning && optimization_method != MTNN_OPT_BACKPROP)
+    if (!use_batch_learning && optimization_method != MTNN_OPT_BACKPROP) //online is applied directly in backprop otherwise
         apply_gradient();
 
     return error;
@@ -1473,7 +1456,7 @@ template<typename... layers>
 inline float NeuralNet<layers...>::
 train_thread(bool already_fed = false, typename get_type<0, layers...>::feature_maps_type& new_input = NeuralNet<layers...>::input, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbl = NeuralNet<layers...>::labels)
 {
-    float error;
+    float error = 0.0f;
 
     if (!already_fed)
     {
@@ -1483,10 +1466,7 @@ train_thread(bool already_fed = false, typename get_type<0, layers...>::feature_
         loop_all_layers<reset_thread_feature_maps, NeuralNet<layers...>&>(*this, 0);
 #endif
         //set input
-        for (size_t f = 0; f < get_layer<0>::feature_maps.size(); ++f)
-            for (size_t i = 0; i < get_layer<0>::feature_maps.rows(); ++i)
-                for (size_t j = 0; j < get_layer<0>::feature_maps.cols(); ++j)
-                    get_thread_batch_activations<0>()[0][f].at(i, j) = new_input[f].at(i, j);
+        get_layer<0>::feed_forwards(new_input, get_thread_batch_activations<0>()[0]);
 
 #ifndef _MSC_VER
         loop_up_layers<feed_forwards_training_thread, NeuralNet<layers...>&>(*this);
@@ -1502,9 +1482,8 @@ train_thread(bool already_fed = false, typename get_type<0, layers...>::feature_
     //back_prop for each layer (need to get activation derivatives for output first
     get_layer<last_layer_index>::back_prop(get_layer<last_layer_index - 1>::activation, errors,
         get_thread_batch_activations<last_layer_index>()[0], get_thread_batch_out_derivs<last_layer_index>()[0],
-        !use_batch_learning && optimization_method == MTNN_OPT_BACKPROP, learning_rate,
-        use_momentum && !use_batch_learning, momentum_term,
-        use_l2_weight_decay, include_bias_decay, weight_decay_factor);
+        false, learning_rate, false, momentum_term, false, false, false,
+		get_aux_weights<last_layer_index>(), get_aux_biases<last_layer_index>(), get_aux_weights_gradient<last_layer_index>(), get_aux_biases_gradient<last_layer_index>());
 #ifndef _MSC_VER
     for_loop<last_layer_index - 1, 1, 1, back_prop_thread, NeuralNet<layers...>&>(*this);
 #else
@@ -1519,7 +1498,7 @@ train_thread(bool already_fed = false, typename get_type<0, layers...>::feature_
 
 template<typename... layers>
 inline float NeuralNet<layers...>::
-train_batch(typename get_type<0, layers...>::feature_maps_vector_type& batch_inputs, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels, bool already_fed = false)
+train_batch(typename get_type<0, layers...>::feature_maps_vector_type& batch_inputs, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels, bool already_fed = false, bool apply = false)
 {
     bool temp_batch = use_batch_learning;
     use_batch_learning = true;
@@ -1546,8 +1525,8 @@ train_batch(typename get_type<0, layers...>::feature_maps_vector_type& batch_inp
         //reset batch activations
         loop_all_layers<reset_layer_feature_maps>();
 
-        get_layer<0>::feed_forwards(batch_inputs, get_batch_activations<1>());
-        for_loop<1, last_layer_index - 1, 1, feed_forwards_batch_training_layer>();
+        get_layer<0>::feed_forwards(batch_inputs, get_batch_activations<0>());
+        loop_up_layers<feed_forwards_batch_training_layer>();
     }
 #else
     //adjust batch data sizes
@@ -1571,8 +1550,8 @@ train_batch(typename get_type<0, layers...>::feature_maps_vector_type& batch_inp
         //reset batch activations
         loop_all_layers<reset_layer_feature_maps>(0);
 
-        get_layer<0>::feed_forwards(batch_inputs, get_batch_activations<1>());
-        for_loop<1, last_layer_index - 1, 1, feed_forwards_batch_training_layer>(0);
+        get_layer<0>::feed_forwards(batch_inputs, get_batch_activations<0>());
+        loop_up_layers<feed_forwards_batch_training_layer>(0);
     }
 #endif
 
@@ -1592,7 +1571,8 @@ train_batch(typename get_type<0, layers...>::feature_maps_vector_type& batch_inp
     for_loop<last_layer_index - 1, 1, 1, back_prop_batch_layer>(0);
 #endif
 
-    apply_gradient();
+	if (apply)
+		apply_gradient();
     use_batch_learning = temp_batch;
     return total_error / batch_inputs.size();
 }
@@ -1626,7 +1606,7 @@ train_batch_thread(typename get_type<0, layers...>::feature_maps_vector_type& ba
         //reset batch activations
         loop_all_layers<reset_thread_feature_maps, NeuralNet<layers...>&>(*this);
 
-        get_layer<0>::feed_forwards(batch_inputs, get_thread_batch_activations<1>());
+        get_layer<0>::feed_forwards(batch_inputs, get_thread_batch_activations<0>());
         loop_up_layers<feed_forwards_batch_training_thread, NeuralNet<layers...>&>(*this);
     }
 #else
@@ -1651,7 +1631,7 @@ train_batch_thread(typename get_type<0, layers...>::feature_maps_vector_type& ba
         //reset batch activations
         loop_all_layers<reset_thread_feature_maps, NeuralNet<layers...>&>(*this, 0);
 
-        get_layer<0>::feed_forwards(batch_inputs, get_thread_batch_activations<1>());
+        get_layer<0>::feed_forwards(batch_inputs, get_thread_batch_activations<0>());
         loop_up_layers<feed_forwards_batch_training_thread, NeuralNet<layers...>&>(*this, 0);
     }
 #endif
@@ -1664,8 +1644,8 @@ train_batch_thread(typename get_type<0, layers...>::feature_maps_vector_type& ba
     //back_prop for each layer (need to get activation derivatives for output first
     get_layer<last_layer_index>::back_prop(get_layer<last_layer_index - 1>::activation, errors,
         get_thread_batch_activations<last_layer_index>(), get_thread_batch_out_derivs<last_layer_index>(),
-        true, learning_rate, false, momentum_term,
-        use_l2_weight_decay, include_bias_decay, weight_decay_factor);
+        true, learning_rate, false, momentum_term, use_l2_weight_decay, include_bias_decay, weight_decay_factor,
+		get_aux_weights<last_layer_index>(), get_aux_biases<last_layer_index>(), get_aux_weights_gradient<last_layer_index>(), get_aux_biases_gradient<last_layer_index>());
 #ifndef _MSC_VER
     for_loop<last_layer_index - 1, 1, 1, back_prop_batch_thread, NeuralNet<layers...>&>(*this);
 #else
@@ -1794,12 +1774,12 @@ error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_ty
             for (size_t i = 0; i < lbls.rows(); ++i)
                 for (size_t j = 0; j < lbls.cols(); ++j)
                     out[f].at(i, j) = output[f].at(i, j) - lbls[f].at(i, j);
-    else if (loss_function == MTNN_LOSS_LOGLIKELIHOOD) //assumes next layer is softmax
+    else if (loss_function == MTNN_LOSS_LOGLIKELIHOOD) //assumes next layer is softmax?
     {
         for (size_t f = 0; f < lbls.size(); ++f)
             for (size_t i = 0; i < lbls.rows(); ++i)
                 for (size_t j = 0; j < lbls.cols(); ++j)
-                    out[f].at(i, j) = output[f].at(i, j) - lbls[f].at(i, j);
+                    out[f].at(i, j) = lbls[f].at(i, j);
     }
     else if (loss_function == MTNN_LOSS_CUSTOMTARGETS)
         for (size_t f = 0; f < lbls.size(); ++f)
@@ -1815,24 +1795,6 @@ error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_ve
 {
     auto out = typename get_layer<last_layer_index>::feature_maps_vector_type(batch_outputs.size());
     for (size_t in = 0; in < batch_outputs.size(); ++in)
-    {
-        if (loss_function == MTNN_LOSS_L2)
-            for (size_t f = 0; f < batch_labels[in].size(); ++f)
-                for (size_t i = 0; i < batch_labels[in].rows(); ++i)
-                    for (size_t j = 0; j < batch_labels[in].cols(); ++j)
-                        out[in][f].at(i, j) = batch_outputs[in][f].at(i, j) - batch_labels[in][f].at(i, j);
-        else if (loss_function == MTNN_LOSS_LOGLIKELIHOOD) //assumes next layer is softmax and batch_outputs are given so
-        {
-            for (size_t f = 0; f < batch_labels[in].size(); ++f)
-                for (size_t i = 0; i < batch_labels[in].rows(); ++i)
-                    for (size_t j = 0; j < batch_labels[in].cols(); ++j)
-                        out[in][f].at(i, j) = batch_outputs[in][f].at(i, j) - batch_labels[in][f].at(i, j);
-        }
-        else if (loss_function == MTNN_LOSS_CUSTOMTARGETS)
-            for (size_t f = 0; f < batch_labels[in].size(); ++f)
-                for (size_t i = 0; i < batch_labels[in].rows(); ++i)
-                    for (size_t j = 0; j < batch_labels[in].cols(); ++j)
-                        out[in][f].at(i, j) = batch_labels[in][f].at(i, j);
-    }
+		out[in] = error_signals(batch_outputs[in], batch_labels[in]);
     return out;
 }

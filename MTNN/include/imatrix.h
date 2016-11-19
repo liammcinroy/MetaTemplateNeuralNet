@@ -51,7 +51,7 @@ public:
             data[i] = ref.data[i];
     }
 
-    Matrix2D(std::initializer_list<std::initializer_list<T>>& arr)
+    Matrix2D(std::initializer_list<std::initializer_list<T>> arr)
     {
         data = std::vector<T>(r * c);;
         typename std::initializer_list<std::initializer_list<T>>::iterator it = arr.begin();
@@ -67,7 +67,7 @@ public:
         }
     }
 
-    Matrix2D(std::initializer_list<T>& arr)
+    Matrix2D(std::initializer_list<T> arr)
     {
         data = std::vector<T>(r * c);
         typename std::initializer_list<T>::iterator it = arr.begin();
@@ -151,10 +151,10 @@ public:
     FeatureMap(const FeatureMap<f, r, c, T>& ref)
     {
         for (size_t k = 0; k < f; ++k)
-            maps.push_back(Matrix2D<T, r, c>(ref[k]));
+            maps.push_back(ref[k]);
     }
 
-    FeatureMap(std::initializer_list<Matrix2D<T, r, c>>& arr)
+    /*FeatureMap(std::initializer_list<Matrix2D<T, r, c>> arr)
     {
         typename std::initializer_list<Matrix2D<T, r, c>>::iterator it = arr.begin();
         for (size_t k = 0; k < f && it != arr.end(); ++k)
@@ -162,7 +162,7 @@ public:
             maps.push_back(Matrix2D<T, r, c>(*it));
             ++it;
         }
-    }
+    }*/
 
     ~FeatureMap() = default;
 
