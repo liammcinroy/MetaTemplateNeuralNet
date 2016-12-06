@@ -22,7 +22,8 @@
 //can't use with momentum or hessian
 #define MTNN_OPT_ADAGRAD 2
 
-////HELPER FUNCTIONS //// Network class definitions begin at line 171
+////HELPER FUNCTIONS
+////Network class definitions begin at line 171
 
 //TEMPLATE FOR LOOP, if using for<...> then have to add a 0 if using MSVC. Sorry
 
@@ -32,11 +33,7 @@ namespace std
     using enable_if_t = typename std::enable_if<B, T>::type;
 }
 
-template<typename T> T initialize(int args)
-{
-    return T(args);
-}
-
+//incremental for loop, pass type func with initializer taking args... 
 template<size_t i, size_t UPPER, size_t STEP, template<size_t> class func, typename... Args> struct for_loop_inc_impl
 {
     template<size_t i2 = i>
@@ -57,6 +54,7 @@ template<size_t i, size_t UPPER, size_t STEP, template<size_t> class func, typen
     }
 };
 
+//decremental for loop, pass type func with initializer taking args... 
 template<size_t i, size_t LOWER, size_t STEP, template<size_t> class func, typename... Args> struct for_loop_dec_impl
 {
     template<size_t i2 = i>
@@ -77,6 +75,7 @@ template<size_t i, size_t LOWER, size_t STEP, template<size_t> class func, typen
     }
 };
 
+//for loop, pass type func with initializer taking args... 
 template<size_t START, size_t FINISH, size_t STEP, template<size_t> class func, typename... Args> struct for_loop
 {
     template<size_t START2 = START>
@@ -167,6 +166,8 @@ template<typename str_type> struct builder//str_type is static class with string
     struct const_str { const char* chars = string_literal; }; \
     return do_foreach_range<sizeof(string_literal) - 1, builder<const_str>::do_foreach>::type{}; }()
 
+//The class for a neural network. Put in types of *Layer as layers...
+//The static class is considered the "global" network. Creating an instance of this class creates a thread net (with separate weights & gradients)
 template<typename... layers>
 class NeuralNet
 {
@@ -174,6 +175,7 @@ private:
 
     ////LAYER LOOP BODIES
 
+    //save a weight file
     template<typename file_name> struct save_data_t
     {
         save_data_t()
@@ -190,6 +192,7 @@ private:
     private:
         static FILE* fp;
 
+        //save a layer
         template<size_t l> struct save_data_impl
         {
         public:
@@ -247,6 +250,7 @@ private:
         };
     };
 
+    //load a weight file
     template<typename file_name> struct load_data_t
     {
         load_data_t()
@@ -263,6 +267,7 @@ private:
     private:
         static FILE* fp;
 
+        //load a layer
         template<size_t l> struct load_data_impl
         {
         public:
@@ -320,6 +325,7 @@ private:
         };
     };
 
+    //reset a particular data type (usually only gradients)
     template<size_t l, size_t target> struct reset_impl
     {
         reset_impl()
@@ -395,7 +401,7 @@ private:
         }
     };
 
-    //not really necessary...
+    //deallocate a data type (not really necessary...)
     template<size_t l, size_t target> struct delete_impl
     {
         delete_impl()
@@ -429,6 +435,7 @@ private:
         }
     };
 
+    //feed forwards a layer (training or not) NOT BATCH
     template<size_t l, bool training> struct feed_forwards_impl
     {
         feed_forwards_impl()
@@ -441,6 +448,7 @@ private:
         }
     };
 
+    //feed forwards a batch layer
     template<size_t l, bool training> struct feed_forwards_batch_impl
     {
         feed_forwards_batch_impl()
@@ -451,7 +459,7 @@ private:
         }
     };
 
-
+    //feed backwards a layer NOT BATCH
     template<size_t l, bool sample> struct feed_backwards_impl
     {
         feed_backwards_impl()
@@ -463,6 +471,7 @@ private:
         }
     };
 
+    //feed backwards a batch of layers
     template<size_t l, bool sample> struct feed_backwards_batch_impl
     {
         feed_backwards_batch_impl()
@@ -474,7 +483,7 @@ private:
         }
     };
 
-
+    //backprop a layer NOT BATCH
     template<size_t l> struct back_prop_impl
     {
         back_prop_impl()
@@ -483,6 +492,7 @@ private:
         }
     };
 
+    //backprop a batch of layers
     template<size_t l> struct back_prop_batch_impl
     {
         back_prop_batch_impl()
@@ -491,6 +501,7 @@ private:
         }
     };
 
+    //get population statistics for an entire training batch (post training)
     template<size_t l> struct feed_forwards_pop_stats_impl
     {
         feed_forwards_pop_stats_impl()
@@ -535,6 +546,7 @@ private:
         }
     };
 
+    //add L2 weight decay to gradient
     template<size_t l> struct add_weight_decay_impl
     {
         add_weight_decay_impl()
@@ -559,6 +571,7 @@ private:
         }
     };
 
+    //apply the gradient, and reset the gradient if specified
     template<size_t l, bool erase> struct apply_grad_impl
     {
         apply_grad_impl()
@@ -566,17 +579,6 @@ private:
             using layer = get_layer<l>;
             using weights_t = decltype(layer::weights);
             using biases_t = decltype(layer::biases);
-            /*if (use_hessian)
-            {
-            for (size_t d = 0; d < weights_t::size(); ++d)
-            for (size_t i = 0; i < weights_t::rows(); ++i)
-            for (size_t j = 0; j < weights_t::cols(); ++j)
-            layer::weights_gradient[d].at(i, j) /= layer::weights_aux_data[d].at(i, j);
-            for (size_t f_0 = 0; f_0 < biases_t::size(); ++f_0)
-            for (size_t i_0 = 0; i_0 < biases_t::rows(); ++i_0)
-            for (size_t j_0 = 0; j_0 < biases_t::cols(); ++j_0)
-            layer::biases_gradient[f_0].at(i_0, j_0) /= layer::biases_aux_data[f_0].at(i_0, j_0);
-            }*/
 
             if (optimization_method == MTNN_OPT_ADAM && layer::type != MTNN_LAYER_BATCHNORMALIZATION)
             {
@@ -716,6 +718,7 @@ private:
         }
     };
 
+    //change size of batch_activations vector
     template<size_t l, bool add> struct modify_batch_activations_vector_impl
     {
         modify_batch_activations_vector_impl()
@@ -727,6 +730,7 @@ private:
         }
     };
 
+    //change size of batch_out_derivs vector
     template<size_t l, bool add> struct modify_batch_out_derivs_vector_impl
     {
         modify_batch_out_derivs_vector_impl()
@@ -738,8 +742,9 @@ private:
         }
     };
 
-    //Nonstatic thread versions
+    ////Nonstatic thread versions
 
+    //reset target data within an instance of a NeuralNet
     template<size_t l, size_t target> struct reset_thread_impl
     {
         reset_thread_impl(NeuralNet<layers...>& net)
@@ -783,6 +788,7 @@ private:
         }
     };
 
+    //feed forwards using an instance's parameters/activations NOT BATCH
     template<size_t l, bool training> struct feed_forwards_thread_impl
     {
         feed_forwards_thread_impl(NeuralNet<layers...>& net)
@@ -795,6 +801,7 @@ private:
         }
     };
 
+    //feed forwards using an instance's parameters/activations BATCH
     template<size_t l, bool training> struct feed_forwards_batch_thread_impl
     {
         feed_forwards_batch_thread_impl(NeuralNet<layers...>& net)
@@ -805,6 +812,7 @@ private:
         }
     };
 
+    //feed backwards using an instance's parameters/activations NOT BATCH
     template<size_t l, bool sample> struct feed_backwards_thread_impl
     {
         feed_backwards_thread_impl(NeuralNet<layers...>& net)
@@ -816,6 +824,7 @@ private:
         }
     };
 
+    //feed backwards using an instance's parameters/activations BATCH
     template<size_t l, bool sample> struct feed_backwards_batch_thread_impl
     {
         feed_backwards_batch_thread_impl(NeuralNet<layers...>& net)
@@ -827,6 +836,7 @@ private:
         }
     };
 
+    //backprop using an instance's parameters/activations NOT BATCH
     template<size_t l> struct back_prop_thread_impl
     {
         back_prop_thread_impl(NeuralNet<layers...>& net)
@@ -835,15 +845,16 @@ private:
         }
     };
 
+    //backprop using an instance's parameters/activations BATCH
     template<size_t l> struct back_prop_batch_thread_impl
     {
         back_prop_batch_thread_impl(NeuralNet<layers...>& net)
         {
             get_layer<l>::back_prop(get_layer<l - 1>::activation, net.get_thread_batch_out_derivs<l + 1>(), net.get_thread_batch_activations<l>(), net.get_thread_batch_out_derivs<l>(), !use_batch_learning && optimization_method == MTNN_OPT_BACKPROP, learning_rate, use_momentum && !use_batch_learning, momentum_term, use_l2_weight_decay, include_bias_decay, weight_decay_factor, net.get_aux_weights<l>(), net.get_aux_biases<l>(), net.get_aux_weights_gradient<l>(), net.get_aux_biases_gradient<l>());
-
         }
     };
 
+    //change size of thread_batch_activations vector
     template<size_t l, bool add> struct modify_thread_batch_activations_vector_impl
     {
         modify_thread_batch_activations_vector_impl(NeuralNet<layers...>& net)
@@ -855,6 +866,7 @@ private:
         }
     };
 
+    //change size of thread_batch_out_derivs vector
     template<size_t l, bool add> struct modify_thread_batch_out_derivs_vector_impl
     {
         modify_thread_batch_out_derivs_vector_impl(NeuralNet<layers...>& net)
@@ -869,8 +881,9 @@ private:
 public:
 
     ////Architecture constexprs
-
+    //the total number of layers
     static constexpr size_t num_layers = sizeof...(layers);
+    //usually the index of the output layer
     static constexpr size_t last_layer_index = num_layers - 1;
 
     ////Loop bodies
@@ -1105,16 +1118,20 @@ public:
 
 private:
 
+    //apply dropout with dropout probability on a layer (done in feed forwards)
     template<size_t l> static void dropout();
 
+    //get the deriv of the loss wrt the output
     static typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& output = get_batch_activations<last_layer_index>()[0], typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbls = labels);
 
+    //get the deriv of the loss wrt the output for a batch
     static typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_outputs, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels);
 
 public:
 
     //// NON-STATIC PARALLEL FUNCTIONS
 
+    //instantiate a subnet
     NeuralNet()
     {
         aux_weights = std::make_tuple<typename layers::weights_type...>(typename layers::weights_type(layers::weights)...);
@@ -1125,10 +1142,13 @@ public:
         thread_batch_out_derivs = std::make_tuple<typename layers::feature_maps_vector_type...>(typename layers::feature_maps_vector_type(1)...);
     }
 
+    //deallocates itself
     ~NeuralNet() = default;
 
+    //discriminate using an instances params
     typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& discriminate_thread(typename get_type<0, layers...>::feature_maps_type& new_input = input);
 
+    //discriminate using an instances params batch
     typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& discriminate_thread(typename get_type<0, layers...>::feature_maps_vector_type& batch_input);
 
     //feed backwards, returns a copy of the first layer (must be deallocated)
@@ -1137,7 +1157,7 @@ public:
     //wake-sleep algorithm, only trains target layer with assumption that layers up to it have been trained
     void pretrain_thread(size_t markov_iterations); //todo: add par
 
-                                                    //backpropogate with selected method, returns error by loss function
+    //backpropogate with selected method, returns error by loss function
     float train_thread(bool already_fed = false, typename get_type<0, layers...>::feature_maps_type& new_input = NeuralNet<layers...>::input, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbl = labels);
 
     //backprop for a batch with selected method, returns mean error by loss function
@@ -1168,6 +1188,8 @@ template<typename... layers> typename get_type<0, layers...>::feature_maps_type 
 template<typename... layers> typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type NeuralNet<layers...>::labels = {};
 template<typename... layers> std::tuple<typename layers::feature_maps_vector_type...> NeuralNet<layers...>::batch_activations = {}; //init with one, will add more if necessary for batch
 template<typename... layers> std::tuple<typename layers::feature_maps_vector_type...> NeuralNet<layers...>::batch_out_derivs = {}; //init with zero, will add more if necessary for batch
+
+////DEFINITIONS
 
 template<typename... layers>
 template<typename file_name_type>
