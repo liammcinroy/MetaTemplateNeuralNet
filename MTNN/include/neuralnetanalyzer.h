@@ -42,7 +42,7 @@ private:
 
                             //approximate (finite differences)
                             float appr_grad = -(adj_error - original_net_error) / .001f;
-
+                            float grad = layer::weights_gradient[d].at(i, j);
                             //add to total
                             if (!proportional)
                                 total_grad_error += abs(layer::weights_gradient[d].at(i, j) - appr_grad);

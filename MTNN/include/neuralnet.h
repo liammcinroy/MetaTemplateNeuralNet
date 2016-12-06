@@ -22,9 +22,9 @@
 //can't use with momentum or hessian
 #define MTNN_OPT_ADAGRAD 2
 
-////HELPER FUNCTIONS //// Network class definitions begin at line 147
+////HELPER FUNCTIONS //// Network class definitions begin at line 171
 
-//TEMPLATE FOR LOOP, if using for<...> then have to pass in () or (args) as the enable_if isn't being defaulted TODO
+//TEMPLATE FOR LOOP, if using for<...> then have to add a 0 if using MSVC. Sorry
 
 namespace std
 {
@@ -445,7 +445,7 @@ private:
     {
         feed_forwards_batch_impl()
         {
-            if (use_dropout && l != 0 && get_layer<l>::type != MTNN_LAYER_SOFTMAX)
+            if (use_dropout && training && l != 0 && get_layer<l>::type != MTNN_LAYER_SOFTMAX)
                 dropout<l>();//todo vec also training bool
             get_layer<l>::feed_forwards(get_batch_activations<l>(), get_batch_activations<l + 1>());
         }
@@ -457,7 +457,7 @@ private:
         feed_backwards_impl()
         {
             using layer = get_layer<l>;
-            layer::feed_backwards(get_layer<l>::feature_maps, get_layer<l + 1>::feature_maps);
+            layer::feed_backwards(get_batch_activations<l>()[0], get_batch_activations<l + 1>()[0]);
             if (sample)
                 layer::stochastic_sample(layer::feature_maps);
         }
@@ -799,7 +799,7 @@ private:
     {
         feed_forwards_batch_thread_impl(NeuralNet<layers...>& net)
         {
-            if (use_dropout && l != 0 && get_layer<l>::type != MTNN_LAYER_SOFTMAX)
+            if (use_dropout && training &&l != 0 && get_layer<l>::type != MTNN_LAYER_SOFTMAX)
                 dropout<l>();//todo vec also training bool
             get_layer<l>::feed_forwards(net.get_thread_batch_activations<l>(), net.get_thread_batch_activations<l + 1>(), net.get_aux_weights<l>(), net.get_aux_biases<l>());
         }
@@ -1075,9 +1075,9 @@ public:
     static void set_labels(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& new_labels);
 
     //feed forwards
-    static void discriminate(typename get_type<0, layers...>::feature_maps_type& new_input = input);
+    static typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& discriminate(typename get_type<0, layers...>::feature_maps_type& new_input = input);
 
-    static void discriminate(typename get_type<0, layers...>::feature_maps_vector_type& batch_input);
+    static typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& discriminate(typename get_type<0, layers...>::feature_maps_vector_type& batch_input);
 
     //feed backwards, returns a copy of the first layer (must be deallocated)
     static typename get_type<0, layers...>::feature_maps_type generate(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& input, size_t iterations, bool use_sampling);
@@ -1098,7 +1098,7 @@ public:
     static void apply_gradient(bool clear_gradients = true);
 
     //get current error according to loss function
-    static float global_error(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& output = get_layer<last_layer_index>::feature_maps, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbls = labels);
+    static float global_error(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& output = get_batch_activations<last_layer_index>()[0], typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbls = labels);
 
     //get error for an entire batch according to loss function
     static float global_error(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_outputs, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels);
@@ -1107,7 +1107,7 @@ private:
 
     template<size_t l> static void dropout();
 
-    static typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& output = get_layer<last_layer_index>::feature_maps, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbls = labels);
+    static typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& output = get_batch_activations<last_layer_index>()[0], typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbls = labels);
 
     static typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_outputs, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels);
 
@@ -1127,14 +1127,14 @@ public:
 
     ~NeuralNet() = default;
 
-    void discriminate_thread(typename get_type<0, layers...>::feature_maps_type& new_input = input);
+    typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& discriminate_thread(typename get_type<0, layers...>::feature_maps_type& new_input = input);
 
-    void discriminate_thread(typename get_type<0, layers...>::feature_maps_vector_type& batch_input);
+    typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& discriminate_thread(typename get_type<0, layers...>::feature_maps_vector_type& batch_input);
 
     //feed backwards, returns a copy of the first layer (must be deallocated)
     typename get_type<0, layers...>::feature_maps_type generate_thread(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& input, size_t iterations, bool use_sampling); //todo: add par
 
-                                                                                                                                                                                           //wake-sleep algorithm, only trains target layer with assumption that layers up to it have been trained
+    //wake-sleep algorithm, only trains target layer with assumption that layers up to it have been trained
     void pretrain_thread(size_t markov_iterations); //todo: add par
 
                                                     //backpropogate with selected method, returns error by loss function
@@ -1189,6 +1189,16 @@ template<typename... layers>
 inline void NeuralNet<layers...>::
 set_input(typename get_type<0, layers...>::feature_maps_type& new_input)
 {
+#ifndef _MSC_VER
+    if (get_batch_activations<0>().size() == 0)
+        loop_all_layers<add_batch_activations>();
+    loop_all_layers<reset_layer_feature_maps>();
+#else
+    if (get_batch_activations<0>().size() == 0)
+        loop_all_layers<add_batch_activations>(0);
+    loop_all_layers<reset_layer_feature_maps>(0);
+#endif
+
     for (size_t f = 0; f < input.size(); ++f)
     {
         for (size_t i = 0; i < input.rows(); ++i)
@@ -1196,7 +1206,7 @@ set_input(typename get_type<0, layers...>::feature_maps_type& new_input)
             for (size_t j = 0; j < input.cols(); ++j)
             {
                 input[f].at(i, j) = new_input[f].at(i, j);
-                get_layer<0>::feature_maps[f].at(i, j) = input[f].at(i, j);
+                get_batch_activations<0>()[0][f].at(i, j) = input[f].at(i, j);
             }
         }
     }
@@ -1213,7 +1223,7 @@ set_labels(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type&
 }
 
 template<typename... layers>
-inline void NeuralNet<layers...>:: //todo: change output type
+inline typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& NeuralNet<layers...>::
 discriminate(typename get_type<0, layers...>::feature_maps_type& new_input = NeuralNet<layers...>::input)
 {
 #ifndef _MSC_VER
@@ -1229,16 +1239,17 @@ discriminate(typename get_type<0, layers...>::feature_maps_type& new_input = Neu
     for (size_t f = 0; f < get_layer<0>::feature_maps.size(); ++f)
         for (size_t i = 0; i < get_layer<0>::feature_maps.rows(); ++i)
             for (size_t j = 0; j < get_layer<0>::feature_maps.cols(); ++j)
-                get_layer<0>::feature_maps[f].at(i, j) = new_input[f].at(i, j);
+                get_batch_activations<0>()[0][f].at(i, j) = new_input[f].at(i, j);
 #ifndef _MSC_VER
     loop_up_layers<feed_forwards_layer>();
 #else
     loop_up_layers<feed_forwards_layer>(0);
 #endif
+    return get_batch_activations<last_layer_index>()[0];
 }
 
 template<typename... layers>
-inline void NeuralNet<layers...>:: //todo: change output type
+inline  typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& NeuralNet<layers...>::
 discriminate_thread(typename get_type<0, layers...>::feature_maps_type& new_input = NeuralNet<layers...>::input)
 {
 #ifndef _MSC_VER
@@ -1257,10 +1268,13 @@ discriminate_thread(typename get_type<0, layers...>::feature_maps_type& new_inpu
 #else
     loop_up_layers<feed_forwards_thread, NeuralNet<layers...>&>(*this, 0);
 #endif
+
+    return get_thread_batch_activations<last_layer_index>()[0];
 }
 
 template<typename... layers>
-inline void NeuralNet<layers...>::discriminate(typename get_type<0, layers...>::feature_maps_vector_type& batch_inputs)
+inline typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& NeuralNet<layers...>::
+discriminate(typename get_type<0, layers...>::feature_maps_vector_type& batch_inputs)
 {
     //adjust batch data sizes
 #ifndef _MSC_VER
@@ -1292,10 +1306,13 @@ inline void NeuralNet<layers...>::discriminate(typename get_type<0, layers...>::
     get_layer<0>::feed_forwards(batch_inputs, get_batch_activations<1>());
     for_loop<1, last_layer_index - 1, 1, feed_forwards_batch_training_layer>(0);
 #endif
+
+    return get_batch_activations<last_layer_index>();
 }
 
 template<typename... layers>
-inline void NeuralNet<layers...>::discriminate_thread(typename get_type<0, layers...>::feature_maps_vector_type& batch_inputs)
+inline  typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& NeuralNet<layers...>::
+discriminate_thread(typename get_type<0, layers...>::feature_maps_vector_type& batch_inputs)
 {
 #ifndef _MSC_VER
     //adjust and reset batch activations
@@ -1324,12 +1341,24 @@ inline void NeuralNet<layers...>::discriminate_thread(typename get_type<0, layer
     get_layer<0>::feed_forwards(batch_inputs, get_thread_batch_activations<1>());
     loop_up_layers<feed_forwards_batch_thread, NeuralNet<layers...>&>(*this, 0);
 #endif
+
+    return get_thread_batch_activations<last_layer_index>();
 }
 
 template<typename... layers>
 inline typename get_type<0, layers...>::feature_maps_type NeuralNet<layers...>::
 generate(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& input, size_t iterations, bool use_sampling)
 {
+#ifndef _MSC_VER
+    if (get_batch_activations<0>().size() == 0)
+        loop_all_layers<add_batch_activations>();
+    loop_all_layers<reset_layer_feature_maps>();
+#else
+    if (get_batch_activations<0>().size() == 0)
+        loop_all_layers<add_batch_activations>(0);
+    loop_all_layers<reset_layer_feature_maps>(0);
+#endif
+
     //reset all but output (or inputs?)
 #ifndef _MSC_VER
     loop_all_layers<reset_layer_feature_maps>();
@@ -1370,7 +1399,7 @@ generate(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& i
 
     typename get_type<0, layers...>::feature_maps_type output = {};
     for (size_t f = 0; f < output.size(); ++f)
-        output[f] = get_layer<0>::feature_maps[f].clone();
+        output[f] = get_batch_activations<0>()[0][f].clone();
     return output;
 }
 
@@ -1378,6 +1407,16 @@ template<typename... layers>
 inline void NeuralNet<layers...>::
 pretrain(size_t markov_iterations)
 {
+#ifndef _MSC_VER
+    if (get_batch_activations<0>().size() == 0)
+        loop_all_layers<add_batch_activations>();
+    loop_all_layers<reset_layer_feature_maps>();
+#else
+    if (get_batch_activations<0>().size() == 0)
+        loop_all_layers<add_batch_activations>(0);
+    loop_all_layers<reset_layer_feature_maps>(0);
+#endif
+
     //reset input
 #ifndef _MSC_VER
     loop_all_layers<reset_layer_feature_maps>();
@@ -1387,7 +1426,7 @@ pretrain(size_t markov_iterations)
     for (size_t f = 0; f < get_layer<0>::feature_maps.size(); ++f)
         for (size_t i = 0; i < get_layer<0>::feature_maps.rows(); ++i)
             for (size_t j = 0; j < get_layer<0>::feature_maps.cols(); ++j)
-                get_layer<0>::feature_maps[f].at(i, j) = input[f].at(i, j);
+                get_batch_activations<0>()[0][f].at(i, j) = input[f].at(i, j);
 
 #ifndef _MSC_VER
     loop_up_layers<feed_forwards_training_layer>();
@@ -1423,9 +1462,9 @@ train(bool already_fed = false, typename get_type<0, layers...>::feature_maps_ty
         get_layer<0>::feed_forwards(new_input, get_batch_activations<0>()[0]);
 
 #ifndef _MSC_VER
-		loop_up_layers<feed_forwards_training_layer>();
+        loop_up_layers<feed_forwards_training_layer>();
 #else
-		loop_up_layers<feed_forwards_training_layer>(0);
+        loop_up_layers<feed_forwards_training_layer>(0);
 #endif
 
         error = global_error(get_batch_activations<last_layer_index>()[0], lbl);
@@ -1435,7 +1474,7 @@ train(bool already_fed = false, typename get_type<0, layers...>::feature_maps_ty
     auto errors = error_signals(get_batch_activations<last_layer_index>()[0], lbl);
 
     //back_prop for each layer (need to get activation derivatives for output first
-    get_layer<last_layer_index>::back_prop(get_layer<last_layer_index - 1>::activation, errors,
+    get_layer<last_layer_index>::back_prop(get_layer<last_layer_index>::activation, errors,
         get_batch_activations<last_layer_index>()[0], get_layer<last_layer_index>::feature_maps,
         !use_batch_learning && optimization_method == MTNN_OPT_BACKPROP, learning_rate,
         use_momentum && !use_batch_learning, momentum_term,
@@ -1480,10 +1519,10 @@ train_thread(bool already_fed = false, typename get_type<0, layers...>::feature_
     auto errors = error_signals(get_thread_batch_activations<last_layer_index>()[0], lbl);
 
     //back_prop for each layer (need to get activation derivatives for output first
-    get_layer<last_layer_index>::back_prop(get_layer<last_layer_index - 1>::activation, errors,
+    get_layer<last_layer_index>::back_prop(get_layer<last_layer_index>::activation, errors,
         get_thread_batch_activations<last_layer_index>()[0], get_thread_batch_out_derivs<last_layer_index>()[0],
         false, learning_rate, false, momentum_term, false, false, false,
-		get_aux_weights<last_layer_index>(), get_aux_biases<last_layer_index>(), get_aux_weights_gradient<last_layer_index>(), get_aux_biases_gradient<last_layer_index>());
+        get_aux_weights<last_layer_index>(), get_aux_biases<last_layer_index>(), get_aux_weights_gradient<last_layer_index>(), get_aux_biases_gradient<last_layer_index>());
 #ifndef _MSC_VER
     for_loop<last_layer_index - 1, 1, 1, back_prop_thread, NeuralNet<layers...>&>(*this);
 #else
@@ -1561,7 +1600,7 @@ train_batch(typename get_type<0, layers...>::feature_maps_vector_type& batch_inp
     auto errors = error_signals(get_batch_activations<last_layer_index>(), batch_labels);
 
     //back_prop for each layer (need to get activation derivatives for output first
-    get_layer<last_layer_index>::back_prop(get_layer<last_layer_index - 1>::activation, errors,
+    get_layer<last_layer_index>::back_prop(get_layer<last_layer_index>::activation, errors,
         get_batch_activations<last_layer_index>(), get_batch_out_derivs<last_layer_index>(),
         true, learning_rate, false, momentum_term,
         use_l2_weight_decay, include_bias_decay, weight_decay_factor);
@@ -1571,8 +1610,8 @@ train_batch(typename get_type<0, layers...>::feature_maps_vector_type& batch_inp
     for_loop<last_layer_index - 1, 1, 1, back_prop_batch_layer>(0);
 #endif
 
-	if (apply)
-		apply_gradient();
+    if (apply)
+        apply_gradient();
     use_batch_learning = temp_batch;
     return total_error / batch_inputs.size();
 }
@@ -1642,10 +1681,10 @@ train_batch_thread(typename get_type<0, layers...>::feature_maps_vector_type& ba
     auto errors = error_signals(get_thread_batch_activations<last_layer_index>(), batch_labels);
 
     //back_prop for each layer (need to get activation derivatives for output first
-    get_layer<last_layer_index>::back_prop(get_layer<last_layer_index - 1>::activation, errors,
+    get_layer<last_layer_index>::back_prop(get_layer<last_layer_index>::activation, errors,
         get_thread_batch_activations<last_layer_index>(), get_thread_batch_out_derivs<last_layer_index>(),
         true, learning_rate, false, momentum_term, use_l2_weight_decay, include_bias_decay, weight_decay_factor,
-		get_aux_weights<last_layer_index>(), get_aux_biases<last_layer_index>(), get_aux_weights_gradient<last_layer_index>(), get_aux_biases_gradient<last_layer_index>());
+        get_aux_weights<last_layer_index>(), get_aux_biases<last_layer_index>(), get_aux_weights_gradient<last_layer_index>(), get_aux_biases_gradient<last_layer_index>());
 #ifndef _MSC_VER
     for_loop<last_layer_index - 1, 1, 1, back_prop_batch_thread, NeuralNet<layers...>&>(*this);
 #else
@@ -1700,7 +1739,7 @@ apply_gradient(bool clear_gradients = true)
 
 template<typename... layers>
 inline float NeuralNet<layers...>::
-global_error(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& output = get_layer<last_layer_index>::feature_maps, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbls = labels)
+global_error(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& output = get_batch_activations<last_layer_index>()[0], typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbls = labels)
 {
     float sum = 0.0f;
 
@@ -1761,12 +1800,12 @@ dropout()
         for (size_t i = 0; i < layer::feature_maps.rows(); ++i)
             for (size_t j = 0; j < layer::feature_maps.cols(); ++j)
                 if ((1.0f * rand()) / RAND_MAX <= dropout_probability)
-                    layer::feature_maps[f].at(i, j) = 0;
+                    get_batch_activations<l>()[0][f].at(i, j) = 0;
 }
 
 template<typename... layers>
 inline typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type NeuralNet<layers...>::
-error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& output = get_layer<last_layer_index>::feature_maps, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbls = NeuralNet<layers...>::labels)
+error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& output = get_batch_activations<last_layer_index>()[0], typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbls = NeuralNet<layers...>::labels)
 {
     auto out = typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type{ 0 };
     if (loss_function == MTNN_LOSS_L2)
@@ -1795,6 +1834,6 @@ error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_ve
 {
     auto out = typename get_layer<last_layer_index>::feature_maps_vector_type(batch_outputs.size());
     for (size_t in = 0; in < batch_outputs.size(); ++in)
-		out[in] = error_signals(batch_outputs[in], batch_labels[in]);
+        out[in] = error_signals(batch_outputs[in], batch_labels[in]);
     return out;
 }
