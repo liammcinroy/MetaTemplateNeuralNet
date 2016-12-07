@@ -292,7 +292,7 @@ public:
     }
 
     static int sample_size;
-private:
+
     static std::vector<float> sample;
     static std::vector<float> errors;
 };
