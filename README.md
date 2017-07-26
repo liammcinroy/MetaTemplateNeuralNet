@@ -1,15 +1,15 @@
-#MetaTemplateNeuralNet
+# MetaTemplateNeuralNet
 ==========================
 
 An API for neural networks implemented in C++ with template meta-programming. Perhaps the first of its kind.
 
-##Include
+## Include
 ==========================
 
 All the necessary components are in header files (yay templates!) So just add what you need from the include folder.
 
 
-##What a Neural Network is
+## What a Neural Network is
 ==========================
 
 Our brains work by a large web of connected neurons, or simple binary states. These neurons are connected by synapses, which have a strength associated with them. When a neuron fires, it's signal is sent through all of it's connecting synapses to other neurons to determine their value. When we learn, our brain adjusts the strengths of the associated synapses to limit the amount of activated neurons.
@@ -22,17 +22,17 @@ Convolutional layers make use of mathematical convolution, an operation used to 
 
 Networks learn through different algorithms, although the two implemented here are the up-down or wake-sleep algorithm and vanilla backpropagation. Backpropagation is an algorithm which computes the derivatives of the error with respect to the weights, and adjusts the weights in order to find a minimum in the error function. This is a way of approximating the actual error signal of every neuron, so a small step size is often used to prevent divergence. The wake-sleep or up-down algorithm trains the network without knowledge of data in an encoder-decoder format. The layers in the network are fed forward, backwards, and forwards again, before a difference is calculated to adjust the weights. 
 
-##How this API is implemented
+## How this API is implemented
 =================================
 
 This API is based off of template meta-programming to optimize efficiency. Therefore, much of this API is based on the assumption that a network architecture will be defined at compile time rather than runtime. This has caused most of the class to become static, therefore you may want to `typedef NeuralNet<...> Net;` in your source file for clarity. More details on accessing a `NeuralNet` can be found in it's section.
 
 Note that because this is a template based approach, then almost all errors will be indescript compiler errors. Generally it is because a particular layer does not "connect" to the next.
 
-##Documentation
+## Documentation
 ===============================
 
-###Macros
+### Macros
 ===============================
 
 These macros are used to signify layer types, optimization methods, loss functions, and activation functions. They are prefixed with `MTNN_FUNC_*` for activation functions, `MTNN_LAYER_*` for layers, `MTNN_OPT_*` for optimization methods, and `MTNN_COST_*` for cost functions. Their name should explain their use. The available layers can be found below.
@@ -44,7 +44,7 @@ Available loss functions are quadratic, cross entropy, log likelihood, and custo
 Available optimization methods are vanilla backprop (with momentum, l2 weight decay, etc. as desired), Adam, and Adagrad.
 
 
-###Matrix2D<T, size_t, size_t>
+### `Matrix2D<T, size_t, size_t>`
 ===============================
 
 This class is a simple matrix implementation, with some extra methods that can be used in situations outside of this neural network.
@@ -61,14 +61,14 @@ This class is a simple matrix implementation, with some extra methods that can b
 
 <small>Can be initialized with initialization lists, so brace initializers may create some problems.</small>
 
-###FeatureMap<size_t, size_t, size_t, T = float>
+### `FeatureMap<size_t, size_t, size_t, T = float>`
 ===============================
 
 This class is a slightly more advanced wrapper of just a `std::vector<Matrix2D<T, r, c>(f)`, with basic initialization functions.
 
 <small>Can be initialized with initialization lists, so brace initializers may create some problems.</small>
 
-###Layer
+### Layer
 ===============================
 
 There is no `Layer` class, but all of the "`*Layer`" classes are implemented similarily. Note that only members that are used will be used as this API uses implicit static initialization.
@@ -103,54 +103,54 @@ Use the `index` parameter to create different instances if using the same type o
 | `biases_vector_type` | `type` | the type |
 | `generative_biases_vector_type` | `type` | the type |
 
-###PerceptronFullConnectivityLayer<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases>
+### `PerceptronFullConnectivityLayer<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases>`
 ===============================
 
 Basic fully connected perceptron layer.
 
-###ConvolutionLayer<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding = true>
+### ConvolutionLayer<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding = true>`
 ===============================
 
 Basic convolutional layer, masks or kernels must be square (but not odd!).
 
 With padding, then output is same size. Otherwise output is reduced.
 
-###LSTMLayer<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store>
+### `LSTMLayer<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store>`
 ===============================
 
-Basic LSTM layer (uses tanh activation).
+Basic LSTM layer (uses tanh activation). STILL IN DEVELOPMENT, WON'T WORK WITH THREADS.
 
 `max_t_store` states how many time steps to perform bptt on.
 
-###MaxpoolLayer<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols>
+### `MaxpoolLayer<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols>`
 ===================================
 
 Basic maxpooling layer. Maxpool is performed on each feature map independently.
 
 
-###SoftMaxLayer<size_t index, size_t features, size_t rows, size_t cols>
+### `SoftMaxLayer<size_t index, size_t features, size_t rows, size_t cols>`
 =====================================
 
 Basic softmax layer. This will compute derivatives for any cost function, not just log-likelihood. Softmax is performed on each feature map independently.
 
-###BatchNormalizationLayer<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function>
+### `BatchNormalizationLayer<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function>`
 =====================================
 
 Basic batch normalization layer. Gamma and beta are in `weights` and `biases`.
 
 <b>If using, then batch learning and the respective overloads must be used.</b>
 
-###InputLayer<size_t index, size_t features, size_t rows, size_t cols>
+### `InputLayer<size_t index, size_t features, size_t rows, size_t cols>`
 =====================================
 
 Basic input layer just to signify the beginning of the network. Required
 
-###OutputLayer<size_t index, size_t features, size_t rows, size_t cols>
+### `OutputLayer<size_t index, size_t features, size_t rows, size_t cols>`
 =====================================
 
 Basic output layer just to signify the end of the network. Required
 
-###NeuralNetwork<typename... layers>
+### `NeuralNetwork<typename... layers>`
 ===============================
 
 This is the class that encapsulates all of the rest. Has all required methods. Will add support for more loss functions and optimization methods later. If you want to train the network in parallel (or keep different sets of weights for a target network, or different architecture, etc.) then create a new instance of the class. Each new instance has its own weights and gradients and is thread safe (if you use `*_thread(.)` functions). The static class is the master net and retains its own weights.
@@ -188,7 +188,7 @@ This is the class that encapsulates all of the rest. Has all required methods. W
 | `template loop_up_layers<template<size_t l> class loop_body, typename... Args> | `type` | Initialize one of these to perform a function specified from the initialization of a `loop_body` type on each layer with initialization arguments of type `Args...` |
 | `template loop_down_layers<template<size_t l> class loop_body, typename... Args> | `type` | Initialize one of these to perform a function specified from the initialization of a `loop_body` type on each layer with initialization arguments of type `Args...` |
 
-###NeuralNetAnalyzer<typename Net>
+### `NeuralNetAnalyzer<typename Net>`
 
 This is a singleton static class. This class helps with network analysis, such as the expected error, and finite difference backprop checking.
 
@@ -202,7 +202,7 @@ This is a singleton static class. This class helps with network analysis, such a
 | `save_error(std::string path)` | `static void` | Saves all calculated expected errors |
 
 
-#Usage
+# Usage
 ===============================
 
 For an example of creating and using a network, see main.cpp in the examples folder.
