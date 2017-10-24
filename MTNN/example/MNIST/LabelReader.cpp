@@ -3,7 +3,7 @@
 LabelReader::LabelReader()
 {
 	file = std::ifstream("", std::ios::in | std::ios::binary);
-	current = Matrix2D<float, 10, 1>(default);
+	current = Matrix2D<float, 10, 1>(defaultval);
 	char c;
 }
 
@@ -11,7 +11,7 @@ LabelReader::LabelReader(const LabelReader &obj)
 {
 	file = std::ifstream(obj.m_path, std::ios::in | std::ios::binary);
 	m_path = obj.m_path;
-	current = Matrix2D<float, 10, 1>(default);
+	current = Matrix2D<float, 10, 1>(defaultval);
 	char c;
 	for (size_t i = 0; i < 8; ++i)
 		file >> c;
@@ -22,7 +22,7 @@ LabelReader::LabelReader(const std::string &path)
 {
 	file = std::ifstream(path, std::ios::in | std::ios::binary);
 	m_path = path;
-	current = Matrix2D<float, 10, 1>(default);
+	current = Matrix2D<float, 10, 1>(defaultval);
 	char c;
 	for (size_t i = 0; i < 8; ++i)
 		file >> c;
@@ -39,7 +39,7 @@ void LabelReader::next()
 		if (i == label)
 			current.at(i, 0) = 1;
 		else
-			current.at(i, 0) = default;
+			current.at(i, 0) = defaultval;
 	}
 	++index;
 }

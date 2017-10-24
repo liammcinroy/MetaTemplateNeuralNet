@@ -33,7 +33,7 @@ namespace std
     using enable_if_t = typename std::enable_if<B, T>::type;
 }
 
-//incremental for loop, pass type func with initializer taking args... 
+//incremental for loop, pass type func with initializer taking args...
 template<size_t i, size_t UPPER, size_t STEP, template<size_t> class func, typename... Args> struct for_loop_inc_impl
 {
     template<size_t i2 = i>
@@ -54,7 +54,7 @@ template<size_t i, size_t UPPER, size_t STEP, template<size_t> class func, typen
     }
 };
 
-//decremental for loop, pass type func with initializer taking args... 
+//decremental for loop, pass type func with initializer taking args...
 template<size_t i, size_t LOWER, size_t STEP, template<size_t> class func, typename... Args> struct for_loop_dec_impl
 {
     template<size_t i2 = i>
@@ -75,7 +75,7 @@ template<size_t i, size_t LOWER, size_t STEP, template<size_t> class func, typen
     }
 };
 
-//for loop, pass type func with initializer taking args... 
+//for loop, pass type func with initializer taking args...
 template<size_t START, size_t FINISH, size_t STEP, template<size_t> class func, typename... Args> struct for_loop
 {
     template<size_t START2 = START>
@@ -1028,7 +1028,7 @@ public:
     static float learning_rate;
     //only set if using adagrad
     static float minimum_divisor;
-    //only set if using momentum 
+    //only set if using momentum
     static float momentum_term;
     //only set if using dropout. This proportion of neurons will be "dropped"
     static float dropout_probability;
@@ -1082,7 +1082,7 @@ public:
     template<typename file_name_type> static void load_data();
 
     //set input (for discrimination)
-    static void set_input(typename get_type<0, layers...>::feature_maps_type& new_input);
+    static void set_input(typename get_type<0, layers...>::feature_maps_type new_input);
 
     //set labels for batch
     static void set_labels(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& new_labels);
@@ -1107,7 +1107,7 @@ public:
     //compute the population statistics for BN networks
     static void calculate_population_statistics(typename get_type<0, layers...>::feature_maps_vector_type& batch_input);
 
-    //reset and apply gradient                                                                  
+    //reset and apply gradient
     static void apply_gradient(bool clear_gradients = true);
 
     //get current error according to loss function
@@ -1209,7 +1209,7 @@ load_data()
 
 template<typename... layers>
 inline void NeuralNet<layers...>::
-set_input(typename get_type<0, layers...>::feature_maps_type& new_input)
+set_input(typename get_type<0, layers...>::feature_maps_type new_input)
 {
 #ifndef _MSC_VER
     if (get_batch_activations<0>().size() == 0)
@@ -1246,7 +1246,7 @@ set_labels(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type&
 
 template<typename... layers>
 inline typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& NeuralNet<layers...>::
-discriminate(typename get_type<0, layers...>::feature_maps_type& new_input = NeuralNet<layers...>::input)
+discriminate(typename get_type<0, layers...>::feature_maps_type& new_input)
 {
 #ifndef _MSC_VER
     if (get_batch_activations<0>().size() == 0)
@@ -1272,7 +1272,7 @@ discriminate(typename get_type<0, layers...>::feature_maps_type& new_input = Neu
 
 template<typename... layers>
 inline  typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& NeuralNet<layers...>::
-discriminate_thread(typename get_type<0, layers...>::feature_maps_type& new_input = NeuralNet<layers...>::input)
+discriminate_thread(typename get_type<0, layers...>::feature_maps_type& new_input)
 {
 #ifndef _MSC_VER
     loop_all_layers<reset_thread_feature_maps, NeuralNet<layers...>&>(*this);
@@ -1417,7 +1417,7 @@ generate(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& i
         for_loop<last_rbm_index - 1, 0, 1, feed_backwards_layer_sample>(0);
     else
         for_loop<last_rbm_index - 1, 0, 1, feed_backwards_layer_nosample>(0);
-#endif    
+#endif
 
     typename get_type<0, layers...>::feature_maps_type output = {};
     for (size_t f = 0; f < output.size(); ++f)
@@ -1463,7 +1463,7 @@ pretrain(size_t markov_iterations)
 
 template<typename... layers>
 inline float NeuralNet<layers...>::
-train(bool already_fed = false, typename get_type<0, layers...>::feature_maps_type& new_input = NeuralNet<layers...>::input, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbl = NeuralNet<layers...>::labels)
+train(bool already_fed, typename get_type<0, layers...>::feature_maps_type& new_input, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbl)
 {
 #ifndef _MSC_VER
     if (get_batch_activations<0>().size() == 0)
@@ -1515,7 +1515,7 @@ train(bool already_fed = false, typename get_type<0, layers...>::feature_maps_ty
 
 template<typename... layers>
 inline float NeuralNet<layers...>::
-train_thread(bool already_fed = false, typename get_type<0, layers...>::feature_maps_type& new_input = NeuralNet<layers...>::input, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbl = NeuralNet<layers...>::labels)
+train_thread(bool already_fed, typename get_type<0, layers...>::feature_maps_type& new_input, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbl)
 {
     float error = 0.0f;
 
@@ -1559,7 +1559,7 @@ train_thread(bool already_fed = false, typename get_type<0, layers...>::feature_
 
 template<typename... layers>
 inline float NeuralNet<layers...>::
-train_batch(typename get_type<0, layers...>::feature_maps_vector_type& batch_inputs, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels, bool already_fed = false, bool apply = false)
+train_batch(typename get_type<0, layers...>::feature_maps_vector_type& batch_inputs, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels, bool already_fed, bool apply)
 {
     bool temp_batch = use_batch_learning;
     use_batch_learning = true;
@@ -1640,7 +1640,7 @@ train_batch(typename get_type<0, layers...>::feature_maps_vector_type& batch_inp
 
 template<typename... layers>
 inline float NeuralNet<layers...>::
-train_batch_thread(typename get_type<0, layers...>::feature_maps_vector_type& batch_inputs, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels, bool already_fed = false)
+train_batch_thread(typename get_type<0, layers...>::feature_maps_vector_type& batch_inputs, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels, bool already_fed)
 {
     bool temp_batch = use_batch_learning;
     use_batch_learning = true;
@@ -1711,7 +1711,7 @@ train_batch_thread(typename get_type<0, layers...>::feature_maps_vector_type& ba
     for_loop<last_layer_index - 1, 1, 1, back_prop_batch_thread, NeuralNet<layers...>&>(*this);
 #else
     for_loop<last_layer_index - 1, 1, 1, back_prop_batch_thread, NeuralNet<layers...>&>(*this, 0);
-#endif    
+#endif
 
     //apply_gradient(); don't apply gradient if parallel
     use_batch_learning = temp_batch;
@@ -1728,12 +1728,12 @@ calculate_population_statistics(typename get_type<0, layers...>::feature_maps_ve
     for_loop<1, last_layer_index - 1, 1, feed_forwards_population_statistics_layer>();
 #else
     for_loop<1, last_layer_index - 1, 1, feed_forwards_population_statistics_layer>(0);
-#endif    
+#endif
 }
 
 template<typename... layers>
 inline void NeuralNet<layers...>::
-apply_gradient(bool clear_gradients = true)
+apply_gradient(bool clear_gradients)
 {
 #ifndef _MSC_VER
     if (use_l2_weight_decay && use_batch_learning)
@@ -1741,7 +1741,7 @@ apply_gradient(bool clear_gradients = true)
 #else
     if (use_l2_weight_decay && use_batch_learning)
         loop_up_layers<add_weight_decay_layer>(0);
-#endif    
+#endif
 
     if (optimization_method == MTNN_OPT_ADAM)
         ++t_adam;
@@ -1761,7 +1761,7 @@ apply_gradient(bool clear_gradients = true)
 
 template<typename... layers>
 inline float NeuralNet<layers...>::
-global_error(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& output = get_batch_activations<last_layer_index>()[0], typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbls = labels)
+global_error(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& output, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbls)
 {
     float sum = 0.0f;
 
@@ -1827,7 +1827,7 @@ dropout()
 
 template<typename... layers>
 inline typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type NeuralNet<layers...>::
-error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& output = get_batch_activations<last_layer_index>()[0], typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbls = NeuralNet<layers...>::labels)
+error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& output, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbls)
 {
     auto out = typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type{ 0 };
     if (loss_function == MTNN_LOSS_L2)
@@ -1851,7 +1851,7 @@ error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_ty
 }
 
 template<typename ...layers>
-inline typename typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type NeuralNet<layers...>::
+inline typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type NeuralNet<layers...>::
 error_signals(typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_outputs, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels)
 {
     auto out = typename get_layer<last_layer_index>::feature_maps_vector_type(batch_outputs.size());

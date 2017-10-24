@@ -14,7 +14,7 @@ public:
 	void catch_up(int i);
 	Matrix2D<float, 29, 29> current;
 	int index = 0;
-	float default = -1;
+	float defaultval = -1;
 private:
 	std::ifstream file;
 	std::string m_path;

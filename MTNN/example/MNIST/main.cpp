@@ -1,4 +1,3 @@
-#include <conio.h>
 #include <iostream>
 #include <time.h>
 
@@ -137,7 +136,7 @@ FeatureMap<1, rows, cols> distort(Matrix2D<float, rows, cols>& input, Matrix2D<f
 }
 
 template<int rows, int cols>
-FeatureMap<1, rows, cols> make_fm(Matrix2D<float, rows, cols>& input)
+FeatureMap<1, rows, cols> make_fm(Matrix2D<float, rows, cols> input)
 {
 	FeatureMap<1, rows, cols> out{};
 	for (int i = 0; i < rows; ++i)
@@ -190,7 +189,7 @@ int main()
 	Net::learning_rate = .001f;
 	Net::use_batch_learning = true;
 	Net::optimization_method = MTNN_OPT_ADAM;
-	Net::loss_function = MTNN_LOSS_SQUAREERROR;
+	Net::loss_function = MTNN_LOSS_L2;
 	NeuralNetAnalyzer<Net>::sample_size = 100;
 
 	//timing variables
@@ -219,9 +218,9 @@ int main()
 		std::vector<std::pair<typename NetInput::type, int>> images(60000);
 		std::vector<NetOutput> labels(10);
 		ImageReader trainImgs("MNIST//Images//train-images.idx3-ubyte");
-		trainImgs.default = DEFAULT;
+		trainImgs.defaultval = DEFAULT;
 		LabelReader trainLbls("MNIST//Labels//train-labels.idx1-ubyte");
-		trainLbls.default = DEFAULT;
+		trainLbls.defaultval = DEFAULT;
 		for (int i = 0; i < 60000; ++i)
 		{
 			int label = 0;
@@ -309,7 +308,7 @@ int main()
 			for (int j = 0; j < totals.size(); ++j)
 				out += std::to_string(j) + ": " + std::to_string(totals[j] / 500.0f) + "   ";
 			indented_line("Distribution: " + out);
-			
+
 			for (int batches = 0; batches < 60000 / 50; ++batches)
 			{
 				auto batch_images = FeatureMapVector<1, 29, 29>(50);
@@ -397,9 +396,9 @@ int main()
 	normal_line("Starting Testing");
 
 	ImageReader testImgs("MNIST//Images//t10k-images.idx3-ubyte");
-	testImgs.default = DEFAULT;
+	testImgs.defaultval = DEFAULT;
 	LabelReader testLbls("MNIST//Labels//t10k-labels.idx1-ubyte");
-	testLbls.default = DEFAULT;
+	testLbls.defaultval = DEFAULT;
 	int correct = 0;
 
 	std::vector<int> totals(10);
@@ -426,7 +425,7 @@ int main()
 		++totals[max_i];
 		for (int j = 0; j < testLbls.current.rows(); ++j)
 			if (testLbls.current.at(j, 0) == 1 && j == max_i)
-				++correct;				
+				++correct;
 
 		if (i % 500 == 0 && i != 0)
 		{
@@ -439,6 +438,6 @@ int main()
 	}
 
 	normal_line("Press any key to exit");
-	_getche();
+	getchar();
 	return 0;
 }

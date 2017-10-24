@@ -262,14 +262,14 @@ public:
     template<size_t f, size_t r, size_t c>
     static inline void stochastic_sample(FeatureMap<f, r, c>& data)
     {
-        for (size_t f = 0; f < f; ++f)
+        for (size_t d = 0; d < f; ++d)
             for (size_t i = 0; i < r; ++i)
                 for (size_t j = 0; j < c; ++j)
-                    data[f].at(i, j) = ((rand() * 1.0f) / RAND_MAX < data[f].at(i, j)) ? 1 : 0;
+                    data[d].at(i, j) = ((rand() * 1.0f) / RAND_MAX < data[d].at(i, j)) ? 1 : 0;
     }
 };
 
-using EmptyFeatureMap = FeatureMap<0, 0, 0>
+using EmptyFeatureMap = FeatureMap<0, 0, 0>;
 
 ////START ACTUAL LAYERS
 
@@ -319,6 +319,8 @@ public:
     static constexpr size_t activation = activation_function;
 
     //define for creating tuples or using within templates
+    using feature_maps_type = typename ConvolutionLayer::feature_maps_type;
+    using feature_maps_vector_type = typename ConvolutionLayer::feature_maps_vector_type;
     using out_feature_maps_type = FeatureMap<out_features, use_padding ? rows / stride + 1 : (rows - kernel_size) / stride + 1, use_padding ? cols / stride + 1 : (cols - kernel_size) / stride + 1>;
     using weights_type = decltype(weights);
     using biases_type = decltype(biases);
@@ -327,6 +329,9 @@ public:
     using weights_vector_type = std::vector<weights_type>;
     using biases_vector_type = std::vector<biases_type>;
     using generative_biases_vector_type = std::vector<generative_biases_type>;
+
+    static constexpr auto& activate = ConvolutionLayer::activate;
+    static constexpr auto& chain_activations = ConvolutionLayer::chain_activations;
 
     //never used, static class
     ConvolutionLayer() = default;
@@ -510,24 +515,24 @@ public:
         feed_forwards(discriminated);
         for (size_t f_0 = 0; f_0 < out_features; ++f_0)
             reconstructed[f_0] = discriminated[f_0].clone();
-        stochastic_sample<out_features, out_rows, out_cols>(reconstructed);
+        ConvolutionLayer::stochastic_sample<out_features, out_rows, out_cols>(reconstructed);
         feed_backwards(reconstructed);
         if (!mean_field)
-            stochastic_sample<features, rows, cols>(feature_maps);
+            ConvolutionLayer::stochastic_sample<features, rows, cols>(feature_maps);
         feed_forwards(reconstructed);
         for (size_t its = 1; its < markov_iterations; ++its)
         {
-            stochastic_sample<out_features, out_rows, out_cols>(reconstructed);
+            ConvolutionLayer::stochastic_sample<out_features, out_rows, out_cols>(reconstructed);
             feed_backwards(reconstructed);
             if (!mean_field)
-                stochastic_sample<features, rows, cols>(feature_maps);
+                ConvolutionLayer::stochastic_sample<features, rows, cols>(feature_maps);
             feed_forwards(reconstructed);
         }
 
         constexpr size_t N = (kernel_size - 1) / 2;
 
         if (!mean_field)
-            stochastic_sample<out_features, out_rows, out_cols>(discriminated);
+            ConvolutionLayer::stochastic_sample<out_features, out_rows, out_cols>(discriminated);
 
         //adjust weights ONLINE
         for (size_t f_0 = 0; f_0 < out_features; ++f_0)
@@ -634,6 +639,8 @@ public:
     static constexpr size_t activation = activation_function;
 
     //define for creating tuples or using within templates
+    using feature_maps_type = typename PerceptronFullConnectivityLayer::feature_maps_type;
+    using feature_maps_vector_type = typename PerceptronFullConnectivityLayer::feature_maps_vector_type;
     using out_feature_maps_type = FeatureMap<out_features, out_rows, out_cols>;
     using weights_type = decltype(weights);
     using biases_type = decltype(biases);
@@ -642,6 +649,9 @@ public:
     using weights_vector_type = std::vector<weights_type>;
     using biases_vector_type = std::vector<biases_type>;
     using generative_biases_vector_type = std::vector<generative_biases_type>;
+
+    static constexpr auto& activate = PerceptronFullConnectivityLayer::activate;
+    static constexpr auto& chain_activations = PerceptronFullConnectivityLayer::chain_activations;
 
     //not used except batch norm
     static size_t n;
@@ -817,22 +827,22 @@ public:
         //Sample, but don't "normalize" second time
         feed_forwards(feature_maps, discriminated);
         reconstructed = discriminated;
-        stochastic_sample<out_features, out_rows, out_cols>(reconstructed);
+        PerceptronFullConnectivityLayer::stochastic_sample<out_features, out_rows, out_cols>(reconstructed);
         feed_backwards(feature_maps, reconstructed);
         if (!mean_field)
-            stochastic_sample<features, rows, cols>(feature_maps);
+            PerceptronFullConnectivityLayer::stochastic_sample<features, rows, cols>(feature_maps);
         feed_forwards(feature_maps, reconstructed);
         for (size_t its = 1; its < markov_iterations; ++its)
         {
-            stochastic_sample<out_features, out_rows, out_cols>(reconstructed);
+            PerceptronFullConnectivityLayer::stochastic_sample<out_features, out_rows, out_cols>(reconstructed);
             feed_backwards(feature_maps, reconstructed);
             if (!mean_field)
-                stochastic_sample<features, rows, cols>(feature_maps);
+                PerceptronFullConnectivityLayer::stochastic_sample<features, rows, cols>(feature_maps);
             feed_forwards(feature_maps, reconstructed);
         }
 
         if (!mean_field)
-            stochastic_sample<out_features, out_rows, out_cols>(discriminated);
+            PerceptronFullConnectivityLayer::stochastic_sample<out_features, out_rows, out_cols>(discriminated);
 
         //adjust weights
         for (size_t f_0 = 0; f_0 < out_features; ++f_0)
@@ -901,24 +911,24 @@ public:
     //biases are kept in own matrix
     static FeatureMap<4, out_features * out_rows * out_cols, 1> biases;
     //weights
-    static FeatureMap<4, out_features * out_rows * out_cols, out_features * out_rows * out_cols + features * rows * cols> weights;
+    static FeatureMap<4, out_features * out_rows * out_cols, features * rows * cols + out_features * out_rows * out_cols> weights;
     //only used in wake-sleep/feed back/rbms
     static EmptyFeatureMap generative_biases;
 
     //used for hessian (old) or Adam
-    static FeatureMap<4, out_features * out_rows * out_cols, out_features * out_rows * out_cols + features * rows * cols> weights_aux_data;
+    static FeatureMap<4, out_features * out_rows * out_cols, features * rows * cols + out_features * out_rows * out_cols> weights_aux_data;
     //used for hessian (old) or Adam
     static FeatureMap<4, out_features * out_rows * out_cols, 1> biases_aux_data;
 
     //stores actual gradient
     static FeatureMap<4, out_features * out_rows * out_cols, 1> biases_gradient;
     //stores actual gradient
-    static FeatureMap<4, out_features * out_rows * out_cols, out_features * out_rows * out_cols + features * rows * cols> weights_gradient;
+    static FeatureMap<4, out_features * out_rows * out_cols, features * rows * cols + out_features * out_rows * out_cols> weights_gradient;
 
     //stores momentum (if applicable)
     static FeatureMap<4, out_features * out_rows * out_cols, 1> biases_momentum;
     //stores momentum (if applicable)
-    static FeatureMap<4, out_features * out_rows * out_cols, out_features * out_rows * out_cols + features * rows * cols> weights_momentum;
+    static FeatureMap<4, out_features * out_rows * out_cols, features * rows * cols + out_features * out_rows * out_cols> weights_momentum;
 
     //not used except batch norm
     static EmptyFeatureMap activations_population_mean;
@@ -942,6 +952,8 @@ public:
     static constexpr size_t activation = MTNN_FUNC_LINEAR;
 
     //define for creating tuples or using within templates
+    using feature_maps_type = typename LSTMLayer::feature_maps_type;
+    using feature_maps_vector_type = typename LSTMLayer::feature_maps_vector_type;
     using out_feature_maps_type = FeatureMap<out_features, out_rows, out_cols>;
     using weights_type = decltype(weights);
     using biases_type = decltype(biases);
@@ -950,6 +962,9 @@ public:
     using weights_vector_type = std::vector<weights_type>;
     using biases_vector_type = std::vector<biases_type>;
     using generative_biases_vector_type = std::vector<generative_biases_type>;
+
+    static constexpr auto& activate = LSTMLayer::activate;
+    static constexpr auto& chain_activations = LSTMLayer::chain_activations;
 
     //used since hidden plus inputs are given to each layer
     using concat_type = FeatureMap<1, out_features * out_rows * out_cols + features * rows * cols, 1>;
@@ -1206,14 +1221,14 @@ public:
 //static variable initialization
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<features, rows, cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::feature_maps = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, out_features * out_rows * out_cols, 1> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::biases = { 0, .1f };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, (out_features * out_rows * out_cols), (features * rows * cols + out_features * out_rows * out_cols)> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::weights = { -.1f, .1f };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, out_features * out_rows * out_cols, features * rows * cols + out_features * out_rows * out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::weights = { -.1f, .1f };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> EmptyFeatureMap LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::generative_biases = { 0, .1f };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, (out_features * out_rows * out_cols), (features * rows * cols + out_features * out_rows * out_cols)> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::weights_aux_data = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, (out_features * out_rows * out_cols), features * rows * cols + out_features * out_rows * out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::weights_aux_data = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, out_features * out_rows * out_cols, 1> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::biases_aux_data = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, out_features * out_rows * out_cols, 1> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::biases_gradient = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, (out_features * out_rows * out_cols), (features * rows * cols + out_features * out_rows * out_cols)> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::weights_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, (out_features * out_rows * out_cols), features * rows * cols + out_features * out_rows * out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::weights_gradient = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, out_features * out_rows * out_cols, 1> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::biases_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, (out_features * out_rows * out_cols), (features * rows * cols + out_features * out_rows * out_cols)> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::weights_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, (out_features * out_rows * out_cols), features * rows * cols + out_features * out_rows * out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::weights_momentum = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> EmptyFeatureMap LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::activations_population_mean = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> EmptyFeatureMap LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> size_t LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::n = 0;
@@ -1274,6 +1289,8 @@ public:
     static constexpr size_t activation = activation_function;
 
     //define for creating tuples or using within templates
+    using feature_maps_type = typename BatchNormalizationLayer::feature_maps_type;
+    using feature_maps_vector_type = typename BatchNormalizationLayer::feature_maps_vector_type;
     using out_feature_maps_type = FeatureMap<features, rows, cols>;
     using weights_type = decltype(weights);
     using biases_type = decltype(biases);
@@ -1282,6 +1299,9 @@ public:
     using weights_vector_type = std::vector<weights_type>;
     using biases_vector_type = std::vector<biases_type>;
     using generative_biases_vector_type = std::vector<generative_biases_type>;
+
+    static constexpr auto& activate = BatchNormalizationLayer::activate;
+    static constexpr auto& chain_activations = BatchNormalizationLayer::chain_activations;
 
     //won't use, static class
     BatchNormalizationLayer() = default;
@@ -1480,6 +1500,8 @@ public:
     static constexpr size_t activation = MTNN_FUNC_LINEAR;
 
     //define for creating tuples or using within templates
+    using feature_maps_type = typename MaxpoolLayer::feature_maps_type;
+    using feature_maps_vector_type = typename MaxpoolLayer::feature_maps_vector_type;
     using out_feature_maps_type = FeatureMap<features, out_rows, out_cols>;
     using weights_type = decltype(weights);
     using biases_type = decltype(biases);
@@ -1488,6 +1510,9 @@ public:
     using weights_vector_type = std::vector<weights_type>;
     using biases_vector_type = std::vector<biases_type>;
     using generative_biases_vector_type = std::vector<generative_biases_type>;
+
+    static constexpr auto& activate = MaxpoolLayer::activate;
+    static constexpr auto& chain_activations = MaxpoolLayer::chain_activations;
 
     //not used except in batch norm
     static size_t n;
@@ -1702,6 +1727,8 @@ public:
     static constexpr size_t activation = MTNN_FUNC_LINEAR;
 
     //define for creating tuples or using within templates
+    using feature_maps_type = typename SoftMaxLayer::feature_maps_type;
+    using feature_maps_vector_type = typename SoftMaxLayer::feature_maps_vector_type;
     using out_feature_maps_type = FeatureMap<features, rows, cols>;
     using weights_type = decltype(weights);
     using biases_type = decltype(biases);
@@ -1710,6 +1737,9 @@ public:
     using weights_vector_type = std::vector<weights_type>;
     using biases_vector_type = std::vector<biases_type>;
     using generative_biases_vector_type = std::vector<generative_biases_type>;
+
+    static constexpr auto& activate = SoftMaxLayer::activate;
+    static constexpr auto& chain_activations = SoftMaxLayer::chain_activations;
 
     //only used for batch norm
     static size_t n;
@@ -1852,6 +1882,8 @@ public:
     static constexpr size_t activation = MTNN_FUNC_LINEAR;
 
     //define for creating tuples or using within templates
+    using feature_maps_type = typename InputLayer::feature_maps_type;
+    using feature_maps_vector_type = typename InputLayer::feature_maps_vector_type;
     using out_feature_maps_type = FeatureMap<features, rows, cols>;
     using weights_type = decltype(weights);
     using biases_type = decltype(biases);
@@ -1860,6 +1892,9 @@ public:
     using weights_vector_type = std::vector<weights_type>;
     using biases_vector_type = std::vector<biases_type>;
     using generative_biases_vector_type = std::vector<generative_biases_type>;
+
+    static constexpr auto& activate = InputLayer::activate;
+    static constexpr auto& chain_activations = InputLayer::chain_activations;
 
     //won't use except in batch norm
     static size_t n;
@@ -1977,6 +2012,8 @@ public:
     static constexpr size_t activation = MTNN_FUNC_LINEAR;
 
     //define for creating tuples or using within templates
+    using feature_maps_type = typename OutputLayer::feature_maps_type;
+    using feature_maps_vector_type = typename OutputLayer::feature_maps_vector_type;
     using out_feature_maps_type = FeatureMap<features, rows, cols>;
     using weights_type = decltype(weights);
     using biases_type = decltype(biases);
@@ -1985,6 +2022,9 @@ public:
     using weights_vector_type = std::vector<weights_type>;
     using biases_vector_type = std::vector<biases_type>;
     using generative_biases_vector_type = std::vector<generative_biases_type>;
+
+    static constexpr auto& activate = OutputLayer::activate;
+    static constexpr auto& chain_activations = OutputLayer::chain_activations;
 
     //won't use outside of batch norm
     static size_t n;

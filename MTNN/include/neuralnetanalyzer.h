@@ -77,7 +77,7 @@ private:
                                 total_grad_error += abs(layer::biases_gradient[d].at(i, j) - appr_grad);
                             else
                                 total_grad_error += abs((layer::biases_gradient[d].at(i, j) - appr_grad) / layer::biases_gradient[d].at(i, j));
-                        
+
                             layer::biases[d].at(i, j) += .001f;
                         }
                     }
@@ -186,13 +186,23 @@ public:
         n = 0;
         original_net_error = net::global_error();
 
+#ifdef _MSC_VER
         net::template loop_all_layers<add_grad_error_w>(0);
+#else
+        typename net::template loop_all_layers<add_grad_error_w>();
+#endif
         std::pair<float, float> errors{};
         errors.first = total_grad_error / n;
 
         total_grad_error = 0.0f;
         n = 0;
+
+#ifdef _MSC_VER
         net::template loop_all_layers<add_grad_error_b>(0);
+#else
+        typename net::template loop_all_layers<add_grad_error_b>();
+#endif
+
         errors.second = total_grad_error / n;
 
         return errors;
@@ -208,13 +218,24 @@ public:
         n = 0;
         original_net_error = net::global_error();
 
+#ifdef _MSC_VER
         net::template loop_all_layers<add_hess_error_w>(0);
+#else
+        typename net::template loop_all_layers<add_hess_error_w>();
+#endif
+
         std::pair<float, float> errors{};
         errors.first = total_grad_error / n;
 
         total_grad_error = 0.0f;
         n = 0;
+
+#ifdef _MSC_VER
         net::template loop_all_layers<add_hess_error_b>(0);
+#else
+        typename net::template loop_all_layers<add_hess_error_b>();
+#endif
+
         errors.second = total_grad_error / n;
 
         return errors;
@@ -230,13 +251,24 @@ public:
         n = 0;
         original_net_error = net::global_error();
 
+#ifdef _MSC_VER
         net::template loop_all_layers<add_grad_error_w>(0);
+#else
+        typename net::template loop_all_layers<add_grad_error_w>();
+#endif
+
         std::pair<float, float> errors{};
         errors.first = total_grad_error / n;
 
         total_grad_error = 0.0f;
         n = 0;
+
+#ifdef _MSC_VER
         net::template loop_all_layers<add_grad_error_b>(0);
+#else
+        typename net::template loop_all_layers<add_grad_error_b>();
+#endif
+
         errors.second = total_grad_error / n;
 
         return errors;
@@ -252,13 +284,24 @@ public:
         n = 0;
         original_net_error = net::global_error();
 
+#ifdef _MSC_VER
         net::template loop_all_layers<add_hess_error_w>(0);
+#else
+        typename net::template loop_all_layers<add_hess_error_w>();
+#endif
+
         std::pair<float, float> errors{};
         errors.first = total_grad_error / n;
 
         total_grad_error = 0.0f;
         n = 0;
+
+#ifdef _MSC_VER
         net::template loop_all_layers<add_hess_error_b>(0);
+#else
+        typename net::template loop_all_layers<add_hess_error_b>();
+#endif
+
         errors.second = total_grad_error / n;
 
         return errors;

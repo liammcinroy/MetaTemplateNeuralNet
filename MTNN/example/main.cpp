@@ -1,4 +1,3 @@
-#include <conio.h>
 #include <iostream>
 
 #include "imatrix.h"
@@ -36,7 +35,7 @@ typedef NeuralNet<
 //    PerceptronFullConnectivityLayer<6, 1, 1, 1, 1, 1, 1, MTNN_FUNC_LINEAR, true>, //Because of different indexes, then this and layer 1 won't share data
 //    OutputLayer<7, 1, 1, 1>> Net;
 
-FeatureMap<1, 1, 1> PerceptronFullConnectivityLayer<2, 1, 1, 1, 1, 1, 1, MTNN_FUNC_LINEAR, false>::weights = { .1f };//custom weight initialization
+template<> FeatureMap<1, 1, 1> PerceptronFullConnectivityLayer<2, 1, 1, 1, 1, 1, 1, MTNN_FUNC_LINEAR, false>::weights = { .1f };//custom weight initialization
 
 int main(int argc, char** argv)
 {
@@ -94,7 +93,7 @@ int main(int argc, char** argv)
                 NeuralNetAnalyzer<Net>::add_point(Net::train());
             }
         }
-        
+
         if (BATCH_FUNCTIONS)
             NeuralNetAnalyzer<Net>::add_point(Net::train_batch(inputs, labels)); //if using bn/batch functions, pass batch inputs
 
@@ -130,6 +129,6 @@ int main(int argc, char** argv)
     std::cout << "Net value with input of 1 (after load): " << OUTPUT_INV_TRANSFORM(Net::template get_layer<Net::last_layer_index>::feature_maps[0].at(0, 0)) << std::endl;
 
     std::cout << "\n\nPress any key to exit" << std::endl;
-    _getche();
+    getchar();
     return 0;
 }
