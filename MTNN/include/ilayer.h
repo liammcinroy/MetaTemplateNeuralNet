@@ -134,7 +134,7 @@ template<size_t r, size_t c, size_t kernel_r, size_t kernel_c, size_t s> struct 
         constexpr size_t out_r = r;
         constexpr size_t out_c = c;
         Matrix2D<float, out_r, out_c> output = { 0 };
-        
+
         //change top left of kernel
         for (int i = -N; i < (int)r - N; i += s)
         {
@@ -269,6 +269,8 @@ public:
     }
 };
 
+using EmptyFeatureMap = FeatureMap<0, 0, 0>
+
 ////START ACTUAL LAYERS
 
 //Convolutional layer: use even or odd kernels (always square), padding or not (zero padding if true), biases or not (should almost always be true), any stride, any out_features, any activation function
@@ -307,9 +309,9 @@ public:
     static FeatureMap<out_features * features, kernel_size, kernel_size> weights_momentum;
 
     //not used except batch norm
-    static FeatureMap<0, 0, 0> activations_population_mean;
+    static EmptyFeatureMap activations_population_mean;
     //not used except batch norm
-    static FeatureMap<0, 0, 0> activations_population_variance;
+    static EmptyFeatureMap activations_population_variance;
 
     //type of layer (dynamic test, but not stored since constexpr)
     static constexpr size_t type = MTNN_LAYER_CONVOLUTION;
@@ -588,8 +590,8 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<out_features * features, kernel_size, kernel_size> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::weights_gradient = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<(use_biases ? out_features * features : 0), (use_biases ? 1 : 0), (use_biases ? 1 : 0)> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::biases_momentum = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<out_features * features, kernel_size, kernel_size> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::weights_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<0, 0, 0> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::activations_population_mean = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> FeatureMap<0, 0, 0> ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::activations_population_variance = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> EmptyFeatureMap ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::activations_population_mean = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> EmptyFeatureMap ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t kernel_size, size_t stride, size_t out_features, size_t activation_function, bool use_biases, bool use_padding> size_t ConvolutionLayer<index, features, rows, cols, kernel_size, stride, out_features, activation_function, use_biases, use_padding>::n = 0;
 
 //A full connectivity layer. Note that the shape doesn't really matter wrt weights, biases (interprets as vector). Can use any activation function, biases or not
@@ -622,9 +624,9 @@ public:
     static FeatureMap<1, (out_features * out_rows * out_cols), (features * rows * cols)> weights_momentum;
 
     //not used except batch norm
-    static FeatureMap<0, 0, 0> activations_population_mean;
+    static EmptyFeatureMap activations_population_mean;
     //not used except batch norm
-    static FeatureMap<0, 0, 0> activations_population_variance;
+    static EmptyFeatureMap activations_population_variance;
 
     //type of layer (dynamic test, but not stored since constexpr)
     static constexpr size_t type = MTNN_LAYER_PERCEPTRONFULLCONNECTIVITY;
@@ -881,8 +883,8 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t out_fea
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<1, (out_features * out_rows * out_cols), (features * rows * cols)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::weights_gradient = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<(use_biases ? out_features : 0), (use_biases ? out_rows : 0), (use_biases ? out_cols : 0)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::biases_momentum = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<1, (out_features * out_rows * out_cols), (features * rows * cols)> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::weights_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<0, 0, 0> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::activations_population_mean = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> FeatureMap<0, 0, 0> PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::activations_population_variance = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> EmptyFeatureMap PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::activations_population_mean = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> EmptyFeatureMap PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t activation_function, bool use_biases> size_t PerceptronFullConnectivityLayer<index, features, rows, cols, out_features, out_rows, out_cols, activation_function, use_biases>::n = 0;
 
 //LSTM layer, max_t_store is the max number of steps to perform bptt on (may want to set to batch size)
@@ -901,7 +903,7 @@ public:
     //weights
     static FeatureMap<4, out_features * out_rows * out_cols, out_features * out_rows * out_cols + features * rows * cols> weights;
     //only used in wake-sleep/feed back/rbms
-    static FeatureMap<0, 0, 0> generative_biases;
+    static EmptyFeatureMap generative_biases;
 
     //used for hessian (old) or Adam
     static FeatureMap<4, out_features * out_rows * out_cols, out_features * out_rows * out_cols + features * rows * cols> weights_aux_data;
@@ -919,9 +921,9 @@ public:
     static FeatureMap<4, out_features * out_rows * out_cols, out_features * out_rows * out_cols + features * rows * cols> weights_momentum;
 
     //not used except batch norm
-    static FeatureMap<0, 0, 0> activations_population_mean;
+    static EmptyFeatureMap activations_population_mean;
     //not used except batch norm
-    static FeatureMap<0, 0, 0> activations_population_variance;
+    static EmptyFeatureMap activations_population_variance;
 
     ////internal lstm data; use for bptt since need to have all previous data. keep activation of all layers in vector, performs bptt on last one, push onto each feed forward (pop if full)
     static FeatureMapVector<out_features, out_rows, out_cols> cell_states; //keep max num of steps ONLY
@@ -937,7 +939,7 @@ public:
     //type of layer (dynamic test, but not stored since constexpr)
     static constexpr size_t type = MTNN_LAYER_LSTM;
     //just handle all of the chain rule in here, actual activations are significantly different
-    static constexpr size_t activation = MTNN_FUNC_LINEAR; 
+    static constexpr size_t activation = MTNN_FUNC_LINEAR;
 
     //define for creating tuples or using within templates
     using out_feature_maps_type = FeatureMap<out_features, out_rows, out_cols>;
@@ -1110,7 +1112,7 @@ public:
             for (size_t i_0 = 0; i_0 < out_rows; ++i_0)
                 for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
                     cell_states[idx][f_0].at(i_0, j_0) = cell_states[idx - 1][f_0].at(i_0, j_0) * forget_states[idx][f_0].at(i_0, j_0);
-        
+
         //get current activations and combine with forgotten
         feed_forwards_gate(MTNN_FUNC_LOGISTIC, input_cat, influence_states[idx], params_w[1], params_b[1]);
         feed_forwards_gate(MTNN_FUNC_TANH, input_cat, activation_states[idx], params_w[2], params_b[2]);
@@ -1161,7 +1163,7 @@ public:
         size_t idx = cell_states.size() - 1;//todo training doesn't make sense with only one? (unless ordered/popped correctly)
 
         back_prop_through_time(idx, deriv, activations_pre, out_deriv, params_w, params_b, w_grad, b_grad);
-        
+
         //apply derivatives
         chain_activations(out_deriv, activations_pre, previous_layer_activation);
     }
@@ -1205,15 +1207,15 @@ public:
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<features, rows, cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::feature_maps = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, out_features * out_rows * out_cols, 1> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::biases = { 0, .1f };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, (out_features * out_rows * out_cols), (features * rows * cols + out_features * out_rows * out_cols)> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::weights = { -.1f, .1f };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<0, 0, 0> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::generative_biases = { 0, .1f };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> EmptyFeatureMap LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::generative_biases = { 0, .1f };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, (out_features * out_rows * out_cols), (features * rows * cols + out_features * out_rows * out_cols)> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::weights_aux_data = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, out_features * out_rows * out_cols, 1> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::biases_aux_data = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, out_features * out_rows * out_cols, 1> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::biases_gradient = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, (out_features * out_rows * out_cols), (features * rows * cols + out_features * out_rows * out_cols)> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::weights_gradient = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, out_features * out_rows * out_cols, 1> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::biases_momentum = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<4, (out_features * out_rows * out_cols), (features * rows * cols + out_features * out_rows * out_cols)> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::weights_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<0, 0, 0> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::activations_population_mean = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<0, 0, 0> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::activations_population_variance = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> EmptyFeatureMap LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::activations_population_mean = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> EmptyFeatureMap LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> size_t LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::n = 0;
 
 //class specific stuff
@@ -1250,7 +1252,7 @@ public:
     static FeatureMap<features, rows, cols> weights_gradient;
 
     //aren't used in batch norm?
-    static FeatureMap<0, 0, 0> generative_biases;
+    static EmptyFeatureMap generative_biases;
     //used for hessian (old) or Adam
     static FeatureMap<features, rows, cols> biases_aux_data;
     //used for hessian (old) or Adam
@@ -1308,7 +1310,7 @@ public:
     //accumulate gradients in given, using given weights, biases, outputs, activations, derivs, etc. WILL APPLY IF ONLINE LEARNING and vanilla backprop
     static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights, biases_type& params_b = biases, weights_type& w_grad = weights_gradient, biases_type& b_grad = biases_gradient)
     {
-        //undefined for single 
+        //undefined for single
     }
 
     //feed forwards for batch and uses the batch's statistics (not population) and then updates population statistics
@@ -1433,7 +1435,7 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t activat
 template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> FeatureMap<features, rows, cols> BatchNormalizationLayer<index, features, rows, cols, activation_function>::weights_aux_data = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> FeatureMap<features, rows, cols> BatchNormalizationLayer<index, features, rows, cols, activation_function>::biases_momentum = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> FeatureMap<features, rows, cols> BatchNormalizationLayer<index, features, rows, cols, activation_function>::weights_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> FeatureMap<0, 0, 0> BatchNormalizationLayer<index, features, rows, cols, activation_function>::generative_biases = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> EmptyFeatureMap BatchNormalizationLayer<index, features, rows, cols, activation_function>::generative_biases = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> const float BatchNormalizationLayer<index, features, rows, cols, activation_function>::min_divisor = .0001f;
 template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> size_t BatchNormalizationLayer<index, features, rows, cols, activation_function>::n = 0;
 
@@ -1446,31 +1448,31 @@ public:
     //feature maps - DO NOT STORE activations if fed forwards - not used for much
     static FeatureMap<features, rows, cols> feature_maps;
     //no parameters
-    static FeatureMap<0, 0, 0> biases;
+    static EmptyFeatureMap biases;
     //no parameters
-    static FeatureMap<0, 0, 0> weights;
+    static EmptyFeatureMap weights;
     //no parameters
-    static FeatureMap<0, 0, 0> generative_biases;
+    static EmptyFeatureMap generative_biases;
 
     //no parameters
-    static FeatureMap<0, 0, 0> weights_aux_data;
+    static EmptyFeatureMap weights_aux_data;
     //no parameters
-    static FeatureMap<0, 0, 0> biases_aux_data;
+    static EmptyFeatureMap biases_aux_data;
 
     //no parameters
-    static FeatureMap<0, 0, 0> biases_gradient;
+    static EmptyFeatureMap biases_gradient;
     //no parameters
-    static FeatureMap<0, 0, 0> weights_gradient;
+    static EmptyFeatureMap weights_gradient;
 
     //no parameters
-    static FeatureMap<0, 0, 0> biases_momentum;
+    static EmptyFeatureMap biases_momentum;
     //no parameters
-    static FeatureMap<0, 0, 0> weights_momentum;
+    static EmptyFeatureMap weights_momentum;
 
     //no parameters
-    static FeatureMap<0, 0, 0> activations_population_mean;
+    static EmptyFeatureMap activations_population_mean;
     //no parameters
-    static FeatureMap<0, 0, 0> activations_population_variance;
+    static EmptyFeatureMap activations_population_variance;
 
     //type of layer (dynamic test, but not stored since constexpr)
     static constexpr size_t type = MTNN_LAYER_MAXPOOL;
@@ -1645,17 +1647,17 @@ private:
 
 //init static
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<features, rows, cols> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::feature_maps = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::biases = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::generative_biases = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights_aux_data = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::biases_aux_data = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::biases_gradient = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights_gradient = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::biases_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::activations_population_mean = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<0, 0, 0> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::activations_population_variance = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> EmptyFeatureMap MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::biases = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> EmptyFeatureMap MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> EmptyFeatureMap MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::generative_biases = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> EmptyFeatureMap MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights_aux_data = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> EmptyFeatureMap MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::biases_aux_data = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> EmptyFeatureMap MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::biases_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> EmptyFeatureMap MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> EmptyFeatureMap MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::biases_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> EmptyFeatureMap MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> EmptyFeatureMap MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::activations_population_mean = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> EmptyFeatureMap MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<features, out_rows, out_cols, std::pair<size_t, size_t>> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::switches = {};
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> size_t MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::n = 0;
 
@@ -1668,31 +1670,31 @@ public:
     static FeatureMap<features, rows, cols> feature_maps;
 
     //no parameters
-    static FeatureMap<0, 0, 0> biases;
+    static EmptyFeatureMap biases;
     //no parameters
-    static FeatureMap<0, 0, 0> weights;
+    static EmptyFeatureMap weights;
     //no parameters
-    static FeatureMap<0, 0, 0> generative_biases;
+    static EmptyFeatureMap generative_biases;
 
     //no parameters
-    static FeatureMap<0, 0, 0> weights_aux_data;
+    static EmptyFeatureMap weights_aux_data;
     //no parameters
-    static FeatureMap<0, 0, 0> biases_aux_data;
+    static EmptyFeatureMap biases_aux_data;
 
     //no parameters
-    static FeatureMap<0, 0, 0> biases_gradient;
+    static EmptyFeatureMap biases_gradient;
     //no parameters
-    static FeatureMap<0, 0, 0> weights_gradient;
+    static EmptyFeatureMap weights_gradient;
 
     //no parameters
-    static FeatureMap<0, 0, 0> biases_momentum;
+    static EmptyFeatureMap biases_momentum;
     //no parameters
-    static FeatureMap<0, 0, 0> weights_momentum;
+    static EmptyFeatureMap weights_momentum;
 
     //no parameters
-    static FeatureMap<0, 0, 0> activations_population_mean;
+    static EmptyFeatureMap activations_population_mean;
     //no parameters
-    static FeatureMap<0, 0, 0> activations_population_variance;
+    static EmptyFeatureMap activations_population_variance;
 
     //type of layer (dynamic test, but not stored since constexpr)
     static constexpr size_t type = MTNN_LAYER_SOFTMAX;
@@ -1797,17 +1799,17 @@ public:
 
 //init static
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<features, rows, cols> SoftMaxLayer<index, features, rows, cols>::feature_maps = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::biases = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::weights = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::generative_biases = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::weights_aux_data = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::biases_aux_data = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::biases_gradient = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::weights_gradient = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::biases_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::weights_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::activations_population_mean = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> SoftMaxLayer<index, features, rows, cols>::activations_population_variance = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap SoftMaxLayer<index, features, rows, cols>::biases = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap SoftMaxLayer<index, features, rows, cols>::weights = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap SoftMaxLayer<index, features, rows, cols>::generative_biases = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap SoftMaxLayer<index, features, rows, cols>::weights_aux_data = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap SoftMaxLayer<index, features, rows, cols>::biases_aux_data = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap SoftMaxLayer<index, features, rows, cols>::biases_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap SoftMaxLayer<index, features, rows, cols>::weights_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap SoftMaxLayer<index, features, rows, cols>::biases_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap SoftMaxLayer<index, features, rows, cols>::weights_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap SoftMaxLayer<index, features, rows, cols>::activations_population_mean = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap SoftMaxLayer<index, features, rows, cols>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> size_t SoftMaxLayer<index, features, rows, cols>::n = 0;
 
 //Basic input layer, should only be at beginning, works in middle but doesn't make sense
@@ -1818,31 +1820,31 @@ public:
     //feature maps - DO NOT STORE activations if fed forwards - not used for much
     static FeatureMap<features, rows, cols> feature_maps;
     //no parameters
-    static FeatureMap<0, 0, 0> biases;
+    static EmptyFeatureMap biases;
     //no parameters
-    static FeatureMap<0, 0, 0> weights;
+    static EmptyFeatureMap weights;
     //no parameters
-    static FeatureMap<0, 0, 0> generative_biases;
+    static EmptyFeatureMap generative_biases;
 
     //no parameters
-    static FeatureMap<0, 0, 0> weights_aux_data;
+    static EmptyFeatureMap weights_aux_data;
     //no parameters
-    static FeatureMap<0, 0, 0> biases_aux_data;
+    static EmptyFeatureMap biases_aux_data;
 
     //no parameters
-    static FeatureMap<0, 0, 0> biases_gradient;
+    static EmptyFeatureMap biases_gradient;
     //no parameters
-    static FeatureMap<0, 0, 0> weights_gradient;
+    static EmptyFeatureMap weights_gradient;
 
     //no parameters
-    static FeatureMap<0, 0, 0> biases_momentum;
+    static EmptyFeatureMap biases_momentum;
     //no parameters
-    static FeatureMap<0, 0, 0> weights_momentum;
+    static EmptyFeatureMap weights_momentum;
 
     //no parameters
-    static FeatureMap<0, 0, 0> activations_population_mean;
+    static EmptyFeatureMap activations_population_mean;
     //no parameters
-    static FeatureMap<0, 0, 0> activations_population_variance;
+    static EmptyFeatureMap activations_population_variance;
 
     //type of layer (dynamic test, but not stored since constexpr)
     static constexpr size_t type = MTNN_LAYER_INPUT;
@@ -1923,17 +1925,17 @@ public:
 
 //init static
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<features, rows, cols> InputLayer<index, features, rows, cols>::feature_maps = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::biases = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::weights = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::generative_biases = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::weights_aux_data = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::biases_aux_data = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::biases_gradient = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::weights_gradient = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::biases_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::weights_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::activations_population_mean = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> InputLayer<index, features, rows, cols>::activations_population_variance = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap InputLayer<index, features, rows, cols>::biases = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap InputLayer<index, features, rows, cols>::weights = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap InputLayer<index, features, rows, cols>::generative_biases = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap InputLayer<index, features, rows, cols>::weights_aux_data = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap InputLayer<index, features, rows, cols>::biases_aux_data = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap InputLayer<index, features, rows, cols>::biases_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap InputLayer<index, features, rows, cols>::weights_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap InputLayer<index, features, rows, cols>::biases_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap InputLayer<index, features, rows, cols>::weights_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap InputLayer<index, features, rows, cols>::activations_population_mean = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap InputLayer<index, features, rows, cols>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> size_t InputLayer<index, features, rows, cols>::n = 0;
 
 template<size_t index, size_t features, size_t rows, size_t cols> class OutputLayer : public Layer_Functions<features, rows, cols>
@@ -1943,31 +1945,31 @@ public:
     //feature maps - DO NOT STORE activations if fed forwards - not used for much
     static FeatureMap<features, rows, cols> feature_maps;
     //no parameters
-    static FeatureMap<0, 0, 0> biases;
+    static EmptyFeatureMap biases;
     //no parameters
-    static FeatureMap<0, 0, 0> weights;
+    static EmptyFeatureMap weights;
     //no parameters
-    static FeatureMap<0, 0, 0> generative_biases;
+    static EmptyFeatureMap generative_biases;
 
     //no parameters
-    static FeatureMap<0, 0, 0> weights_aux_data;
+    static EmptyFeatureMap weights_aux_data;
     //no parameters
-    static FeatureMap<0, 0, 0> biases_aux_data;
+    static EmptyFeatureMap biases_aux_data;
 
     //no parameters
-    static FeatureMap<0, 0, 0> biases_gradient;
+    static EmptyFeatureMap biases_gradient;
     //no parameters
-    static FeatureMap<0, 0, 0> weights_gradient;
+    static EmptyFeatureMap weights_gradient;
 
     //no parameters
-    static FeatureMap<0, 0, 0> biases_momentum;
+    static EmptyFeatureMap biases_momentum;
     //no parameters
-    static FeatureMap<0, 0, 0> weights_momentum;
+    static EmptyFeatureMap weights_momentum;
 
     //no parameters
-    static FeatureMap<0, 0, 0> activations_population_mean;
+    static EmptyFeatureMap activations_population_mean;
     //no parameters
-    static FeatureMap<0, 0, 0> activations_population_variance;
+    static EmptyFeatureMap activations_population_variance;
 
     //type of layer (dynamic test, but not stored since constexpr)
     static constexpr size_t type = MTNN_LAYER_OUTPUT;
@@ -2046,15 +2048,15 @@ public:
 
 //init static
 template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<features, rows, cols> OutputLayer<index, features, rows, cols>::feature_maps = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::biases = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::weights = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::generative_biases = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::weights_aux_data = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::biases_aux_data = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::biases_gradient = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::weights_gradient = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::biases_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::weights_momentum = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::activations_population_mean = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols> FeatureMap<0, 0, 0> OutputLayer<index, features, rows, cols>::activations_population_variance = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap OutputLayer<index, features, rows, cols>::biases = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap OutputLayer<index, features, rows, cols>::weights = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap OutputLayer<index, features, rows, cols>::generative_biases = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap OutputLayer<index, features, rows, cols>::weights_aux_data = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap OutputLayer<index, features, rows, cols>::biases_aux_data = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap OutputLayer<index, features, rows, cols>::biases_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap OutputLayer<index, features, rows, cols>::weights_gradient = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap OutputLayer<index, features, rows, cols>::biases_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap OutputLayer<index, features, rows, cols>::weights_momentum = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap OutputLayer<index, features, rows, cols>::activations_population_mean = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols> EmptyFeatureMap OutputLayer<index, features, rows, cols>::activations_population_variance = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols> size_t OutputLayer<index, features, rows, cols>::n = 0;
