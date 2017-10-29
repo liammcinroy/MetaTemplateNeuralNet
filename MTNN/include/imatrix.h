@@ -41,7 +41,7 @@ public:
             data[i] = val;
     }
 
-    //construct with all elements drawn randomly from uniform distribution (defined by params) 
+    //construct with all elements drawn randomly from uniform distribution (defined by params)
     Matrix2D(const T& min, const T& max)
     {
         data = std::vector<T>(r * c);;
@@ -246,7 +246,7 @@ template<typename T, size_t rows1, size_t cols1, size_t rows2, size_t cols2> Mat
     {
         for (size_t j = 0; j < cols2; ++j)
         {
-            T sum();
+            T sum{};
             for (size_t i2 = 0; i2 < rows2; ++i2)
                 sum += lhs.at(i, i2) * rhs.at(i2, j);
             result.at(i, j) = sum;

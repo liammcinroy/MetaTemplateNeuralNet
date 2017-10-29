@@ -186,7 +186,7 @@ public:
         n = 0;
         original_net_error = net::global_error();
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__clang__)
         net::template loop_all_layers<add_grad_error_w>(0);
 #else
         typename net::template loop_all_layers<add_grad_error_w>();
@@ -197,7 +197,7 @@ public:
         total_grad_error = 0.0f;
         n = 0;
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__clang__)
         net::template loop_all_layers<add_grad_error_b>(0);
 #else
         typename net::template loop_all_layers<add_grad_error_b>();
@@ -218,7 +218,7 @@ public:
         n = 0;
         original_net_error = net::global_error();
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__clang__)
         net::template loop_all_layers<add_hess_error_w>(0);
 #else
         typename net::template loop_all_layers<add_hess_error_w>();
@@ -230,7 +230,7 @@ public:
         total_grad_error = 0.0f;
         n = 0;
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__clang__)
         net::template loop_all_layers<add_hess_error_b>(0);
 #else
         typename net::template loop_all_layers<add_hess_error_b>();
@@ -251,7 +251,7 @@ public:
         n = 0;
         original_net_error = net::global_error();
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__clang__)
         net::template loop_all_layers<add_grad_error_w>(0);
 #else
         typename net::template loop_all_layers<add_grad_error_w>();
@@ -263,7 +263,7 @@ public:
         total_grad_error = 0.0f;
         n = 0;
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__clang__)
         net::template loop_all_layers<add_grad_error_b>(0);
 #else
         typename net::template loop_all_layers<add_grad_error_b>();
@@ -284,7 +284,7 @@ public:
         n = 0;
         original_net_error = net::global_error();
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__clang__)
         net::template loop_all_layers<add_hess_error_w>(0);
 #else
         typename net::template loop_all_layers<add_hess_error_w>();
@@ -296,7 +296,7 @@ public:
         total_grad_error = 0.0f;
         n = 0;
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__clang__)
         net::template loop_all_layers<add_hess_error_b>(0);
 #else
         typename net::template loop_all_layers<add_hess_error_b>();

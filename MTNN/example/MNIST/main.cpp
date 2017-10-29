@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <time.h>
 
 #include "imatrix.h"
@@ -145,6 +146,18 @@ FeatureMap<1, rows, cols> make_fm(Matrix2D<float, rows, cols> input)
     return out;
 }
 
+template<int r, int c> void print_matrix(Matrix2D<float, r, c> input, int width = 3)
+{
+    std::cout << std::setfill(' ');
+    for (int i = 0; i < r; ++i)
+    {
+        for (int j = 0; j < c; ++j)
+            std::cout << std::setprecision(width - 2) << std::setw(width) << input.at(i, j);
+        std::cout << std::endl;
+    }
+    std::cout << std::setfill('\0');
+}
+
 #define DEFAULT -1
 
 //setup the network architecture
@@ -178,7 +191,7 @@ typedef NeuralNet<InputLayer<1, 1, 29, 29>,
 typedef FeatureMap<1, 29, 29> NetInput;
 typedef FeatureMap<1, 10, 1> NetOutput;
 
-bool training = true;
+bool training = false;
 
 int main()
 {
@@ -283,8 +296,7 @@ int main()
             for (int i = 0; i < 500; ++i)
             {
                 Net::set_input(make_fm<29, 29>(images[i].first));
-                Net::discriminate();
-                auto& test = Net::template get_layer<Net::last_layer_index>::feature_maps[0];
+                auto& test = Net::discriminate()[0];
                 auto& label = labels[images[i].second][0];
                 int max_i = 0;
                 int max_j = 0;
@@ -338,43 +350,6 @@ int main()
                 {
                     mse = NeuralNetAnalyzer<Net>::mean_error();
                     indented_line("MSE = " + std::to_string(mse));
-                    /*int correct = 0;
-                    std::vector<int> totals(10);
-
-                    for (int i = 0; i < 500; ++i)
-                    {
-                        Net::set_input(make_fm<29, 29>(images[i].first));
-                        Net::discriminate();
-                        auto& test = Net::template get_layer<Net::last_layer_index>::feature_maps[0];
-                        auto& label = labels[images[i].second][0];
-                        int max_i = 0;
-                        int max_j = 0;
-
-                        float max = test.at(0, 0);
-                        float max2 = label.at(0, 0);
-                        for (int j = 1; j < 10; ++j)
-                        {
-                            if (test.at(j, 0) > max)
-                            {
-                                max = test.at(j, 0);
-                                max_i = j;
-                            }
-                            if (label.at(j, 0) > max)
-                            {
-                                max2 = label.at(j, 0);
-                                max_j = j;
-                            }
-                        }
-
-                        ++totals[max_i];
-                        if (max_i == max_j)
-                            ++correct;
-                    }
-                    normal_line("On running random trial of 500 got " + std::to_string(correct) + " correct. ");
-                    std::string out = "";
-                    for (int j = 0; j < totals.size(); ++j)
-                        out += std::to_string(j) + ": " + std::to_string(totals[j] / 500.0f) + "   ";
-                    indented_line("Distribution: " + out);*/
                 }
             }
 
@@ -420,8 +395,7 @@ int main()
         testLbls.next();
 
         Net::set_input(make_fm<29, 29>(testImgs.current));
-        Net::discriminate();
-        auto& test = Net::template get_layer<Net::last_layer_index>::feature_maps[0];
+        auto& test = Net::discriminate()[0];
         int max_i = 0;
         float max = test.at(0, 0);
         for (int j = 1; j < 10; ++j)
