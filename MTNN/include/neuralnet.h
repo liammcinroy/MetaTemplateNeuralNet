@@ -1100,7 +1100,7 @@ public:
     static float train(bool already_fed = false, typename get_type<0, layers...>::feature_maps_type& new_input = NeuralNet<layers...>::input, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_type& lbl = labels);
 
     //backprop for a batch with selected method, returns mean error by loss function
-    static float train_batch(typename get_type<0, layers...>::feature_maps_vector_type& batch_input, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels, bool already_fed = false, bool apply = false);
+    static float train_batch(typename get_type<0, layers...>::feature_maps_vector_type& batch_input, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels, bool already_fed = false, bool apply = true);
 
     //compute the population statistics for BN networks
     static void calculate_population_statistics(typename get_type<0, layers...>::feature_maps_vector_type& batch_input);
