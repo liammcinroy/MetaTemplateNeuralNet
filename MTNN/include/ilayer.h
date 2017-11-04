@@ -31,8 +31,8 @@
 #define MTNN_DATA_BIAS_GRAD 2
 #define MTNN_DATA_WEIGHT_MOMENT 3
 #define MTNN_DATA_BIAS_MOMENT 4
-#define MTNN_DATA_WEIGHT_AUXdata_global 5
-#define MTNN_DATA_BIAS_AUXdata_global 6
+#define MTNN_DATA_WEIGHT_AUXDATA 5
+#define MTNN_DATA_BIAS_AUXDATA 6
 
 //// HELPER FUNCTIONS //// CLASS DEFINITIONS START AT LINE 395
 
@@ -602,7 +602,7 @@ public:
     }
 
     //basic pass
-    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w, biases_type& params_b)
+    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output)
     {
         feed_forwards(input, output, weights_local, biases_local);
     }
@@ -954,7 +954,7 @@ public:
     }
 
     //basic pass
-    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w, biases_type& params_b)
+    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output)
     {
         feed_forwards(input, output, weights_local, biases_local);
     }
@@ -1372,7 +1372,7 @@ public:
     }
 
     //basic pass
-    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w, biases_type& params_b)
+    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output)
     {
         feed_forwards_impl(input, output, weights_local, biases_local, hidden_states_local, cell_states_local, forget_states_local, influence_states_local, activation_states_local, output_states_local);
     }
@@ -1458,7 +1458,7 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t out_fea
 template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> class BatchNormalizationLayer : public Layer_Functions<features, rows, cols>
 {
 public:
-    //TODO updates in parallel, can't use with Adam (minibatch statistics?)
+    //TODO can't use with Adam (minibatch statistics?)
 
     //feature maps - DO NOT STORE activations if fed forwards - not used for much
     static FeatureMap<features, rows, cols> feature_maps_global;
@@ -1671,7 +1671,7 @@ public:
     }
 
     //basic pass
-    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w, biases_type& params_b)
+    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output)
     {
         feed_forwards(input, output, weights_local, biases_local);
     }
@@ -1730,7 +1730,6 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t activat
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> class MaxpoolLayer : public Layer_Functions<features, rows, cols>
 {
 public:
-    //todo storing doesn't work in parallel
 
     //feature maps - DO NOT STORE activations if fed forwards - not used for much
     static FeatureMap<features, rows, cols> feature_maps_global;
@@ -1953,7 +1952,7 @@ public:
     }
 
     //basic pass
-    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w, biases_type& params_b)
+    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output)
     {
         feed_forwards(input, output, weights_local, biases_local, switches_local);
     }
@@ -2169,7 +2168,7 @@ public:
     }
 
     //basic pass
-    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w, biases_type& params_b)
+    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output)
     {
         feed_forwards(input, output, weights_local, biases_local);
     }
@@ -2355,7 +2354,7 @@ public:
     }
 
     //basic pass
-    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w, biases_type& params_b)
+    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output)
     {
         feed_forwards(input, output, weights_local, biases_local);
     }
@@ -2538,7 +2537,7 @@ public:
     }
 
     //basic pass
-    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w, biases_type& params_b)
+    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output)
     {
         feed_forwards(input, output, weights_local, biases_local);
     }
