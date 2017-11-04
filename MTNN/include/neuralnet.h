@@ -753,16 +753,31 @@ private:
             {
                 using t = typename global_layer::weights_type;
                 for (size_t d = 0; d < t::size(); ++d)
+                {
                     for (size_t i = 0; i < t::rows(); ++i)
+                    {
+
                         for (size_t j = 0; j < t::cols(); ++j)
+                        {
                             global_layer::weights_gradient_global[d].at(i, j) = local_layer.weights_gradient_local[d].at(i, j);
+                            local_layer.weights_gradient_local[d].at(i, j) = 0;
+                        }
+                    }
+                }
             }
             {
                 using t = typename global_layer::biases_type;
                 for (size_t f_0 = 0; f_0 < t::size(); ++f_0)
+                {
                     for (size_t i_0 = 0; i_0 < t::rows(); ++i_0)
+                    {
                         for (size_t j_0 = 0; j_0 < t::cols(); ++j_0)
+                        {
                             global_layer::biases_gradient_global[f_0].at(i_0, j_0) = local_layer.biases_gradient_local[f_0].at(i_0, j_0);
+                            local_layer.biases_gradient_local[f_0].at(i_0, j_0) = 0;
+                        }
+                    }
+                }
             }
         }
     };
