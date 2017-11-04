@@ -71,7 +71,6 @@ int main(int argc, char** argv)
     n2.discriminate_thread();
     n2.train_thread();
 
-
     if (!TRAINING)
         Net::load_data<decltype(path)>();
 

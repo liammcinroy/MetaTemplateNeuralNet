@@ -335,12 +335,6 @@ public:
     using biases_vector_type = std::vector<biases_type>;
     using generative_biases_vector_type = std::vector<generative_biases_type>;
 
-    //never used, static class
-    ConvolutionLayer() = default;
-
-    //never used, static class
-    ~ConvolutionLayer() = default;
-
     //feed forwards given input, weights_global, biases_global to output
     static void feed_forwards(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w = weights_global, biases_type& params_b = biases_global)
     {
@@ -583,6 +577,68 @@ public:
                     for (size_t j = 0; j < cols; ++j)
                         biases_global[f].at(i, j) += -learning_rate * (feature_maps_global[f].at(i, j) - original[f].at(i, j));
     }
+
+    //// BEGIN INSTANCE/THREAD LEVEL VALUES
+
+    feature_maps_type feature_maps_local;
+    weights_type weights_local;
+    biases_type biases_local;
+    decltype(generative_biases_global) generative_biases_local;  //TBD Necessary?
+    weights_type weights_gradient_local;
+    biases_type biases_gradient_local;
+    weights_type weights_aux_data_local; //TBD Necessary?
+    biases_type biases_aux_data_local; //TBD Necessary?
+
+    ConvolutionLayer()
+    {
+        feature_maps_local = feature_maps_type{ 0.0f };
+        weights_local = weights_type{ weights_global };
+        biases_local = biases_type{ biases_global };
+        generative_biases_local = decltype(generative_biases_global){ generative_biases_global };
+        weights_gradient_local = weights_type{ 0.0f };
+        biases_gradient_local = biases_type{ 0.0f };
+        weights_aux_data_local = weights_type{ 0.0f };
+        biases_aux_data_local = biases_type{ 0.0f };
+    }
+
+    //basic pass
+    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w, biases_type& params_b)
+    {
+        feed_forwards(input, output, weights_local, biases_local);
+    }
+
+    //basic pass
+    void feed_backwards_local(feature_maps_type& output, out_feature_maps_type& input)
+    {
+        feed_backwards(output, input, weights_local, generative_biases_local);
+    }
+
+    //basic pass
+    void back_prop_local(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
+    {
+        back_prop(previous_layer_activation, deriv, activations_pre, out_deriv, online, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, weights_local, biases_local, weights_gradient_local, biases_gradient_local);
+    }
+
+    //batch pass
+    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, bool discriminating = false)
+    {
+        for (size_t in = 0; in < outputs.size(); ++in)
+            feed_forwards(inputs[in], outputs[in], weights_local, biases_local);
+    }
+
+    //batch pass
+    void feed_backwards_local(feature_maps_vector_type& outputs, out_feature_maps_vector_type& inputs)
+    {
+        for (size_t in = 0; in < outputs.size(); ++in)
+            feed_backwards(outputs[in], inputs[in], weights_local, generative_biases_local);
+    }
+
+    //batch pass
+    void back_prop_local(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
+    {
+        for (size_t in = 0; in < derivs.size(); ++in)
+            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, weights_local, biases_local, weights_gradient_local, biases_gradient_local);
+    }
 };
 
 //initialize static
@@ -657,12 +713,6 @@ public:
     static size_t n;
     //used in wake-sleep only
     static bool mean_field;
-
-    //not used (static class)
-    PerceptronFullConnectivityLayer() = default;
-
-    //not used (static class)
-    ~PerceptronFullConnectivityLayer() = default;
 
     //feed forwards given input, weights_global, biases_global to output
     static void feed_forwards(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w = weights_global, biases_type& params_b = biases_global)
@@ -879,6 +929,68 @@ public:
                     for (size_t j = 0; j < cols; ++j)
                         generative_biases_global[f].at(i, j) += -learning_rate * (feature_maps_global[f].at(i, j) - original[f].at(i, j));
     }
+
+    //// BEGIN INSTANCE/THREAD LEVEL VALUES
+
+    feature_maps_type feature_maps_local;
+    weights_type weights_local;
+    biases_type biases_local;
+    decltype(generative_biases_global) generative_biases_local;  //TBD Necessary?
+    weights_type weights_gradient_local;
+    biases_type biases_gradient_local;
+    weights_type weights_aux_data_local; //TBD Necessary?
+    biases_type biases_aux_data_local; //TBD Necessary?
+
+    PerceptronFullConnectivityLayer()
+    {
+        feature_maps_local = feature_maps_type{ 0.0f };
+        weights_local = weights_type{ weights_global };
+        biases_local = biases_type{ biases_global };
+        generative_biases_local = decltype(generative_biases_global){ generative_biases_global };
+        weights_gradient_local = weights_type{ 0.0f };
+        biases_gradient_local = biases_type{ 0.0f };
+        weights_aux_data_local = weights_type{ 0.0f };
+        biases_aux_data_local = biases_type{ 0.0f };
+    }
+
+    //basic pass
+    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w, biases_type& params_b)
+    {
+        feed_forwards(input, output, weights_local, biases_local);
+    }
+
+    //basic pass
+    void feed_backwards_local(feature_maps_type& output, out_feature_maps_type& input)
+    {
+        feed_backwards(output, input, weights_local, generative_biases_local);
+    }
+
+    //basic pass
+    void back_prop_local(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
+    {
+        back_prop(previous_layer_activation, deriv, activations_pre, out_deriv, online, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, weights_local, biases_local, weights_gradient_local, biases_gradient_local);
+    }
+
+    //batch pass
+    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, bool discriminating = false)
+    {
+        for (size_t in = 0; in < outputs.size(); ++in)
+            feed_forwards(inputs[in], outputs[in], weights_local, biases_local);
+    }
+
+    //batch pass
+    void feed_backwards_local(feature_maps_vector_type& outputs, out_feature_maps_vector_type& inputs)
+    {
+        for (size_t in = 0; in < outputs.size(); ++in)
+            feed_backwards(outputs[in], inputs[in], weights_local, generative_biases_local);
+    }
+
+    //batch pass
+    void back_prop_local(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
+    {
+        for (size_t in = 0; in < derivs.size(); ++in)
+            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, weights_local, biases_local, weights_gradient_local, biases_gradient_local);
+    }
 };
 
 //static variable initialization
@@ -902,8 +1014,6 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t out_fea
 {
 
 public:
-
-    ////TODO: not having net storing (cell/hidden chains) may screw stuff up (specifically with parallel/weight updates)
 
     //feature maps - DO NOT STORE activations if fed forwards - not used for much
     static FeatureMap<features, rows, cols> feature_maps_global;
@@ -936,15 +1046,15 @@ public:
     static EmptyFeatureMap activations_population_variance_global;
 
     ////internal lstm data_global; use for bptt since need to have all previous data_global. keep activation of all layers in vector, performs bptt on last one, push onto each feed forward (pop if full)
-    static FeatureMapVector<out_features, out_rows, out_cols> cell_states; //keep max num of steps ONLY
-    static FeatureMapVector<out_features, out_rows, out_cols> hidden_states;
-    static FeatureMapVector<out_features, out_rows, out_cols> forget_states;
-    static FeatureMapVector<out_features, out_rows, out_cols> influence_states;
-    static FeatureMapVector<out_features, out_rows, out_cols> activation_states;
-    static FeatureMapVector<out_features, out_rows, out_cols> output_states;
+    static FeatureMapVector<out_features, out_rows, out_cols> cell_states_global; //keep max num of steps ONLY
+    static FeatureMapVector<out_features, out_rows, out_cols> hidden_states_global;
+    static FeatureMapVector<out_features, out_rows, out_cols> forget_states_global;
+    static FeatureMapVector<out_features, out_rows, out_cols> influence_states_global;
+    static FeatureMapVector<out_features, out_rows, out_cols> activation_states_global;
+    static FeatureMapVector<out_features, out_rows, out_cols> output_states_global;
 
     //assumes that stores the derivs from next time step wrt cell state, needs to be reset after each batch update
-    static FeatureMap<out_features, out_rows, out_cols> cell_state_deriv;
+    static FeatureMap<out_features, out_rows, out_cols> cell_state_deriv_global;
 
     //type of layer (dynamic test, but not stored since constexpr)
     static constexpr size_t type = MTNN_LAYER_LSTM;
@@ -1010,101 +1120,10 @@ private:
         }
     }
 
-    //backprop for only one fully connected gate
-    static void back_prop_gate(size_t activation, FeatureMap<out_features, out_rows, out_cols>& d_hidden, FeatureMap<out_features, out_rows, out_cols>& outputs_pre, FeatureMap<1, out_features * out_rows * out_cols + features * rows * cols, 1>& activations_pre, FeatureMap<features, rows, cols>& out_derivs, Matrix2D<float, out_features * out_rows * out_cols, out_features * out_rows * out_cols + features * rows * cols>& params_w, Matrix2D<float, out_features * out_rows * out_cols, 1>& params_b, Matrix2D<float, out_features * out_rows * out_cols, out_features * out_rows * out_cols + features * rows * cols>& params_w_grad, Matrix2D<float, out_features * out_rows * out_cols, 1>& params_b_grad)
-    {
-        for (size_t f_0 = 0; f_0 < out_features; ++f_0)
-        {
-            for (size_t i_0 = 0; i_0 < out_rows; ++i_0)
-            {
-                for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
-                {
-                    auto& deri = d_hidden[f_0].at(i_0, j_0);
-                    deri *= activation_derivative(outputs_pre[f_0].at(i_0, j_0), activation);
-                    size_t idx = f_0 * out_rows * out_cols + i_0 * out_cols + j_0;
-
-                    //UPDATE ALL PARAMS
-
-                    params_b_grad.at(idx, 0) += deri;
-                    //loop all weights_global
-                    for (size_t f2 = 0; f2 < out_features; ++f2)
-                    {
-                        for (size_t i2 = 0; i2 < out_rows; ++i2)
-                        {
-                            for (size_t j2 = 0; j2 < out_cols; ++j2)
-                            {
-                                size_t idx2 = f2 * out_rows * out_cols + i2 * out_cols + j2;
-                                //out_derivs[f].at(i, j) += deri * params_w.at(idx, idx2); todo doesn't backprop to next hidden?
-                                params_w_grad.at(idx, idx2) += deri * activations_pre[0].at(idx, idx2);
-                            }
-                        }
-                    }
-                    for (size_t f = 0; f < features; ++f)
-                    {
-                        for (size_t i = 0; i < rows; ++i)
-                        {
-                            for (size_t j = 0; j < cols; ++j)
-                            {
-                                //offset
-                                size_t idx2 = out_features * out_rows * out_cols + f * rows * cols + i * cols + j;
-                                out_derivs[f].at(i, j) += deri * params_w.at(idx, idx2);
-                                params_w_grad.at(idx, idx2) += deri * activations_pre[0].at(idx, idx2);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    //perform bptt once for a given idx (will only call once from back_prop)
-    static void back_prop_through_time(size_t idx, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, weights_type& params_w, biases_type& params_b, weights_type& w_grad, biases_type& b_grad)
-    {
-        //calculate derivs wrt each layer
-        out_feature_maps_type d_out = {};
-        out_feature_maps_type d_activation = {};
-        out_feature_maps_type d_influence = {};
-        out_feature_maps_type d_forget = {};
-        for (size_t f_0 = 0; f_0 < out_features; ++f_0)
-        {
-            for (size_t i_0 = 0; i_0 < out_rows; ++i_0)
-            {
-                for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
-                {
-                    //update cell state deriv
-                    cell_state_deriv[f_0].at(i_0, j_0) += deriv[f_0].at(i_0, j_0) * output_states[idx][f_0].at(i_0, j_0) * activation_derivative(cell_states[idx][f_0].at(i_0, j_0), MTNN_FUNC_TANH);
-
-                    //update the rest
-                    auto& d_c_t = cell_state_deriv[f_0].at(i_0, j_0);
-                    d_out[f_0].at(i_0, j_0) = deriv[f_0].at(i_0, j_0) * tanh(cell_states[idx][f_0].at(i_0, j_0));
-                    d_activation[f_0].at(i_0, j_0) = d_c_t * influence_states[idx][f_0].at(i_0, j_0);
-                    d_influence[f_0].at(i_0, j_0) = d_c_t * activation_states[idx][f_0].at(i_0, j_0);
-                    d_forget[f_0].at(i_0, j_0) = d_c_t * cell_states[idx - 1][f_0].at(i_0, j_0);
-                    cell_state_deriv[f_0].at(i_0, j_0) *= forget_states[idx][f_0].at(i_0, j_0); //update last time
-                }
-            }
-        }
-
-        auto input = concatenate(activations_pre, hidden_states[idx]);
-
-        //pass to all layers and compute
-        back_prop_gate(MTNN_FUNC_LOGISTIC, d_forget, forget_states[idx], input, out_deriv, params_w[0], params_b[0], w_grad[0], b_grad[0]);
-        back_prop_gate(MTNN_FUNC_LOGISTIC, d_influence, influence_states[idx], input, out_deriv, params_w[1], params_b[1], w_grad[1], b_grad[1]);
-        back_prop_gate(MTNN_FUNC_TANH, d_activation, activation_states[idx], input, out_deriv, params_w[2], params_b[2], w_grad[2], b_grad[2]);
-        back_prop_gate(MTNN_FUNC_LOGISTIC, d_out, output_states[idx], input, out_deriv, params_w[3], params_b[3], w_grad[3], b_grad[3]);
-    }
-
-public:
-
-    //don't use, static class
-    LSTMLayer() = default;
-
-    //don't us, static class
-    ~LSTMLayer() = default;
-
-
-    //feed forwards given input, weights_global, biases_global to output
-    static void feed_forwards(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w = weights_global, biases_type& params_b = biases_global)
+    static void feed_forwards_impl(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w = weights_global, biases_type& params_b = biases_global,
+    out_feature_maps_vector_type& hidden_states = hidden_states_global, out_feature_maps_vector_type& cell_states = cell_states_global,
+    out_feature_maps_vector_type& forget_states = forget_states_global, out_feature_maps_vector_type& influence_states = influence_states_global,
+    out_feature_maps_vector_type& activation_states = activation_states_global, out_feature_maps_vector_type& output_states = output_states_global)
     {
         //create real input to each gate
         auto input_cat = concatenate(input, hidden_states.back());
@@ -1160,6 +1179,101 @@ public:
         }
     }
 
+    //backprop for only one fully connected gate
+    static void back_prop_gate(size_t activation, FeatureMap<out_features, out_rows, out_cols>& d_hidden, FeatureMap<out_features, out_rows, out_cols>& outputs_pre, FeatureMap<1, out_features * out_rows * out_cols + features * rows * cols, 1>& activations_pre, FeatureMap<features, rows, cols>& out_derivs, Matrix2D<float, out_features * out_rows * out_cols, out_features * out_rows * out_cols + features * rows * cols>& params_w, Matrix2D<float, out_features * out_rows * out_cols, 1>& params_b, Matrix2D<float, out_features * out_rows * out_cols, out_features * out_rows * out_cols + features * rows * cols>& params_w_grad, Matrix2D<float, out_features * out_rows * out_cols, 1>& params_b_grad)
+    {
+        for (size_t f_0 = 0; f_0 < out_features; ++f_0)
+        {
+            for (size_t i_0 = 0; i_0 < out_rows; ++i_0)
+            {
+                for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
+                {
+                    auto& deri = d_hidden[f_0].at(i_0, j_0);
+                    deri *= activation_derivative(outputs_pre[f_0].at(i_0, j_0), activation);
+                    size_t idx = f_0 * out_rows * out_cols + i_0 * out_cols + j_0;
+
+                    //UPDATE ALL PARAMS
+
+                    params_b_grad.at(idx, 0) += deri;
+                    //loop all weights_global
+                    for (size_t f2 = 0; f2 < out_features; ++f2)
+                    {
+                        for (size_t i2 = 0; i2 < out_rows; ++i2)
+                        {
+                            for (size_t j2 = 0; j2 < out_cols; ++j2)
+                            {
+                                size_t idx2 = f2 * out_rows * out_cols + i2 * out_cols + j2;
+                                //out_derivs[f].at(i, j) += deri * params_w.at(idx, idx2); todo doesn't backprop to next hidden?
+                                params_w_grad.at(idx, idx2) += deri * activations_pre[0].at(idx, idx2);
+                            }
+                        }
+                    }
+                    for (size_t f = 0; f < features; ++f)
+                    {
+                        for (size_t i = 0; i < rows; ++i)
+                        {
+                            for (size_t j = 0; j < cols; ++j)
+                            {
+                                //offset
+                                size_t idx2 = out_features * out_rows * out_cols + f * rows * cols + i * cols + j;
+                                out_derivs[f].at(i, j) += deri * params_w.at(idx, idx2);
+                                params_w_grad.at(idx, idx2) += deri * activations_pre[0].at(idx, idx2);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    //perform bptt once for a given idx (will only call once from back_prop)
+    static void back_prop_through_time(size_t idx, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, weights_type& params_w, biases_type& params_b, weights_type& w_grad, biases_type& b_grad,
+        out_feature_maps_vector_type& hidden_states = hidden_states_global, out_feature_maps_vector_type& cell_states = cell_states_global,
+        out_feature_maps_vector_type& forget_states = forget_states_global, out_feature_maps_vector_type& influence_states = influence_states_global,
+        out_feature_maps_vector_type& activation_states = activation_states_global, out_feature_maps_vector_type& output_states = output_states_global, out_feature_maps_type& cell_state_deriv = cell_state_deriv_global)
+    {
+        //calculate derivs wrt each layer
+        out_feature_maps_type d_out = {};
+        out_feature_maps_type d_activation = {};
+        out_feature_maps_type d_influence = {};
+        out_feature_maps_type d_forget = {};
+        for (size_t f_0 = 0; f_0 < out_features; ++f_0)
+        {
+            for (size_t i_0 = 0; i_0 < out_rows; ++i_0)
+            {
+                for (size_t j_0 = 0; j_0 < out_cols; ++j_0)
+                {
+                    //update cell state deriv
+                    cell_state_deriv[f_0].at(i_0, j_0) += deriv[f_0].at(i_0, j_0) * output_states[idx][f_0].at(i_0, j_0) * activation_derivative(cell_states[idx][f_0].at(i_0, j_0), MTNN_FUNC_TANH);
+
+                    //update the rest
+                    auto& d_c_t = cell_state_deriv[f_0].at(i_0, j_0);
+                    d_out[f_0].at(i_0, j_0) = deriv[f_0].at(i_0, j_0) * tanh(cell_states[idx][f_0].at(i_0, j_0));
+                    d_activation[f_0].at(i_0, j_0) = d_c_t * influence_states[idx][f_0].at(i_0, j_0);
+                    d_influence[f_0].at(i_0, j_0) = d_c_t * activation_states[idx][f_0].at(i_0, j_0);
+                    d_forget[f_0].at(i_0, j_0) = d_c_t * cell_states[idx - 1][f_0].at(i_0, j_0);
+                    cell_state_deriv[f_0].at(i_0, j_0) *= forget_states[idx][f_0].at(i_0, j_0); //update last time
+                }
+            }
+        }
+
+        auto input = concatenate(activations_pre, hidden_states[idx]);
+
+        //pass to all layers and compute
+        back_prop_gate(MTNN_FUNC_LOGISTIC, d_forget, forget_states[idx], input, out_deriv, params_w[0], params_b[0], w_grad[0], b_grad[0]);
+        back_prop_gate(MTNN_FUNC_LOGISTIC, d_influence, influence_states[idx], input, out_deriv, params_w[1], params_b[1], w_grad[1], b_grad[1]);
+        back_prop_gate(MTNN_FUNC_TANH, d_activation, activation_states[idx], input, out_deriv, params_w[2], params_b[2], w_grad[2], b_grad[2]);
+        back_prop_gate(MTNN_FUNC_LOGISTIC, d_out, output_states[idx], input, out_deriv, params_w[3], params_b[3], w_grad[3], b_grad[3]);
+    }
+
+public:
+
+    //feed forwards given input, weights_global, biases_global to output
+    static void feed_forwards(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w = weights_global, biases_type& params_b = biases_global)
+    {
+        feed_forwards_impl(input, output, params_w, params_b);
+    }
+
     //undo feed forwards, with generative biases_global instead TODO implement
     static void feed_backwards(feature_maps_type& output, out_feature_maps_type& input, weights_type& params_w = weights_global, generative_biases_type& params_b = generative_biases_global)
     {
@@ -1173,7 +1287,7 @@ public:
     //accumulate gradient_globals in given, using given weights_global, biases_global, outputs, activations, derivs, etc. WON'T APPLY IF ONLINE (TODO)
     static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights_global, biases_type& params_b = biases_global, weights_type& w_grad = weights_gradient_global, biases_type& b_grad = biases_gradient_global)
     {
-        size_t idx = cell_states.size() - 1;//todo training doesn't make sense with only one? (unless ordered/popped correctly)
+        size_t idx = cell_states_global.size() - 1;//todo training doesn't make sense with only one? (unless ordered/popped correctly)
 
         back_prop_through_time(idx, deriv, activations_pre, out_deriv, params_w, params_b, w_grad, b_grad);
 
@@ -1199,19 +1313,119 @@ public:
     static void back_prop(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights_global, biases_type& params_b = biases_global, weights_type& w_grad = weights_gradient_global, biases_type& b_grad = biases_gradient_global)
     {
         //zero
-        cell_state_deriv = { 0 };
+        cell_state_deriv_global = { 0 };
         for (size_t in = derivs.size() - 1; in > 0; --in)
         {
             //backprop
             back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, params_w, params_b, w_grad, b_grad);
 
             //update last for correct
-            hidden_states.pop_back();
-            cell_states.pop_back();
-            forget_states.pop_back();
-            influence_states.pop_back();
-            activation_states.pop_back();
-            output_states.pop_back();
+            hidden_states_global.pop_back();
+            cell_states_global.pop_back();
+            forget_states_global.pop_back();
+            influence_states_global.pop_back();
+            activation_states_global.pop_back();
+            output_states_global.pop_back();
+        }
+    }
+
+    //// BEGIN INSTANCE/THREAD LEVEL VALUES
+
+    feature_maps_type feature_maps_local;
+    weights_type weights_local;
+    biases_type biases_local;
+    decltype(generative_biases_global) generative_biases_local;  //TBD Necessary?
+    weights_type weights_gradient_local;
+    biases_type biases_gradient_local;
+    weights_type weights_aux_data_local; //TBD Necessary?
+    biases_type biases_aux_data_local; //TBD Necessary?
+
+    ////internal lstm data_global; use for bptt since need to have all previous data_global. keep activation of all layers in vector, performs bptt on last one, push onto each feed forward (pop if full)
+    out_feature_maps_vector_type cell_states_local; //keep max num of steps ONLY
+    out_feature_maps_vector_type hidden_states_local;
+    out_feature_maps_vector_type forget_states_local;
+    out_feature_maps_vector_type influence_states_local;
+    out_feature_maps_vector_type activation_states_local;
+    out_feature_maps_vector_type output_states_local;
+
+    //assumes that stores the derivs from next time step wrt cell state, needs to be reset after each batch update
+    FeatureMap<out_features, out_rows, out_cols> cell_state_deriv_local;
+
+    LSTMLayer()
+    {
+        feature_maps_local = feature_maps_type{ 0.0f };
+        weights_local = weights_type{ weights_global };
+        biases_local = biases_type{ biases_global };
+        generative_biases_local = decltype(generative_biases_global){ generative_biases_global };
+        weights_gradient_local = weights_type{ 0.0f };
+        biases_gradient_local = biases_type{ 0.0f };
+        weights_aux_data_local = weights_type{ 0.0f };
+        biases_aux_data_local = biases_type{ 0.0f };
+
+        cell_states_local = out_feature_maps_vector_type{ 0.0f }; //keep max num of steps ONLY
+        hidden_states_local = out_feature_maps_vector_type{ 0.0f };
+        forget_states_local = out_feature_maps_vector_type{ 0.0f };
+        influence_states_local = out_feature_maps_vector_type{ 0.0f };
+        activation_states_local = out_feature_maps_vector_type{ 0.0f };
+        output_states_local = out_feature_maps_vector_type{ 0.0f };
+        cell_state_deriv_local = out_feature_maps_type{ 0.0f };
+    }
+
+    //basic pass
+    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w, biases_type& params_b)
+    {
+        feed_forwards_impl(input, output, weights_local, biases_local, hidden_states_local, cell_states_local, forget_states_local, influence_states_local, activation_states_local, output_states_local);
+    }
+
+    //basic pass
+    void feed_backwards_local(feature_maps_type& output, out_feature_maps_type& input)
+    {
+        feed_backwards(output, input, weights_local, generative_biases_local);
+    }
+
+    //basic pass
+    void back_prop_local(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
+    {
+        size_t idx = cell_states_global.size() - 1;//todo training doesn't make sense with only one? (unless ordered/popped correctly)
+
+        back_prop_through_time(idx, deriv, activations_pre, out_deriv, weights_local, biases_local, weights_gradient_local, biases_gradient_local,
+            hidden_states_local, cell_states_local, forget_states_local, influence_states_local, activation_states_local, output_states_local, cell_state_deriv_local);
+
+        //apply derivatives
+        layer_type::chain_activations(out_deriv, activations_pre, previous_layer_activation);
+    }
+
+    //batch pass
+    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, bool discriminating = false)
+    {
+        for (size_t in = 0; in < outputs.size(); ++in)
+            feed_forwards_local(inputs[in], outputs[in]);
+    }
+
+    //batch pass
+    void feed_backwards_local(feature_maps_vector_type& outputs, out_feature_maps_vector_type& inputs)
+    {
+        for (size_t in = 0; in < outputs.size(); ++in)
+            feed_backwards(outputs[in], inputs[in], weights_local, generative_biases_local);
+    }
+
+    //batch pass
+    void back_prop_local(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
+    {
+        //zero
+        cell_state_deriv_local = { 0 };
+        for (size_t in = derivs.size() - 1; in > 0; --in)
+        {
+            //backprop
+            back_prop_local(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor);
+
+            //update last for correct
+            hidden_states_local.pop_back();
+            cell_states_local.pop_back();
+            forget_states_local.pop_back();
+            influence_states_local.pop_back();
+            activation_states_local.pop_back();
+            output_states_local.pop_back();
         }
     }
 };
@@ -1232,13 +1446,13 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t out_fea
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> size_t LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::n = 0;
 
 //class specific stuff
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<out_features, out_rows, out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::cell_state_deriv = { 0 }; //keep max num of steps ONLY
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMapVector<out_features, out_rows, out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::cell_states = { 0 }; //keep max num of steps ONLY
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMapVector<out_features, out_rows, out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::hidden_states = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMapVector<out_features, out_rows, out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::forget_states = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMapVector<out_features, out_rows, out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::influence_states = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMapVector<out_features, out_rows, out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::activation_states = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMapVector<out_features, out_rows, out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::output_states = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMap<out_features, out_rows, out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::cell_state_deriv_global = { 0 }; //keep max num of steps ONLY
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMapVector<out_features, out_rows, out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::cell_states_global = { 0 }; //keep max num of steps ONLY
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMapVector<out_features, out_rows, out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::hidden_states_global = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMapVector<out_features, out_rows, out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::forget_states_global = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMapVector<out_features, out_rows, out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::influence_states_global = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMapVector<out_features, out_rows, out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::activation_states_global = { 0 };
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_features, size_t out_rows, size_t out_cols, size_t max_t_store> FeatureMapVector<out_features, out_rows, out_cols> LSTMLayer<index, features, rows, cols, out_features, out_rows, out_cols, max_t_store>::output_states_global = { 0 };
 
 //Batch normalization uses population stats for feed forward, calculates batch statistics, CANNOT TRAIN WITHOUT BATCH TRAINING, activation is applied after statistical transformation
 template<size_t index, size_t features, size_t rows, size_t cols, size_t activation_function> class BatchNormalizationLayer : public Layer_Functions<features, rows, cols>
@@ -1299,12 +1513,6 @@ public:
     using biases_vector_type = std::vector<biases_type>;
     using generative_biases_vector_type = std::vector<generative_biases_type>;
 
-    //won't use, static class
-    BatchNormalizationLayer() = default;
-
-    //won't use, static class
-    ~BatchNormalizationLayer() = default;
-
     //feed forwards given input, weights_global, biases_global to output; uses population
     static void feed_forwards(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w = weights_global, biases_type& params_b = biases_global)
     {
@@ -1330,7 +1538,7 @@ public:
     }
 
     //feed forwards for batch and uses the batch's statistics (not population) and then updates population statistics
-    static void feed_forwards(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, weights_type& params_w = weights_global, biases_type& params_b = biases_global, bool discriminating = false)
+    static void feed_forwards(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, weights_type& params_w = weights_global, biases_type& params_b = biases_global, bool discriminating = false, weights_type& params_w_aux = weights_aux_data_global, biases_type& params_b_aux = biases_aux_data_global)
     {
         //different output for training
         for (size_t f = 0; f < features; ++f)
@@ -1351,25 +1559,25 @@ public:
                     }
 
                     //apply to outputs
-                    float mean_global = sumx / n_in;
-                    float var = sumxsqr / n_in - mean_global * mean_global;
+                    float mean = sumx / n_in;
+                    float var = sumxsqr / n_in - mean * mean;
                     float std = sqrt(var + min_divisor);
                     float gamma = params_w[f].at(i, j);
                     float beta = params_b[f].at(i, j);
                     for (size_t in = 0; in < n_in; ++in)
-                        outputs[in][f].at(i, j) = layer_type::activate(gamma * (inputs[in][f].at(i, j) - mean_global) / std + beta, activation_function);
+                        outputs[in][f].at(i, j) = layer_type::activate(gamma * (inputs[in][f].at(i, j) - mean) / std + beta, activation_function);
 
                     /*activations_population_mean_global[f].at(i, j) = mean_global;
                     activations_population_variance_global[f].at(i, j) = var;*/ //keeps relatively stable batch vs discriminatory values
 
                     //set minibatch stats
-                    biases_aux_data_global[f].at(i, j) = mean_global;
-                    weights_aux_data_global[f].at(i, j) = var;
+                    params_b_aux[f].at(i, j) = mean;
+                    params_w_aux[f].at(i, j) = var;
 
                     //update population statistics
                     if (n == 0)
                     {
-                        activations_population_mean_global[f].at(i, j) = mean_global;
+                        activations_population_mean_global[f].at(i, j) = mean;
                         activations_population_variance_global[f].at(i, j) = var;
                     }
 
@@ -1378,11 +1586,11 @@ public:
                         float old_mean_global = activations_population_mean_global[f].at(i, j);
                         float old_var = activations_population_variance_global[f].at(i, j);
                         float momentum = .8f;
-                        activations_population_mean_global[f].at(i, j) = (1 - momentum) * mean_global + momentum * old_mean_global;//(old_mean_global * n + mean_global) / (n + 1);
+                        activations_population_mean_global[f].at(i, j) = (1 - momentum) * mean + momentum * old_mean_global;//(old_mean_global * n + mean_global) / (n + 1);
                         activations_population_variance_global[f].at(i, j) = (1 - momentum) * var + momentum * old_var;//(old_var * (n - 1) / n + var) * n / (n + 1);
                     }
 
-                    ++n; //fails completely due to / n w/ n == 0
+                    ++n;
                 }
             }
         }
@@ -1396,7 +1604,7 @@ public:
     }
 
     //ONLY WAY TO TRAIN uses minibatch statistics (which are stored in aux_data_global)
-    static void back_prop(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights_global, biases_type& params_b = biases_global, weights_type& w_grad = weights_gradient_global, biases_type& b_grad = biases_gradient_global)
+    static void back_prop(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights_global, biases_type& params_b = biases_global, weights_type& w_grad = weights_gradient_global, biases_type& b_grad = biases_gradient_global, weights_type& params_w_aux = weights_aux_data_global, biases_type& params_b_aux = biases_aux_data_global)
     {
         for (size_t in = 0; in < derivs.size(); ++in)
         {
@@ -1409,9 +1617,9 @@ public:
                 {
                     for (size_t j = 0; j < cols; ++j)
                     {
-                        float mu = biases_aux_data_global[f].at(i, j);
+                        float mu = params_b_aux[f].at(i, j);
                         float div = activations_pre[f].at(i, j) - mu;
-                        float std = sqrt(weights_aux_data_global[f].at(i, j) + min_divisor);
+                        float std = sqrt(params_w_aux[f].at(i, j) + min_divisor);
 
                         float xhat = div / std;
                         float d_out = deriv[f].at(i, j);
@@ -1436,6 +1644,69 @@ public:
             //apply derivatives
             layer_type::chain_activations(out_deriv, activations_pre, previous_layer_activation);
         }
+    }
+
+
+    //// BEGIN INSTANCE/THREAD LEVEL VALUES
+
+    feature_maps_type feature_maps_local;
+    weights_type weights_local;
+    biases_type biases_local;
+    decltype(generative_biases_global) generative_biases_local;  //TBD Necessary?
+    weights_type weights_gradient_local;
+    biases_type biases_gradient_local;
+    weights_type weights_aux_data_local; //TBD Necessary?
+    biases_type biases_aux_data_local; //TBD Necessary?
+
+    BatchNormalizationLayer()
+    {
+        feature_maps_local = feature_maps_type{ 0.0f };
+        weights_local = weights_type{ weights_global };
+        biases_local = biases_type{ biases_global };
+        generative_biases_local = decltype(generative_biases_global){ generative_biases_global };
+        weights_gradient_local = weights_type{ 0.0f };
+        biases_gradient_local = biases_type{ 0.0f };
+        weights_aux_data_local = weights_type{ 0.0f };
+        biases_aux_data_local = biases_type{ 0.0f };
+    }
+
+    //basic pass
+    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w, biases_type& params_b)
+    {
+        feed_forwards(input, output, weights_local, biases_local);
+    }
+
+    //basic pass
+    void feed_backwards_local(feature_maps_type& output, out_feature_maps_type& input)
+    {
+        feed_backwards(output, input, weights_local, generative_biases_local);
+    }
+
+    //basic pass
+    void back_prop_local(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
+    {
+        back_prop(previous_layer_activation, deriv, activations_pre, out_deriv, online, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, weights_local, biases_local, weights_gradient_local, biases_gradient_local);
+    }
+
+    //batch pass
+    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, bool discriminating = false)
+    {
+        for (size_t in = 0; in < outputs.size(); ++in)
+            feed_forwards(inputs[in], outputs[in], weights_local, biases_local, weights_aux_data_local, biases_aux_data_local);
+    }
+
+    //batch pass
+    void feed_backwards_local(feature_maps_vector_type& outputs, out_feature_maps_vector_type& inputs)
+    {
+        for (size_t in = 0; in < outputs.size(); ++in)
+            feed_backwards(outputs[in], inputs[in], weights_local, generative_biases_local);
+    }
+
+    //batch pass
+    void back_prop_local(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
+    {
+        for (size_t in = 0; in < derivs.size(); ++in)
+            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, weights_local, biases_local, weights_gradient_local, biases_gradient_local, weights_aux_data_local, biases_aux_data_local);
     }
 };
 
@@ -1511,14 +1782,8 @@ public:
     //not used except in batch norm
     static size_t n;
 
-    //won't use, static class
-    MaxpoolLayer() = default;
-
-    //won't use, static class
-    ~MaxpoolLayer() = default;
-
     //feed forwards given input, weights_global, biases_global to output
-    static void feed_forwards(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w = weights_global, biases_type& params_b = biases_global)
+    static void feed_forwards(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w = weights_global, biases_type& params_b = biases_global, FeatureMap<features, out_rows, out_cols, std::pair<size_t, size_t>>& switches = switches_global)
     {
         //set minimum as negative
         for (size_t f_0 = 0; f_0 < features; ++f_0)
@@ -1573,7 +1838,7 @@ public:
     }
 
     //backprops values to previous layer
-    static void feed_backwards(feature_maps_type& output, out_feature_maps_type& input, weights_type& params_w = weights_global, generative_biases_type& params_b = generative_biases_global)
+    static void feed_backwards(feature_maps_type& output, out_feature_maps_type& input, weights_type& params_w = weights_global, generative_biases_type& params_b = generative_biases_global, FeatureMap<features, out_rows, out_cols, std::pair<size_t, size_t>>& switches = switches_global)
     {
         for (size_t f = 0; f < features; ++f)
         {
@@ -1603,7 +1868,7 @@ public:
     }
 
     //backprops derivatives to next layer (no parameters so no update)
-    static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights_global, biases_type& params_b = biases_global, weights_type& w_grad = weights_gradient_global, biases_type& b_grad = biases_gradient_global)
+    static void back_prop(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor, weights_type& params_w = weights_global, biases_type& params_b = biases_global, weights_type& w_grad = weights_gradient_global, biases_type& b_grad = biases_gradient_global, FeatureMap<features, out_rows, out_cols, std::pair<size_t, size_t>>& switches = switches_global)
     {
         //TODO fails on batch
 
@@ -1659,9 +1924,76 @@ public:
             back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, params_w, params_b, w_grad, b_grad);
     }
 
+
+    //// BEGIN INSTANCE/THREAD LEVEL VALUES
+
+    feature_maps_type feature_maps_local;
+    weights_type weights_local;
+    biases_type biases_local;
+    decltype(generative_biases_global) generative_biases_local;  //TBD Necessary?
+    weights_type weights_gradient_local;
+    biases_type biases_gradient_local;
+    weights_type weights_aux_data_local; //TBD Necessary?
+    biases_type biases_aux_data_local; //TBD Necessary?
+
+    FeatureMap<features, out_rows, out_cols, std::pair<size_t, size_t>> switches_local;
+
+    MaxpoolLayer()
+    {
+        feature_maps_local = feature_maps_type{ 0.0f };
+        weights_local = weights_type{ weights_global };
+        biases_local = biases_type{ biases_global };
+        generative_biases_local = decltype(generative_biases_global){ generative_biases_global };
+        weights_gradient_local = weights_type{ 0.0f };
+        biases_gradient_local = biases_type{ 0.0f };
+        weights_aux_data_local = weights_type{ 0.0f };
+        biases_aux_data_local = biases_type{ 0.0f };
+
+        switches_local = FeatureMap<features, out_rows, out_cols, std::pair<size_t, size_t>>{};
+    }
+
+    //basic pass
+    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w, biases_type& params_b)
+    {
+        feed_forwards(input, output, weights_local, biases_local, switches_local);
+    }
+
+    //basic pass
+    void feed_backwards_local(feature_maps_type& output, out_feature_maps_type& input)
+    {
+        feed_backwards(output, input, weights_local, generative_biases_local, switches_local);
+    }
+
+    //basic pass
+    void back_prop_local(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
+    {
+        back_prop(previous_layer_activation, deriv, activations_pre, out_deriv, online, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, weights_local, biases_local, weights_gradient_local, biases_gradient_local, switches_local);
+    }
+
+    //batch pass
+    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, bool discriminating = false)
+    {
+        for (size_t in = 0; in < outputs.size(); ++in)
+            feed_forwards(inputs[in], outputs[in], weights_local, biases_local, switches_local);
+    }
+
+    //batch pass
+    void feed_backwards_local(feature_maps_vector_type& outputs, out_feature_maps_vector_type& inputs)
+    {
+        for (size_t in = 0; in < outputs.size(); ++in)
+            feed_backwards(outputs[in], inputs[in], weights_local, generative_biases_local, switches_local);
+    }
+
+    //batch pass
+    void back_prop_local(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
+    {
+        for (size_t in = 0; in < derivs.size(); ++in)
+            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, weights_local, biases_local, weights_gradient_local, biases_gradient_local, switches_local);
+    }
+
 private:
     //used to keep track of which cell was maximum in each region
-    static FeatureMap<features, out_rows, out_cols, std::pair<size_t, size_t>> switches;
+    static FeatureMap<features, out_rows, out_cols, std::pair<size_t, size_t>> switches_global;
 };
 
 //init static
@@ -1677,7 +2009,7 @@ template<size_t index, size_t features, size_t rows, size_t cols, size_t out_row
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> EmptyFeatureMap MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::weights_momentum = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> EmptyFeatureMap MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::activations_population_mean_global = { 0 };
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> EmptyFeatureMap MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::activations_population_variance_global = { 0 };
-template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<features, out_rows, out_cols, std::pair<size_t, size_t>> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::switches = {};
+template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> FeatureMap<features, out_rows, out_cols, std::pair<size_t, size_t>> MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::switches_global = {};
 template<size_t index, size_t features, size_t rows, size_t cols, size_t out_rows, size_t out_cols> size_t MaxpoolLayer<index, features, rows, cols, out_rows, out_cols>::n = 0;
 
 //Transforms output according to softmax function
@@ -1735,12 +2067,6 @@ public:
 
     //only used for batch norm
     static size_t n;
-
-    //won't use, static class
-    SoftMaxLayer() = default;
-
-    //won't use, static class
-    ~SoftMaxLayer() = default;
 
     //compute the softmax
     static void feed_forwards(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w = weights_global, biases_type& params_b = biases_global)
@@ -1817,6 +2143,69 @@ public:
         for (size_t in = 0; in < derivs.size(); ++in)
             back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, params_w, params_b, w_grad, b_grad);
     }
+
+
+    //// BEGIN INSTANCE/THREAD LEVEL VALUES
+
+    feature_maps_type feature_maps_local;
+    weights_type weights_local;
+    biases_type biases_local;
+    decltype(generative_biases_global) generative_biases_local;  //TBD Necessary?
+    weights_type weights_gradient_local;
+    biases_type biases_gradient_local;
+    weights_type weights_aux_data_local; //TBD Necessary?
+    biases_type biases_aux_data_local; //TBD Necessary?
+
+    SoftMaxLayer()
+    {
+        feature_maps_local = feature_maps_type{ 0.0f };
+        weights_local = weights_type{ weights_global };
+        biases_local = biases_type{ biases_global };
+        generative_biases_local = decltype(generative_biases_global){ generative_biases_global };
+        weights_gradient_local = weights_type{ 0.0f };
+        biases_gradient_local = biases_type{ 0.0f };
+        weights_aux_data_local = weights_type{ 0.0f };
+        biases_aux_data_local = biases_type{ 0.0f };
+    }
+
+    //basic pass
+    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w, biases_type& params_b)
+    {
+        feed_forwards(input, output, weights_local, biases_local);
+    }
+
+    //basic pass
+    void feed_backwards_local(feature_maps_type& output, out_feature_maps_type& input)
+    {
+        feed_backwards(output, input, weights_local, generative_biases_local);
+    }
+
+    //basic pass
+    void back_prop_local(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
+    {
+        back_prop(previous_layer_activation, deriv, activations_pre, out_deriv, online, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, weights_local, biases_local, weights_gradient_local, biases_gradient_local);
+    }
+
+    //batch pass
+    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, bool discriminating = false)
+    {
+        for (size_t in = 0; in < outputs.size(); ++in)
+            feed_forwards(inputs[in], outputs[in], weights_local, biases_local);
+    }
+
+    //batch pass
+    void feed_backwards_local(feature_maps_vector_type& outputs, out_feature_maps_vector_type& inputs)
+    {
+        for (size_t in = 0; in < outputs.size(); ++in)
+            feed_backwards(outputs[in], inputs[in], weights_local, generative_biases_local);
+    }
+
+    //batch pass
+    void back_prop_local(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
+    {
+        for (size_t in = 0; in < derivs.size(); ++in)
+            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, weights_local, biases_local, weights_gradient_local, biases_gradient_local);
+    }
 };
 
 //init static
@@ -1889,12 +2278,6 @@ public:
     //won't use except in batch norm
     static size_t n;
 
-    //won't use, static class
-    InputLayer() = default;
-
-    //won't use, static class
-    ~InputLayer() = default;
-
     //basic copy
     static void feed_forwards(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w = weights_global, biases_type& params_b = biases_global)
     {
@@ -1945,6 +2328,69 @@ public:
     {
         for (size_t in = 0; in < derivs.size(); ++in)
             back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, params_w, params_b, w_grad, b_grad);
+    }
+
+
+    //// BEGIN INSTANCE/THREAD LEVEL VALUES
+
+    feature_maps_type feature_maps_local;
+    weights_type weights_local;
+    biases_type biases_local;
+    decltype(generative_biases_global) generative_biases_local;  //TBD Necessary?
+    weights_type weights_gradient_local;
+    biases_type biases_gradient_local;
+    weights_type weights_aux_data_local; //TBD Necessary?
+    biases_type biases_aux_data_local; //TBD Necessary?
+
+    InputLayer()
+    {
+        feature_maps_local = feature_maps_type{ 0.0f };
+        weights_local = weights_type{ weights_global };
+        biases_local = biases_type{ biases_global };
+        generative_biases_local = decltype(generative_biases_global){ generative_biases_global };
+        weights_gradient_local = weights_type{ 0.0f };
+        biases_gradient_local = biases_type{ 0.0f };
+        weights_aux_data_local = weights_type{ 0.0f };
+        biases_aux_data_local = biases_type{ 0.0f };
+    }
+
+    //basic pass
+    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w, biases_type& params_b)
+    {
+        feed_forwards(input, output, weights_local, biases_local);
+    }
+
+    //basic pass
+    void feed_backwards_local(feature_maps_type& output, out_feature_maps_type& input)
+    {
+        feed_backwards(output, input, weights_local, generative_biases_local);
+    }
+
+    //basic pass
+    void back_prop_local(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
+    {
+        back_prop(previous_layer_activation, deriv, activations_pre, out_deriv, online, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, weights_local, biases_local, weights_gradient_local, biases_gradient_local);
+    }
+
+    //batch pass
+    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, bool discriminating = false)
+    {
+        for (size_t in = 0; in < outputs.size(); ++in)
+            feed_forwards(inputs[in], outputs[in], weights_local, biases_local);
+    }
+
+    //batch pass
+    void feed_backwards_local(feature_maps_vector_type& outputs, out_feature_maps_vector_type& inputs)
+    {
+        for (size_t in = 0; in < outputs.size(); ++in)
+            feed_backwards(outputs[in], inputs[in], weights_local, generative_biases_local);
+    }
+
+    //batch pass
+    void back_prop_local(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
+    {
+        for (size_t in = 0; in < derivs.size(); ++in)
+            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, weights_local, biases_local, weights_gradient_local, biases_gradient_local);
     }
 };
 
@@ -2017,12 +2463,6 @@ public:
     //won't use outside of batch norm
     static size_t n;
 
-    //won't use, static class
-    OutputLayer() = default;
-
-    //won't use, static class
-    ~OutputLayer() = default;
-
     //basic copy
     static void feed_forwards(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w = weights_global, biases_type& params_b = biases_global)
     {
@@ -2071,6 +2511,69 @@ public:
     {
         for (size_t in = 0; in < derivs.size(); ++in)
             back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, params_w, params_b, w_grad, b_grad);
+    }
+
+
+    //// BEGIN INSTANCE/THREAD LEVEL VALUES
+
+    feature_maps_type feature_maps_local;
+    weights_type weights_local;
+    biases_type biases_local;
+    decltype(generative_biases_global) generative_biases_local;  //TBD Necessary?
+    weights_type weights_gradient_local;
+    biases_type biases_gradient_local;
+    weights_type weights_aux_data_local; //TBD Necessary?
+    biases_type biases_aux_data_local; //TBD Necessary?
+
+    OutputLayer()
+    {
+        feature_maps_local = feature_maps_type{ 0.0f };
+        weights_local = weights_type{ weights_global };
+        biases_local = biases_type{ biases_global };
+        generative_biases_local = decltype(generative_biases_global){ generative_biases_global };
+        weights_gradient_local = weights_type{ 0.0f };
+        biases_gradient_local = biases_type{ 0.0f };
+        weights_aux_data_local = weights_type{ 0.0f };
+        biases_aux_data_local = biases_type{ 0.0f };
+    }
+
+    //basic pass
+    void feed_forwards_local(feature_maps_type& input, out_feature_maps_type& output, weights_type& params_w, biases_type& params_b)
+    {
+        feed_forwards(input, output, weights_local, biases_local);
+    }
+
+    //basic pass
+    void feed_backwards_local(feature_maps_type& output, out_feature_maps_type& input)
+    {
+        feed_backwards(output, input, weights_local, generative_biases_local);
+    }
+
+    //basic pass
+    void back_prop_local(size_t previous_layer_activation, out_feature_maps_type& deriv, feature_maps_type& activations_pre, feature_maps_type& out_deriv, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
+    {
+        back_prop(previous_layer_activation, deriv, activations_pre, out_deriv, online, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, weights_local, biases_local, weights_gradient_local, biases_gradient_local);
+    }
+
+    //batch pass
+    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, bool discriminating = false)
+    {
+        for (size_t in = 0; in < outputs.size(); ++in)
+            feed_forwards(inputs[in], outputs[in], weights_local, biases_local);
+    }
+
+    //batch pass
+    void feed_backwards_local(feature_maps_vector_type& outputs, out_feature_maps_vector_type& inputs)
+    {
+        for (size_t in = 0; in < outputs.size(); ++in)
+            feed_backwards(outputs[in], inputs[in], weights_local, generative_biases_local);
+    }
+
+    //batch pass
+    void back_prop_local(size_t previous_layer_activation, out_feature_maps_vector_type& derivs, feature_maps_vector_type& activations_pre_vec, feature_maps_vector_type& out_derivs, bool online, float learning_rate, bool use_momentum, float momentum_term, bool use_l2_weight_decay, bool include_biases_decay, float weight_decay_factor)
+    {
+        for (size_t in = 0; in < derivs.size(); ++in)
+            back_prop(previous_layer_activation, derivs[in], activations_pre_vec[in], out_derivs[in], false, learning_rate, use_momentum, momentum_term, use_l2_weight_decay, include_biases_decay, weight_decay_factor, weights_local, biases_local, weights_gradient_local, biases_gradient_local);
     }
 };
 
