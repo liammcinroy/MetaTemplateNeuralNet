@@ -191,7 +191,7 @@ typedef NeuralNet<InputLayer<1, 1, 29, 29>,
 typedef FeatureMap<1, 29, 29> NetInput;
 typedef FeatureMap<1, 10, 1> NetOutput;
 
-bool training = true;
+bool training = false;
 
 int main()
 {

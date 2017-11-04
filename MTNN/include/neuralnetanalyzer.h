@@ -17,16 +17,16 @@ private:
 
     static bool proportional;
 
-    template<size_t l, bool biases> struct add_grad_error_impl
+    template<size_t l, bool biases_global> struct add_grad_error_impl
     {
     public:
         add_grad_error_impl()
         {
             using layer = typename net::template get_layer<l>;
 
-            if (!biases)
+            if (!biases_global)
             {
-                using t = decltype(layer::weights_gradient);
+                using t = decltype(layer::weights_gradient_global);
                 for (size_t d = 0; d < t::size(); ++d)
                 {
                     for (size_t i = 0; i < t::rows(); ++i)
@@ -36,21 +36,21 @@ private:
                             ++n;
 
                             //decrement, get new error
-                            layer::weights[d].at(i, j) -= .001f;
+                            layer::weights_global[d].at(i, j) -= .001f;
                             net::discriminate();
                             float adj_error = net::global_error();
 
                             //approximate (finite differences)
                             float appr_grad = -(adj_error - original_net_error) / .001f;
-                            float grad = layer::weights_gradient[d].at(i, j);
+                            float grad = layer::weights_gradient_global[d].at(i, j);
                             //add to total
                             if (!proportional)
-                                total_grad_error += abs(layer::weights_gradient[d].at(i, j) - appr_grad);
+                                total_grad_error += abs(layer::weights_gradient_global[d].at(i, j) - appr_grad);
                             else
-                                total_grad_error += abs((layer::weights_gradient[d].at(i, j) - appr_grad) / layer::weights_gradient[d].at(i, j));
+                                total_grad_error += abs((layer::weights_gradient_global[d].at(i, j) - appr_grad) / layer::weights_gradient_global[d].at(i, j));
 
                             //reset
-                            layer::weights[d].at(i, j) += .001f;
+                            layer::weights_global[d].at(i, j) += .001f;
                         }
                     }
                 }
@@ -58,7 +58,7 @@ private:
 
             else
             {
-                using t = decltype(layer::biases_gradient);
+                using t = decltype(layer::biases_gradient_global);
                 for (size_t d = 0; d < t::size(); ++d)
                 {
                     for (size_t i = 0; i < t::rows(); ++i)
@@ -67,18 +67,18 @@ private:
                         {
                             ++n;
 
-                            layer::biases[d].at(i, j) -= .001f;
+                            layer::biases_global[d].at(i, j) -= .001f;
                             net::discriminate();
 
                             float adj_error = net::global_error();
                             float appr_grad = -(adj_error - original_net_error) / .001f;
 
                             if (!proportional)
-                                total_grad_error += abs(layer::biases_gradient[d].at(i, j) - appr_grad);
+                                total_grad_error += abs(layer::biases_gradient_global[d].at(i, j) - appr_grad);
                             else
-                                total_grad_error += abs((layer::biases_gradient[d].at(i, j) - appr_grad) / layer::biases_gradient[d].at(i, j));
+                                total_grad_error += abs((layer::biases_gradient_global[d].at(i, j) - appr_grad) / layer::biases_gradient_global[d].at(i, j));
 
-                            layer::biases[d].at(i, j) += .001f;
+                            layer::biases_global[d].at(i, j) += .001f;
                         }
                     }
                 }
@@ -86,14 +86,14 @@ private:
         }
     };
 
-    template<size_t l, bool biases> struct add_hess_error_impl
+    template<size_t l, bool biases_global> struct add_hess_error_impl
     {
     public:
         add_hess_error_impl()
         {
             using layer = typename net::template get_layer<l>;
 
-            if (!biases)
+            if (!biases_global)
             {
                 using t = decltype(layer::weights_hessian);
                 for (size_t d = 0; d < t::size(); ++d)
@@ -105,12 +105,12 @@ private:
                             ++n;
 
                             //decrement, get new error
-                            layer::weights[d].at(i, j) -= .001f;
+                            layer::weights_global[d].at(i, j) -= .001f;
                             net::discriminate();
                             float h_minus = net::global_error();
 
                             //reincrement, get new error
-                            layer::weights[d].at(i, j) += .002f;
+                            layer::weights_global[d].at(i, j) += .002f;
                             net::discriminate();
                             float h = net::global_error();
 
@@ -124,7 +124,7 @@ private:
                                 total_grad_error += abs((layer::weights_hessian[d].at(i, j) - appr_grad) / layer::weights_hessian[d].at(i, j));
 
                             //reset
-                            layer::weights[d].at(i, j) -= .001f;
+                            layer::weights_global[d].at(i, j) -= .001f;
                         }
                     }
                 }
@@ -142,12 +142,12 @@ private:
                             ++n;
 
                             //decrement, get new error
-                            layer::biases[d].at(i, j) -= .001f;
+                            layer::biases_global[d].at(i, j) -= .001f;
                             net::discriminate();
                             float h_minus = net::global_error();
 
                             //reincrement, get new error
-                            layer::biases[d].at(i, j) += .002f;
+                            layer::biases_global[d].at(i, j) += .002f;
                             net::discriminate();
                             float h = net::global_error();
 
@@ -161,7 +161,7 @@ private:
                                 total_grad_error += abs((layer::biases_hessian[d].at(i, j) - appr_grad) / layer::biases_hessian[d].at(i, j));
 
                             //reset
-                            layer::biases[d].at(i, j) -= .001f;
+                            layer::biases_global[d].at(i, j) -= .001f;
                         }
                     }
                 }
@@ -176,7 +176,7 @@ private:
     template<size_t l> using add_hess_error_b = add_hess_error_impl<l, true>;
 
 public:
-    //find mean gradient error from numerical approximation MAKE SURE INPUTS ARE NOT 0
+    //find mean gradient_global error from numerical approximation MAKE SURE INPUTS ARE NOT 0
     static std::pair<float, float> mean_gradient_error()
     {
         net::discriminate();
@@ -241,7 +241,7 @@ public:
         return errors;
     }
 
-    //find mean proportional gradient error from numerical approximation MAKE SURE INPUTS ARE NOT 0
+    //find mean proportional gradient_global error from numerical approximation MAKE SURE INPUTS ARE NOT 0
     static std::pair<float, float> proportional_gradient_error()
     {
         net::discriminate();

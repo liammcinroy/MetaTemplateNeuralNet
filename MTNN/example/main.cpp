@@ -35,7 +35,7 @@ typedef NeuralNet<
 //    PerceptronFullConnectivityLayer<6, 1, 1, 1, 1, 1, 1, MTNN_FUNC_LINEAR, true>, //Because of different indexes, then this and layer 1 won't share data
 //    OutputLayer<7, 1, 1, 1>> Net;
 
-template<> FeatureMap<1, 1, 1> PerceptronFullConnectivityLayer<2, 1, 1, 1, 1, 1, 1, MTNN_FUNC_LINEAR, false>::weights = { .1f };//custom weight initialization
+template<> FeatureMap<1, 1, 1> PerceptronFullConnectivityLayer<2, 1, 1, 1, 1, 1, 1, MTNN_FUNC_LINEAR, false>::weights_global = { .1f };//custom weight initialization
 
 int main(int argc, char** argv)
 {
@@ -62,7 +62,7 @@ int main(int argc, char** argv)
     auto inputs = FeatureMapVector<1, 1, 1>(BATCH_SIZE);
     auto labels = FeatureMapVector<1, 1, 1>(BATCH_SIZE);
 
-    //get gradient error, won't mean much because online training (not using batch funcs) will kill any BN network (BN won't even pass new info on)
+    //get gradient error, won't mean_global much because online training (not using batch funcs) will kill any BN network (BN won't even pass new info on)
     Net::train();
     std::pair<float, float> errors = NeuralNetAnalyzer<Net>::mean_gradient_error();
     std::cout << "Approximate gradient errors: " << errors.first << ',' << errors.second << std::endl;
@@ -107,26 +107,26 @@ int main(int argc, char** argv)
 
         std::cout << "Net value with input (minibatch statistics) of 1: " << OUTPUT_INV_TRANSFORM(Net::template get_batch_activations<Net::last_layer_index>()[0][0].at(0, 0)) << std::endl;
 
-        //test actual network (difference in values is due to changed weights, etc.)
+        //test actual network (difference in values is due to changed weights_global, etc.)
         Net::set_input(FeatureMap<1, 1, 1>{ INPUT_TRANSFORM(1.0f) });
 
         Net::discriminate();
-        std::cout << "Net value with input (using population averages) of 1: " << OUTPUT_INV_TRANSFORM(Net::template get_layer<Net::last_layer_index>::feature_maps[0].at(0, 0)) << std::endl;
+        std::cout << "Net value with input (using population averages) of 1: " << OUTPUT_INV_TRANSFORM(Net::template get_batch_activations<Net::last_layer_index>()[0][0].at(0, 0)) << std::endl;
     }
     //Net::calculate_population_statistics(inputs); //Find the entire training sets batch statistics after training is done
-    std::cout << Net::template get_layer<4>::activations_population_mean[0].at(0, 0) << ',' << Net::template get_layer<4>::biases_aux_data[0].at(0, 0) << std::endl;
+    std::cout << Net::template get_layer<4>::activations_population_mean_global[0].at(0, 0) << ',' << Net::template get_layer<4>::biases_aux_data_global[0].at(0, 0) << std::endl;
     Net::save_data<decltype(path)>(); //save to path
 
     //test actual network
     Net::set_input(FeatureMap<1, 1, 1>{ INPUT_TRANSFORM(1.0f) });
     Net::discriminate();
-    std::cout << "Net value with input of 1 (after training set statistics): " << OUTPUT_INV_TRANSFORM(Net::template get_layer<Net::last_layer_index>::feature_maps[0].at(0, 0)) << std::endl;
+    std::cout << "Net value with input of 1 (after training set statistics): " << OUTPUT_INV_TRANSFORM(Net::template get_batch_activations<Net::last_layer_index>()[0][0].at(0, 0)) << std::endl;
 
     //test loading data
     Net::load_data<decltype(path)>();
 
     Net::discriminate(inputs);
-    std::cout << "Net value with input of 1 (after load): " << OUTPUT_INV_TRANSFORM(Net::template get_layer<Net::last_layer_index>::feature_maps[0].at(0, 0)) << std::endl;
+    std::cout << "Net value with input of 1 (after load): " << OUTPUT_INV_TRANSFORM(Net::template get_batch_activations<Net::last_layer_index>()[0][0].at(0, 0)) << std::endl;
 
     std::cout << "\n\nPress any key to exit" << std::endl;
     getchar();
