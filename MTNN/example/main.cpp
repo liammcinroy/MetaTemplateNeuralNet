@@ -18,22 +18,15 @@
 //setup the structure of the network
 typedef NeuralNet<
     InputLayer<1, 1, 1, 1>, //the indexes allow the classes to be static
-    BatchNormalizationLayer<1, 1, 1, 1, MTNN_FUNC_LINEAR>, //could use to normalize inputs
+    //BatchNormalizationLayer<1, 1, 1, 1, MTNN_FUNC_LINEAR>, //could use to normalize inputs
     PerceptronFullConnectivityLayer<2, 1, 1, 1, 1, 1, 1, MTNN_FUNC_LINEAR, false>, //can disable biases
-    ConvolutionLayer<3, 1, 1, 1, 1, 1, 2, MTNN_FUNC_LINEAR, true, false>, //can disable padding
-    BatchNormalizationLayer<3, 2, 1, 1, MTNN_FUNC_TANH>, //if want to use tanh for conv layer with bn, use linear on conv then logistic for bn
-    MaxpoolLayer<4, 2, 1, 1, 1, 1>,
-    PerceptronFullConnectivityLayer<5, 2, 1, 1, 1, 1, 1,  MTNN_FUNC_RELU, true>,
-    PerceptronFullConnectivityLayer<6, 1, 1, 1, 1, 1, 1, MTNN_FUNC_LINEAR, true>, //Because of different indexes, then this and layer 1 won't share data
+    //ConvolutionLayer<3, 1, 1, 1, 1, 1, 2, MTNN_FUNC_LINEAR, true, false>, //can disable padding
+    //BatchNormalizationLayer<3, 2, 1, 1, MTNN_FUNC_TANH>, //if want to use tanh for conv layer with bn, use linear on conv then logistic for bn
+    //MaxpoolLayer<4, 2, 1, 1, 1, 1>,
+    //PerceptronFullConnectivityLayer<5, 2, 1, 1, 1, 1, 1,  MTNN_FUNC_RELU, true>,
+    //PerceptronFullConnectivityLayer<6, 1, 1, 1, 1, 1, 1, MTNN_FUNC_LINEAR, true>, //Because of different indexes, then this and layer 1 won't share data
     OutputLayer<7, 1, 1, 1>> Net;
 
-//typedef NeuralNet<
-//    InputLayer<1, 1, 1, 1>,
-//    BatchNormalizationLayer<1, 1, 1, 1, MTNN_FUNC_LINEAR>, //could use to normalize inputs
-//    PerceptronFullConnectivityLayer<2, 1, 1, 1, 1, 1, 1, MTNN_FUNC_LINEAR, false>, //can disable biases
-//    BatchNormalizationLayer<2, 1, 1, 1, MTNN_FUNC_TANH>,
-//    PerceptronFullConnectivityLayer<6, 1, 1, 1, 1, 1, 1, MTNN_FUNC_LINEAR, true>, //Because of different indexes, then this and layer 1 won't share data
-//    OutputLayer<7, 1, 1, 1>> Net;
 
 template<> FeatureMap<1, 1, 1> PerceptronFullConnectivityLayer<2, 1, 1, 1, 1, 1, 1, MTNN_FUNC_LINEAR, false>::weights_global = { .1f };//custom weight initialization
 
@@ -81,8 +74,8 @@ int main(int argc, char** argv)
         {
             //since we are using minibatch normalization and NOT keeping a running total of the statistics,
             //then we must run each sample from the minibatch through the network to collect the data
-            inputs[i][0].at(0, 0) = INPUT_TRANSFORM((i + 1) % 10);
-            labels[i][0].at(0, 0) = OUTPUT_TRANSFORM((i + 1) % 10);
+            inputs[i][0].at(0, 0) = INPUT_TRANSFORM(i % 10);
+            labels[i][0].at(0, 0) = OUTPUT_TRANSFORM(i % 10);
 
 
             if (!BATCH_FUNCTIONS) //if using automated, just train on every input
@@ -104,7 +97,7 @@ int main(int argc, char** argv)
         error = NeuralNetAnalyzer<Net>::mean_error();
         std::cout << "After " << batch << " batches, network has expected error of " << error << std::endl;
 
-        std::cout << "Net value with input (minibatch statistics) of 1: " << OUTPUT_INV_TRANSFORM(Net::template get_batch_activations<Net::last_layer_index>()[0][0].at(0, 0)) << std::endl;
+        std::cout << "Net value with input (minibatch statistics) of 1: " << OUTPUT_INV_TRANSFORM(Net::template get_batch_activations<Net::last_layer_index>()[1][0].at(0, 0)) << std::endl;
 
         //test actual network (difference in values is due to changed weights_global, etc.)
         Net::set_input(FeatureMap<1, 1, 1>{ INPUT_TRANSFORM(1.0f) });
@@ -112,8 +105,6 @@ int main(int argc, char** argv)
         Net::discriminate();
         std::cout << "Net value with input (using population averages) of 1: " << OUTPUT_INV_TRANSFORM(Net::template get_batch_activations<Net::last_layer_index>()[0][0].at(0, 0)) << std::endl;
     }
-    //Net::calculate_population_statistics(inputs); //Find the entire training sets batch statistics after training is done
-    std::cout << Net::template get_layer<4>::activations_population_mean_global[0].at(0, 0) << ',' << Net::template get_layer<4>::biases_aux_data_global[0].at(0, 0) << std::endl;
     Net::save_data<decltype(path)>(); //save to path
 
     //test actual network
