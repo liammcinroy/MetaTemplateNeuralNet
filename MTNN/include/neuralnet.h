@@ -742,7 +742,57 @@ private:
 
     ////Nonstatic thread versions
 
-    //reset target data_global within an instance of a NeuralNet
+    //reset global gradients to locals TODO hogwild
+    template<size_t l> struct update_global_params_impl
+    {
+        update_global_params_impl(NeuralNet<layers...>& net)
+        {
+            using global_layer = get_layer<l>;
+            auto& local_layer = std::get<l, layers...>(net.thread_layers);
+            //update locals
+            {
+                using t = typename global_layer::weights_type;
+                for (size_t d = 0; d < t::size(); ++d)
+                    for (size_t i = 0; i < t::rows(); ++i)
+                        for (size_t j = 0; j < t::cols(); ++j)
+                            global_layer::weights_gradient_global[d].at(i, j) = local_layer.weights_gradient_local[d].at(i, j);
+            }
+            {
+                using t = typename global_layer::biases_type;
+                for (size_t f_0 = 0; f_0 < t::size(); ++f_0)
+                    for (size_t i_0 = 0; i_0 < t::rows(); ++i_0)
+                        for (size_t j_0 = 0; j_0 < t::cols(); ++j_0)
+                            global_layer::biases_gradient_global[f_0].at(i_0, j_0) = local_layer.biases_gradient_local[f_0].at(i_0, j_0);
+            }
+        }
+    };
+
+    //reset thread weights and biases to global values
+    template<size_t l> struct update_thread_impl
+    {
+        update_thread_impl(NeuralNet<layers...>& net)
+        {
+            using global_layer = get_layer<l>;
+            auto& local_layer = std::get<l, layers...>(net.thread_layers);
+            //update locals
+            {
+                using t = typename global_layer::weights_type;
+                for (size_t d = 0; d < t::size(); ++d)
+                    for (size_t i = 0; i < t::rows(); ++i)
+                        for (size_t j = 0; j < t::cols(); ++j)
+                            local_layer.weights_local[d].at(i, j) = global_layer::weights_global[d].at(i, j);
+            }
+            {
+                using t = typename global_layer::biases_type;
+                for (size_t f_0 = 0; f_0 < t::size(); ++f_0)
+                    for (size_t i_0 = 0; i_0 < t::rows(); ++i_0)
+                        for (size_t j_0 = 0; j_0 < t::cols(); ++j_0)
+                            local_layer.biases_local[f_0].at(i_0, j_0) = global_layer::biases_global[f_0].at(i_0, j_0);
+            }
+        }
+    };
+
+    //reset thread activations and derivatives within an instance of a NeuralNet
     template<size_t l> struct reset_thread_impl
     {
         reset_thread_impl(NeuralNet<layers...>& net)
@@ -916,6 +966,9 @@ public:
     template<size_t l> using remove_batch_out_derivs = modify_batch_out_derivs_vector_impl<l, false>;
 
     //nonstatic versions
+
+    template<size_t l> using update_global_params = update_global_params_impl<l>;
+    template<size_t l> using update_thread = update_thread_impl<l>;
 
     template<size_t l> using reset_thread_feature_maps_global = reset_thread_impl<l>;
 
@@ -1110,6 +1163,11 @@ public:
     //backprop for a batch with selected method, returns mean_global error by loss function
     float train_batch_thread(typename get_type<0, layers...>::feature_maps_vector_type& batch_input, typename get_type<sizeof...(layers)-1, layers...>::feature_maps_vector_type& batch_labels, bool already_fed = false);
 
+    //update the global gradients TODO use hogwild? separate class
+    void update_global_gradients();
+
+    //update local weights from the global values
+    void update_thread_weights();
 };
 
 //Hyperparameter declarations
@@ -1701,6 +1759,26 @@ apply_gradient(bool clear_gradient_globals_global)
         loop_up_layers<apply_gradient_layer>(0);
     else
         loop_up_layers<apply_gradient_noclear_layer>(0);
+#endif
+}
+
+template<typename... layers>
+inline void NeuralNet<layers...>::update_global_gradients()
+{
+#if !defined(_MSC_VER)
+    loop_up_layers<update_global_params, NeuralNet<layers...>&>(*this);
+#else
+    loop_up_layers<update_global_params, NeuralNet<layers...>&>(*this, 0);
+#endif
+}
+
+template<typename... layers>
+inline void NeuralNet<layers...>::update_thread_weights()
+{
+#if !defined(_MSC_VER)
+    loop_up_layers<update_thread, NeuralNet<layers...>&>(*this);
+#else
+    loop_up_layers<update_thread, NeuralNet<layers...>&>(*this, 0);
 #endif
 }
 
