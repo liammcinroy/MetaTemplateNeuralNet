@@ -1307,7 +1307,7 @@ discriminate_thread(typename get_type<0, layers...>::feature_maps_vector_type& b
     }
     loop_all_layers<reset_thread_feature_maps_global, NeuralNet<layers...>&>(*this, 0);
 
-    std::get<last_layer_index, layers...>(thread_layers).feed_forwards_local(batch_inputs, get_thread_batch_activations<1>());
+    std::get<0, layers...>(thread_layers).feed_forwards_local(batch_inputs, get_thread_batch_activations<1>());
     loop_up_layers<feed_forwards_batch_thread, NeuralNet<layers...>&>(*this, 0);
 #endif
 
@@ -1613,7 +1613,7 @@ train_batch_thread(typename get_type<0, layers...>::feature_maps_vector_type& ba
         //reset batch activations
         loop_all_layers<reset_thread_feature_maps_global, NeuralNet<layers...>&>(*this);
 
-        std::get<last_layer_index, layers...>(thread_layers).feed_forwards_local(batch_inputs, get_thread_batch_activations<0>());
+        std::get<0, layers...>(thread_layers).feed_forwards_local(batch_inputs, get_thread_batch_activations<0>());
         loop_up_layers<feed_forwards_batch_training_thread, NeuralNet<layers...>&>(*this);
     }
 #else
@@ -1638,7 +1638,7 @@ train_batch_thread(typename get_type<0, layers...>::feature_maps_vector_type& ba
         //reset batch activations
         loop_all_layers<reset_thread_feature_maps_global, NeuralNet<layers...>&>(*this, 0);
 
-        std::get<last_layer_index, layers...>(thread_layers).feed_forwards_local(batch_inputs, get_thread_batch_activations<0>());
+        std::get<0, layers...>(thread_layers).feed_forwards_local(batch_inputs, get_thread_batch_activations<0>());
         loop_up_layers<feed_forwards_batch_training_thread, NeuralNet<layers...>&>(*this, 0);
     }
 #endif

@@ -620,7 +620,7 @@ public:
     }
 
     //batch pass
-    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, bool discriminating = false)
+    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs)
     {
         for (size_t in = 0; in < outputs.size(); ++in)
             feed_forwards(inputs[in], outputs[in], weights_local, biases_local);
@@ -972,7 +972,7 @@ public:
     }
 
     //batch pass
-    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, bool discriminating = false)
+    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs)
     {
         for (size_t in = 0; in < outputs.size(); ++in)
             feed_forwards(inputs[in], outputs[in], weights_local, biases_local);
@@ -1396,7 +1396,7 @@ public:
     }
 
     //batch pass
-    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, bool discriminating = false)
+    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs)
     {
         for (size_t in = 0; in < outputs.size(); ++in)
             feed_forwards_local(inputs[in], outputs[in]);
@@ -1689,7 +1689,7 @@ public:
     }
 
     //batch pass
-    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, bool discriminating = false)
+    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs)
     {
         for (size_t in = 0; in < outputs.size(); ++in)
             feed_forwards(inputs[in], outputs[in], weights_local, biases_local, weights_aux_data_local, biases_aux_data_local);
@@ -1970,7 +1970,7 @@ public:
     }
 
     //batch pass
-    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, bool discriminating = false)
+    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs)
     {
         for (size_t in = 0; in < outputs.size(); ++in)
             feed_forwards(inputs[in], outputs[in], weights_local, biases_local, switches_local);
@@ -2186,7 +2186,7 @@ public:
     }
 
     //batch pass
-    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, bool discriminating = false)
+    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs)
     {
         for (size_t in = 0; in < outputs.size(); ++in)
             feed_forwards(inputs[in], outputs[in], weights_local, biases_local);
@@ -2372,7 +2372,7 @@ public:
     }
 
     //batch pass
-    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, bool discriminating = false)
+    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs)
     {
         for (size_t in = 0; in < outputs.size(); ++in)
             feed_forwards(inputs[in], outputs[in], weights_local, biases_local);
@@ -2555,7 +2555,7 @@ public:
     }
 
     //batch pass
-    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs, bool discriminating = false)
+    void feed_forwards_local(feature_maps_vector_type& inputs, out_feature_maps_vector_type& outputs)
     {
         for (size_t in = 0; in < outputs.size(); ++in)
             feed_forwards(inputs[in], outputs[in], weights_local, biases_local);
